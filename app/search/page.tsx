@@ -49,7 +49,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       )}
 
       {results.length > 0 && (
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {results.map(r => (
             <DramaCard key={r['detail-link']} item={r} variant="popular" />
           ))}

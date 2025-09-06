@@ -17,7 +17,7 @@ export default async function RecentlyAddedPage({ searchParams }: { searchParams
       
       <Pagination page={page} basePath="/recently-added" />
       
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
   {data.results.map((d) => (
           <DramaCard key={d['episode-link']} item={d} variant="recent" />
         ))}

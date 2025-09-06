@@ -17,7 +17,7 @@ export default async function PopularPage({ searchParams }: { searchParams: { pa
       
       <Pagination page={page} basePath="/popular" />
       
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
   {data.results.map((d) => (
           <DramaCard key={d['detail-link']} item={d} variant="popular" />
         ))}

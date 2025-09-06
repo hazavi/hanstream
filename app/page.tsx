@@ -5,13 +5,13 @@ import { fetchRecentCached, fetchPopularCached, RecentItem, PopularItem } from "
 
 function GridSkeleton() {
   return (
-    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className="animate-pulse">
-          <div className="rounded-2xl bg-gray-200/60 dark:bg-gray-800/30 aspect-[3/4] shimmer"></div>
-          <div className="p-4 space-y-2">
-            <div className="h-4 bg-gray-200/60 dark:bg-gray-800/30 rounded shimmer"></div>
-            <div className="h-3 bg-gray-200/40 dark:bg-gray-800/20 rounded w-2/3 shimmer"></div>
+          <div className="rounded-xl bg-gray-200/60 dark:bg-gray-800/30 aspect-[3/4] shimmer"></div>
+          <div className="p-2 sm:p-3 space-y-1 sm:space-y-2">
+            <div className="h-3 sm:h-4 bg-gray-200/60 dark:bg-gray-800/30 rounded shimmer"></div>
+            <div className="h-2 sm:h-3 bg-gray-200/40 dark:bg-gray-800/20 rounded w-2/3 shimmer"></div>
           </div>
         </div>
       ))}
@@ -25,7 +25,7 @@ interface PopularResponse { results: PopularItem[] }
 async function RecentPreview() {
   const data: RecentResponse = await fetchRecentCached();
   return (
-    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
       {data.results.slice(0, 10).map((d) => (
         <DramaCard key={d["episode-link"]} item={d} variant="recent" />
       ))}
@@ -36,7 +36,7 @@ async function RecentPreview() {
 async function PopularPreview() {
   const data: PopularResponse = await fetchPopularCached();
   return (
-    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
       {data.results.slice(0, 10).map((d) => (
         <DramaCard key={d["detail-link"]} item={d} variant="popular" />
       ))}
