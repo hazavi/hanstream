@@ -3,19 +3,26 @@ import Link from 'next/link';
 import type { RecentItem, PopularItem } from '../lib/api';
 import { formatRelativeTime } from '../lib/api';
 
-export function DramaCard({ item, variant }: { item: any; variant: 'recent' | 'popular'; }) {
+type DramaCardProps =
+  | { item: RecentItem; variant: 'recent' }
+  | { item: PopularItem; variant: 'popular' };
+
+export function DramaCard({ item, variant }: DramaCardProps) {
   if (variant === 'recent') {
-    const d: RecentItem = item;
+    const d = item as RecentItem;
     const slug = d['episode-link'].split('/').filter(Boolean)[0];
     const episodeNum = d.episode_number;
     return (
       <Link href={`/${slug}/episode/${episodeNum}`} className="group block animate-slide-up">
         <div className="relative overflow-hidden rounded-2xl glass-card card-hover">
           <div className="relative aspect-[4/5] overflow-hidden">
-            <img 
-              src={d.image} 
-              alt={d.title} 
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+            <Image
+              src={d.image}
+              alt={d.title}
+              fill
+              sizes="(max-width:768px) 50vw, (max-width:1200px) 25vw, 20vw"
+              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+              priority={false}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
@@ -63,10 +70,13 @@ export function DramaCard({ item, variant }: { item: any; variant: 'recent' | 'p
     <Link href={`/${slug}`} className="group block animate-slide-up">
       <div className="relative overflow-hidden rounded-2xl glass-card card-hover">
         <div className="relative aspect-[4/5] overflow-hidden">
-          <img 
-            src={p.image} 
-            alt={p.title} 
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" 
+          <Image
+            src={p.image}
+            alt={p.title}
+            fill
+            sizes="(max-width:768px) 50vw, (max-width:1200px) 25vw, 20vw"
+            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+            priority={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           

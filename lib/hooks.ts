@@ -6,12 +6,7 @@ interface UseApiOptions {
   staleTime?: number;
 }
 
-interface UseApiResult<T> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
-}
+interface UseApiResult<T> { data: T | null; loading: boolean; error: string | null; refetch: () => void }
 
 export function useApi<T>(
   apiFunction: () => Promise<T>,
@@ -45,8 +40,8 @@ export function useApi<T>(
       const result = await apiFunction();
       setData(result);
       setLastFetch(now);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -79,42 +74,24 @@ export function useApi<T>(
 }
 
 // Specific hooks for common API calls
+import { fetchRecent, fetchPopular, fetchDrama, fetchEpisode, fetchSearch, RecentResponse, PopularResponse, SearchResponse, DramaResponse } from './api';
+
 export function useRecentDramas(page: number = 1) {
-  const { fetchRecent } = require('../lib/api');
-  return useApi(() => fetchRecent(page), [page], {
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true
-  });
+  return useApi<RecentResponse>(() => fetchRecent(page), [page], { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: true });
 }
 
 export function usePopularDramas(page: number = 1) {
-  const { fetchPopular } = require('../lib/api');
-  return useApi(() => fetchPopular(page), [page], {
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: true
-  });
+  return useApi<PopularResponse>(() => fetchPopular(page), [page], { staleTime: 10 * 60 * 1000, refetchOnWindowFocus: true });
 }
 
 export function useDramaDetails(slug: string) {
-  const { fetchDrama } = require('../lib/api');
-  return useApi(() => fetchDrama(slug), [slug], {
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    enabled: !!slug
-  });
+  return useApi<DramaResponse>(() => fetchDrama(slug), [slug], { staleTime: 30 * 60 * 1000, enabled: !!slug });
 }
 
 export function useEpisodeDetails(slug: string, episode: string) {
-  const { fetchEpisode } = require('../lib/api');
-  return useApi(() => fetchEpisode(slug, episode), [slug, episode], {
-    staleTime: 60 * 60 * 1000, // 1 hour
-    enabled: !!(slug && episode)
-  });
+  return useApi<unknown>(() => fetchEpisode(slug, episode), [slug, episode], { staleTime: 60 * 60 * 1000, enabled: !!(slug && episode) });
 }
 
 export function useSearchResults(query: string, page: number = 1) {
-  const { fetchSearch } = require('../lib/api');
-  return useApi(() => fetchSearch(query, page), [query, page], {
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    enabled: !!query.trim()
-  });
+  return useApi<SearchResponse>(() => fetchSearch(query, page), [query, page], { staleTime: 15 * 60 * 1000, enabled: !!query.trim() });
 }

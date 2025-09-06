@@ -5,7 +5,7 @@ import { formatRelativeTime } from '../../../../lib/api';
 
 interface Episode {
   id: string;
-  title: string;
+  title?: string;
   type?: string;
   time?: string;
 }
@@ -31,7 +31,6 @@ export function EpisodesNavigation({ episodes, currentEpisode, dramaSlug }: Epis
       
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {displayedEpisodes.map((e) => {
-          const slug = e.id.split('/').filter(Boolean)[0];
           const epNum = e.id.split('/').filter(Boolean).pop();
           const active = epNum === currentEpisode;
           return (

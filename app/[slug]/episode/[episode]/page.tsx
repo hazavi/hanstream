@@ -1,4 +1,4 @@
-import { fetchEpisode } from '../../../../lib/api';
+import { fetchEpisode, EpisodeResponse, EpisodeResult, EpisodeListItem } from '../../../../lib/api';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { EpisodesNavigation } from './EpisodesNavigation';
@@ -6,15 +6,24 @@ import { EpisodesNavigation } from './EpisodesNavigation';
 export async function generateMetadata({ params }: { params: { slug: string; episode: string } }): Promise<Metadata> {
   try {
     const data = await fetchEpisode(params.slug, params.episode);
-    return { title: data?.result?.title || `${params.slug} episode ${params.episode}` };
+    return { title: data.result?.title || `${params.slug} episode ${params.episode}` };
   } catch {
     return { title: `${params.slug} episode ${params.episode}` };
   }
 }
 
 export default async function EpisodePage({ params }: { params: { slug: string; episode: string } }) {
-  const data = await fetchEpisode(params.slug, params.episode);
-  const ep = data.result;
+  const data: EpisodeResponse = await fetchEpisode(params.slug, params.episode);
+  const ep: EpisodeResult = data.result;
+  if (!ep) {
+    return (
+      <div className="max-w-4xl mx-auto py-20 text-center space-y-4">
+        <h1 className="text-2xl font-bold heading">Episode not found</h1>
+        <p className="text-sm text-secondary">The episode you're looking for may have been removed.</p>
+        <Link href={`/${params.slug}`} className="glass-btn mt-4 inline-block">Back to drama</Link>
+      </div>
+    );
+  }
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Breadcrumb Navigation */}
@@ -66,8 +75,8 @@ export default async function EpisodePage({ params }: { params: { slug: string; 
       </div>
 
       {/* Episodes Navigation */}
-      {ep.episodes && (
-        <EpisodesNavigation 
+      {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
+        <EpisodesNavigation
           episodes={ep.episodes}
           currentEpisode={params.episode}
           dramaSlug={params.slug}

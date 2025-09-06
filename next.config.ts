@@ -1,7 +1,26 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.axcdn.top',
+      },      
+      {
+        protocol: 'https',
+        hostname: 'i.mydramalist.com',
+      },      
+      {
+        protocol: 'https',
+        hostname: 'images.asianctv.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'kdrama-one.vercel.app',
+      }
+    ]
+  }
 };
 
 export default nextConfig;

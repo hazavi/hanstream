@@ -1,8 +1,9 @@
 const BASE = 'https://kdrama-one.vercel.app';
 
 // Cache management
-const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
-const pendingRequests = new Map<string, Promise<any>>();
+interface CacheEntry<T> { data: T; timestamp: number; ttl: number }
+const cache = new Map<string, CacheEntry<unknown>>();
+const pendingRequests = new Map<string, Promise<unknown>>();
 
 // Cache TTL in milliseconds
 const CACHE_TTL = {
@@ -21,24 +22,24 @@ function isValidCache(cacheEntry: { timestamp: number; ttl: number }): boolean {
   return Date.now() - cacheEntry.timestamp < cacheEntry.ttl;
 }
 
-async function get(path: string, cacheTTL: number = 0, init?: RequestInit) {
+async function get<T = unknown>(path: string, cacheTTL: number = 0, init?: RequestInit): Promise<T> {
   const cacheKey = getCacheKey(path);
   
   // Check cache first
   if (cacheTTL > 0) {
-    const cached = cache.get(cacheKey);
+    const cached = cache.get(cacheKey) as CacheEntry<T> | undefined;
     if (cached && isValidCache(cached)) {
-      return cached.data;
+      return cached.data as T;
     }
   }
   
   // Check if request is already pending (deduplication)
   if (pendingRequests.has(cacheKey)) {
-    return pendingRequests.get(cacheKey);
+    return pendingRequests.get(cacheKey) as Promise<T>;
   }
   
   // Make new request
-  const requestPromise = fetch(BASE + path, { 
+  const requestPromise: Promise<T> = fetch(BASE + path, { 
     ...init, 
     headers: { 
       ...(init?.headers || {}), 
@@ -47,15 +48,11 @@ async function get(path: string, cacheTTL: number = 0, init?: RequestInit) {
     } 
   }).then(async (res) => {
     if (!res.ok) throw new Error(`Request failed ${res.status}`);
-    const data = await res.json();
+  const data = await res.json() as T;
     
     // Store in cache if TTL specified
     if (cacheTTL > 0) {
-      cache.set(cacheKey, {
-        data,
-        timestamp: Date.now(),
-        ttl: cacheTTL
-      });
+  cache.set(cacheKey, { data, timestamp: Date.now(), ttl: cacheTTL });
     }
     
     return data;
@@ -70,26 +67,40 @@ async function get(path: string, cacheTTL: number = 0, init?: RequestInit) {
   return requestPromise;
 }
 
-export async function fetchRecent(page: number = 1) {
-  return get(`/recently-added${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
+export interface RecentResponse { results: RecentItem[] }
+export interface PopularResponse { results: PopularItem[] }
+export interface SearchResponse { results: SearchResultItem[] }
+export interface DramaResponse { result?: { episodes?: { id: string; type?: string; time?: string }[]; [k: string]: unknown }; [k: string]: any }
+export interface EpisodeListItem { id: string; type?: string; time?: string }
+export interface EpisodeResult {
+  title: string;
+  type?: string;
+  video: string;
+  category?: { title?: string };
+  episodes?: EpisodeListItem[];
+}
+export interface EpisodeResponse { result: EpisodeResult }
+
+export async function fetchRecent(page: number = 1): Promise<RecentResponse> {
+  return get<RecentResponse>(`/recently-added${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
 }
 
-export async function fetchPopular(page: number = 1) {
-  return get(`/popular${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.popular);
+export async function fetchPopular(page: number = 1): Promise<PopularResponse> {
+  return get<PopularResponse>(`/popular${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.popular);
 }
 
-export async function fetchDrama(slug: string) {
-  return get(`/${slug}`, CACHE_TTL.drama);
+export async function fetchDrama(slug: string): Promise<DramaResponse> {
+  return get<DramaResponse>(`/${slug}`, CACHE_TTL.drama);
 }
 
-export async function fetchEpisode(slug: string, episode: string) {
-  return get(`/${slug}/episode/${episode}`, CACHE_TTL.episode);
+export async function fetchEpisode(slug: string, episode: string): Promise<EpisodeResponse> {
+  return get<EpisodeResponse>(`/${slug}/episode/${episode}`, CACHE_TTL.episode);
 }
 
-export async function fetchSearch(query: string, page: number = 1) {
+export async function fetchSearch(query: string, page: number = 1): Promise<SearchResponse> {
   const q = query.trim().toLowerCase().replace(/\s+/g, '-');
   const pageParam = page > 1 ? `&page=${page}` : '';
-  return get(`/search?q=${encodeURIComponent(q)}${pageParam}`, CACHE_TTL.search);
+  return get<SearchResponse>(`/search?q=${encodeURIComponent(q)}${pageParam}`, CACHE_TTL.search);
 }
 
 // Next.js cached versions for server components

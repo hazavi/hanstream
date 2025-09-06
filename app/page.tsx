@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { DramaCard } from "@/components/DramaCard";
-import { fetchRecentCached, fetchPopularCached } from "@/lib/api";
+import { fetchRecentCached, fetchPopularCached, RecentItem, PopularItem } from "@/lib/api";
 
 function GridSkeleton() {
   return (
@@ -19,11 +19,14 @@ function GridSkeleton() {
   );
 }
 
+interface RecentResponse { results: RecentItem[] }
+interface PopularResponse { results: PopularItem[] }
+
 async function RecentPreview() {
-  const data = await fetchRecentCached();
+  const data: RecentResponse = await fetchRecentCached();
   return (
     <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-      {data.results.slice(0, 10).map((d:any) => (
+      {data.results.slice(0, 10).map((d) => (
         <DramaCard key={d["episode-link"]} item={d} variant="recent" />
       ))}
     </div>
@@ -31,10 +34,10 @@ async function RecentPreview() {
 }
 
 async function PopularPreview() {
-  const data = await fetchPopularCached();
+  const data: PopularResponse = await fetchPopularCached();
   return (
     <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-      {data.results.slice(0, 10).map((d:any) => (
+      {data.results.slice(0, 10).map((d) => (
         <DramaCard key={d["detail-link"]} item={d} variant="popular" />
       ))}
     </div>

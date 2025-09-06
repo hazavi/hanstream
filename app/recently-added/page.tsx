@@ -1,12 +1,14 @@
-import { fetchRecent } from '../../lib/api';
+import { fetchRecent, RecentItem } from '../../lib/api';
 import { DramaCard } from '../../components/DramaCard';
 import { Pagination } from '../../components/Pagination';
 
 export const revalidate = 60; // ISR
 
+interface RecentResponse { results: RecentItem[] }
+
 export default async function RecentlyAddedPage({ searchParams }: { searchParams: { page?: string } }) {
   const page = Number(searchParams?.page || '1');
-  const data = await fetchRecent(page);
+  const data: RecentResponse = await fetchRecent(page);
   return (
     <div className="space-y-8">
       <div className="text-center space-y-4">
@@ -16,7 +18,7 @@ export default async function RecentlyAddedPage({ searchParams }: { searchParams
       <Pagination page={page} basePath="/recently-added" />
       
       <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {data.results.map((d:any) => (
+  {data.results.map((d) => (
           <DramaCard key={d['episode-link']} item={d} variant="recent" />
         ))}
       </div>

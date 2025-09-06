@@ -1,4 +1,4 @@
-import { fetchDrama } from '../../lib/api';
+import { fetchDrama, DramaResponse } from '../../lib/api';
 import { formatRelativeTime } from '../../lib/api';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function DramaDetailPage({ params }: { params: { slug: string } }) {
-  const data = await fetchDrama(params.slug);
-  const detail = data.result || data; // response shape per example
+  const data: DramaResponse = await fetchDrama(params.slug);
+  const detail: any = (data as any).result || data;
   return (
     <div className="max-w-5xl mx-auto space-y-10">
       {/* Title Section */}
@@ -86,13 +86,12 @@ export default async function DramaDetailPage({ params }: { params: { slug: stri
           </div>
           
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {detail.episodes.map((ep:any) => {
-              const slug = ep.id.split('/').filter(Boolean)[0];
+    {detail.episodes.map((ep: { id: string; type?: string; time?: string }) => {
               const epNum = ep.id.split('/').filter(Boolean).pop();
               return (
                 <Link 
                   key={ep.id}
-                  href={`/${slug}/episode/${epNum}`} 
+      href={`/${params.slug}/episode/${epNum}`} 
                   className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
                 >
                   <div className="flex items-start gap-3">

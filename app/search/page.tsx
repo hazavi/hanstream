@@ -10,7 +10,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = searchParams.q || '';
   const page = searchParams.page ? parseInt(searchParams.page, 10) || 1 : 1;
 
-  let data: any = null;
+  let data: { results?: SearchResultItem[] } | null = null;
   let results: SearchResultItem[] = [];
   let error: string | null = null;
 
@@ -21,14 +21,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   try {
     data = await fetchSearchCached(query, page);
-    results = data.results || [];
-  } catch (e: any) {
-    error = e.message || 'Failed to fetch search results';
+    results = (data && data.results) ? data.results : [];
+  } catch (e) {
+    error = e instanceof Error ? e.message : 'Failed to fetch search results';
   }
 
   return (
     <div className="space-y-8">
-  <h1 className="text-2xl font-bold heading">Search results for <span className="text-accent">"{query.replace(/-/g, ' ')}"</span></h1>
+  <h1 className="text-2xl font-bold heading">Search results for <span className="text-accent">&quot;{query.replace(/-/g, ' ')}&quot;</span></h1>
 
       {error && (
         <div className="glass-card p-8 text-center text-red-500 text-sm">
