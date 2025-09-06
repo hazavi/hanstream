@@ -1,4 +1,4 @@
-import { fetchEpisode, EpisodeResponse, EpisodeResult, EpisodeListItem } from '../../../../lib/api';
+import { fetchEpisode, EpisodeResponse, EpisodeResult } from '../../../../lib/api';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { EpisodesNavigation } from './EpisodesNavigation';
@@ -19,7 +19,7 @@ export default async function EpisodePage({ params }: { params: { slug: string; 
     return (
       <div className="max-w-4xl mx-auto py-20 text-center space-y-4">
         <h1 className="text-2xl font-bold heading">Episode not found</h1>
-        <p className="text-sm text-secondary">The episode you're looking for may have been removed.</p>
+  <p className="text-sm text-secondary">The episode you&apos;re looking for may have been removed.</p>
         <Link href={`/${params.slug}`} className="glass-btn mt-4 inline-block">Back to drama</Link>
       </div>
     );

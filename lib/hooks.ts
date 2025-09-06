@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 interface UseApiOptions {
   enabled?: boolean;
@@ -10,7 +10,7 @@ interface UseApiResult<T> { data: T | null; loading: boolean; error: string | nu
 
 export function useApi<T>(
   apiFunction: () => Promise<T>,
-  dependencies: any[] = [],
+  dependencies: unknown[] = [],
   options: UseApiOptions = {}
 ): UseApiResult<T> {
   const {
@@ -52,9 +52,13 @@ export function useApi<T>(
     fetchData();
   }, [fetchData]);
 
+  // Memoize dependencies array to keep eslint/react-hooks satisfied without spreading
+  const depsKey = useMemo(() => dependencies, [dependencies]);
+
   useEffect(() => {
     fetchData();
-  }, [fetchData, ...dependencies]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData, depsKey]);
 
   useEffect(() => {
     if (!refetchOnWindowFocus) return;

@@ -70,7 +70,7 @@ async function get<T = unknown>(path: string, cacheTTL: number = 0, init?: Reque
 export interface RecentResponse { results: RecentItem[] }
 export interface PopularResponse { results: PopularItem[] }
 export interface SearchResponse { results: SearchResultItem[] }
-export interface DramaResponse { result?: { episodes?: { id: string; type?: string; time?: string }[]; [k: string]: unknown }; [k: string]: any }
+export interface DramaResponse { result?: { title?: string; image?: string; description?: string; other_names?: string; meta?: Record<string, unknown>; episodes?: { id: string; type?: string; time?: string }[]; [k: string]: unknown } }
 export interface EpisodeListItem { id: string; type?: string; time?: string }
 export interface EpisodeResult {
   title: string;
