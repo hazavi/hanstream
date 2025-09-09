@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'kdrama-one.vercel.app',
+      },
+      {
+        protocol: 'https',
+        hostname: 'wiki.d-addicts.com',
       }
     ]
   }

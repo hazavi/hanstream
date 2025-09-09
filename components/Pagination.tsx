@@ -32,7 +32,7 @@ export function Pagination({ page, basePath }: { page: number; basePath: string;
           {current}
         </div>
         <span className="faint text-sm">/</span>
-        <span className="faint text-sm">∞</span>
+        <span className="faint text-sm">?</span>
       </div>
       
       <div>

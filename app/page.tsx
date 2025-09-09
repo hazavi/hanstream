@@ -1,7 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { DramaCard } from "@/components/DramaCard";
-import { fetchRecentCached, fetchPopularCached, RecentItem, PopularItem } from "@/lib/api";
+import {
+  fetchRecentCached,
+  fetchPopularCached,
+  RecentItem,
+  PopularItem,
+} from "@/lib/api";
 
 function GridSkeleton() {
   return (
@@ -19,14 +24,18 @@ function GridSkeleton() {
   );
 }
 
-interface RecentResponse { results: RecentItem[] }
-interface PopularResponse { results: PopularItem[] }
+interface RecentResponse {
+  results: RecentItem[];
+}
+interface PopularResponse {
+  results: PopularItem[];
+}
 
 async function RecentPreview() {
   const data: RecentResponse = await fetchRecentCached();
   return (
     <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-      {data.results.slice(0, 10).map((d) => (
+      {data.results.slice(0, 12).map((d) => (
         <DramaCard key={d["episode-link"]} item={d} variant="recent" />
       ))}
     </div>
@@ -37,7 +46,7 @@ async function PopularPreview() {
   const data: PopularResponse = await fetchPopularCached();
   return (
     <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-      {data.results.slice(0, 10).map((d) => (
+      {data.results.slice(0, 12).map((d) => (
         <DramaCard key={d["detail-link"]} item={d} variant="popular" />
       ))}
     </div>
@@ -57,10 +66,13 @@ export default async function Home() {
             Beautifully designed, lightning fast, and completely free.
           </p>
         </div> */}
-        
+
         <div className="flex justify-center">
           <div className="flex gap-2 p-1 rounded-2xl glass-surface">
-            <a href="#recent" className="glass-btn !bg-neutral-900 !text-white dark:!bg-white dark:!text-neutral-900">
+            <a
+              href="#recent"
+              className="glass-btn !bg-neutral-900 !text-white dark:!bg-white dark:!text-neutral-900"
+            >
               Recently Added
             </a>
             <a href="#popular" className="glass-btn">
@@ -68,19 +80,29 @@ export default async function Home() {
             </a>
           </div>
         </div>
-        
+
         <div id="recent" className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h2 className="text-2xl font-bold heading">Latest Episodes</h2>
             </div>
-            <Link 
-              href="/recently-added" 
+            <Link
+              href="/recently-added"
               className="glass-btn group !px-4 !py-2"
             >
               View all
-              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </Link>
           </div>
@@ -89,19 +111,26 @@ export default async function Home() {
           </Suspense>
         </div>
       </section>
-      
+
       <section id="popular" className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold heading">Popular Dramas</h2>
           </div>
-          <Link 
-            href="/popular" 
-            className="glass-btn group !px-4 !py-2"
-          >
+          <Link href="/popular" className="glass-btn group !px-4 !py-2">
             View all
-            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </Link>
         </div>
