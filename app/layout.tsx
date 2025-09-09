@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HanStream | Korean Drama Streaming",
-  description: "Watch recently added & popular Korean dramas. Simple, clean, fast UI.",
+  title: "HanStream | Asian Drama Streaming",
+  description: "Watch Asian dramas online for free.",
   metadataBase: new URL("https://hanstream.local"),
   icons: {
     icon: "/favicon.ico",
@@ -49,14 +49,43 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen transition-colors duration-300 bg-neutral-100 dark:bg-neutral-900 text-primary`}> 
-        {/* Flat background (removed gradient overlay) */}
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen transition-colors duration-300 bg-neutral-100 dark:bg-neutral-900 text-primary`}
+      >
         <div className="flex flex-col min-h-screen relative">
-          <header className="sticky top-0 z-50 dark: bg-transparent backdrop-blur-3xl backdrop-saturate-200 shadow-black/5 dark:shadow-black/30">
+          <header className="sticky top-0 z-50 dark: bg-transparent backdrop-blur-sm ">
             <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-              <Link href="/" className="text-2xl font-bold text-gray-500 dark:text-white">
-                HanStream
-              </Link>
+              <div className="flex items-center gap-8">
+                <Link
+                  href="/"
+                  className="text-2xl font-bold text-gray-500 dark:text-white"
+                >
+                  HanStream
+                </Link>
+                
+                {/* Navigation links */}
+                <div className="hidden md:flex items-center gap-6">
+                  <Link
+                    href="/recently-added"
+                    className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    Recently Added
+                  </Link>                 
+                  {/* <Link
+                    href="/recent-movies"
+                    className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    Recent Movies
+                  </Link> */}
+                  <Link
+                    href="/popular"
+                    className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    Popular
+                  </Link>
+                </div>
+              </div>
+
               <div className="flex items-center gap-1">
                 <SearchBar />
 
@@ -67,13 +96,12 @@ export default function RootLayout({
             </nav>
           </header>
           <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
-            <div className="animate-fade-in">
-              {children}
-            </div>
+            <div className="animate-fade-in">{children}</div>
           </main>
-          <footer className="border-t border-neutral-100 dark:border-neutral-800 py-8">
+          <footer className="border-t border-neutral-500/50 py-8">
             <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">
-              HanStream does not store any files on our server, we only linked to the media which is hosted on 3rd party services.
+              HanStream does not store any files on our server, we only linked
+              to the media which is hosted on 3rd party services.
               <br />
               &copy; {new Date().getFullYear()} HanStream • All rights reserved.
             </div>
