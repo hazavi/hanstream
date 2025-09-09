@@ -114,7 +114,7 @@ export default async function DramaDetailPage({
                     )
                   )
                   .map(([key, value]) => {
-                    let displayValue = String(value);
+                    const displayValue = String(value);
                     return (
                       <div key={key} className="flex flex-col">
                         <dt className="font-medium text-gray-400 dark:text-gray-500">
@@ -154,14 +154,14 @@ export default async function DramaDetailPage({
                       )
                   )
                   .map(([key, value]) => {
-                    let displayValue = String(value);
-                    if (key.toLowerCase() === "genre") {
-                      displayValue = displayValue
-                        .split(";")
-                        .map((s) => s.trim())
-                        .filter(Boolean)
-                        .join(", ");
-                    }
+                    const displayValue =
+                      key.toLowerCase() === "genre"
+                        ? String(value)
+                            .split(";")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .join(", ")
+                        : String(value);
                     return (
                       <div key={key} className="flex flex-col">
                         <dt className="font-medium text-gray-400 dark:text-gray-500">
@@ -190,10 +190,6 @@ export default async function DramaDetailPage({
       </div>
 
       {/* Controls section like: Add to favorite/list, Mark as Watching, Paused and Finish */}
-
-
-
-
 
       {/* Episodes Section */}
       {detail.episodes && (
@@ -251,14 +247,13 @@ export default async function DramaDetailPage({
       )}
 
       {/* Drama Recommendations Section */}
-      
+
       {/* <section className="space-y-6">
         <h2 className="text-2xl font-bold heading">You Might Also Like</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Map through recommended dramas
         </div>
       </section>    */}
-
     </div>
   );
 }
