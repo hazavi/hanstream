@@ -57,15 +57,14 @@ export default async function Home() {
   return (
     <div className="space-y-12">
       <section className="space-y-6">
-        {/* <div className="text-center space-y-4 py-8">
+        <div className="text-center space-y-4 py-8">
           <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100">
-            Korean Dramas
+            Asian Dramas
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Discover the latest episodes and most popular ongoing Korean dramas. 
-            Beautifully designed, lightning fast, and completely free.
+            Discover the latest episodes and most popular ongoing Asian dramas.
           </p>
-        </div> */}
+        </div>
 
         <div className="flex justify-center">
           <div className="flex gap-2 p-1 rounded-2xl glass-surface">
