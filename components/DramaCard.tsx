@@ -1,4 +1,6 @@
+"use client";
 import Image from "next/image";
+import { useState } from "react";
 import Link from "next/link";
 import type { RecentItem, PopularItem } from "../lib/api";
 import { formatRelativeTime } from "../lib/api";
@@ -6,6 +8,85 @@ import { formatRelativeTime } from "../lib/api";
 type DramaCardProps =
   | { item: RecentItem; variant: "recent" }
   | { item: PopularItem; variant: "popular" };
+
+function DramaImage({
+  src,
+  alt,
+  ...props
+}: {
+  src: string;
+  alt: string;
+  [key: string]: unknown;
+}) {
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const handleLoad = () => {
+    setLoading(false);
+    setImageLoaded(true);
+  };
+
+  const handleError = () => {
+    setError(true);
+    setLoading(false);
+  };
+
+  return (
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Enhanced skeleton with shimmer effect */}
+      {loading && !error && (
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent animate-shimmer" />
+          {/* Skeleton content indicators */}
+          <div className="absolute bottom-3 left-3 right-3 space-y-2">
+            <div className="h-3 bg-white/30 dark:bg-black/30 rounded animate-pulse" />
+            <div className="h-2 bg-white/20 dark:bg-black/20 rounded w-3/4 animate-pulse" />
+          </div>
+        </div>
+      )}
+
+      {/* Error state with better styling */}
+      {error && (
+        <div className="absolute inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 mx-auto mb-2 opacity-50">
+              <svg
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                className="text-gray-400 dark:text-gray-600"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Image unavailable
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Main image with smooth fade-in */}
+      <Image
+        src={error ? "/file.svg" : src}
+        alt={alt}
+        onError={handleError}
+        onLoad={handleLoad}
+        className={`transition-opacity duration-300 ${
+          imageLoaded ? "opacity-100" : "opacity-0"
+        } ${props.className || ""}`}
+        {...(props as any)}
+        style={{
+          ...((props as any)?.style || {}),
+        }}
+      />
+    </div>
+  );
+}
 
 export function DramaCard({ item, variant }: DramaCardProps) {
   if (variant === "recent") {
@@ -19,7 +100,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
       >
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
           <div className="relative aspect-[4/5] overflow-hidden">
-            <Image
+            <DramaImage
               src={d.image}
               alt={d.title}
               fill
@@ -93,13 +174,13 @@ export function DramaCard({ item, variant }: DramaCardProps) {
     <Link href={`/${slug}`} className="group block animate-slide-up">
       <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
         <div className="relative aspect-[4/5] overflow-hidden">
-          <Image
+          <DramaImage
             src={p.image}
             alt={p.title}
+            priority={false} // Popular items load lazily
             fill
             sizes="(max-width:640px) 33vw, (max-width:768px) 25vw, (max-width:1200px) 20vw, 16vw"
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-            priority={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 

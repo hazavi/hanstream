@@ -23,7 +23,13 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'wiki.d-addicts.com',
       }
-    ]
+    ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    minimumCacheTTL: 3600, // Cache for 1 hour
+    deviceSizes: [640, 768, 1024, 1280, 1600],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   }
 };
 
