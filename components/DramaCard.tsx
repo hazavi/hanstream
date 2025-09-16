@@ -79,9 +79,10 @@ function DramaImage({
         className={`transition-opacity duration-300 ${
           imageLoaded ? "opacity-100" : "opacity-0"
         } ${props.className || ""}`}
-        {...(props as any)}
+        {...(props as Record<string, unknown>)}
         style={{
-          ...((props as any)?.style || {}),
+          ...(((props as Record<string, unknown>)
+            ?.style as React.CSSProperties) || {}),
         }}
       />
     </div>

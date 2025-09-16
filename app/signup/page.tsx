@@ -37,9 +37,9 @@ export default function SignupPage() {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err
-          ? (err as any).message
+          ? (err as { message?: string }).message
           : null;
-      setError((msg as string) || "Failed to sign up");
+      setError(msg ?? "Failed to sign up");
     } finally {
       setLoading(false);
     }
@@ -54,9 +54,9 @@ export default function SignupPage() {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err
-          ? (err as any).message
+          ? (err as { message?: string }).message
           : null;
-      setError((msg as string) || "Google sign-up failed");
+      setError(msg ?? "Google sign-up failed");
     } finally {
       setLoading(false);
     }

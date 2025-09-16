@@ -23,9 +23,9 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err
-          ? (err as any).message
+          ? (err as { message?: string }).message
           : null;
-      setError((msg as string) || "Failed to sign in");
+      setError(msg ?? "Failed to sign in");
     } finally {
       setLoading(false);
     }
@@ -40,9 +40,9 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err
-          ? (err as any).message
+          ? (err as { message?: string }).message
           : null;
-      setError((msg as string) || "Google sign-in failed");
+      setError(msg ?? "Google sign-in failed");
     } finally {
       setLoading(false);
     }
