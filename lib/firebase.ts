@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 
 // If using process.env in a browser environment, add the following declaration
-declare var process: {
+declare const process: {
   env: {
     [key: string]: string | undefined;
   };
