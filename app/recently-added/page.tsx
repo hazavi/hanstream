@@ -11,18 +11,9 @@ interface RecentResponse {
 export default async function RecentlyAddedPage({
   searchParams,
 }: {
-  searchParams: { page?: string } | Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  let params: { page?: string };
-  if (
-    typeof searchParams === "object" &&
-    searchParams !== null &&
-    "then" in searchParams
-  ) {
-    params = await searchParams;
-  } else {
-    params = searchParams as { page?: string };
-  }
+  const params = await searchParams;
   const page = Number(params?.page || "1");
   const data: RecentResponse = await fetchRecent(page);
   return (

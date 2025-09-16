@@ -10,14 +10,9 @@ import type { Metadata } from "next";
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  let resolvedParams: { slug: string };
-  if (typeof params === "object" && params !== null && "then" in params) {
-    resolvedParams = await params;
-  } else {
-    resolvedParams = params as { slug: string };
-  }
+  const resolvedParams = await params;
   try {
     const data = await fetchDrama(resolvedParams.slug);
     return {
@@ -43,14 +38,9 @@ interface DramaDetail {
 export default async function DramaDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  let resolvedParams: { slug: string };
-  if (typeof params === "object" && params !== null && "then" in params) {
-    resolvedParams = await params;
-  } else {
-    resolvedParams = params as { slug: string };
-  }
+  const resolvedParams = await params;
   const data: DramaResponse = await fetchDrama(resolvedParams.slug);
   // Build a normalized detail object
   const base = (data.result || {}) as Record<string, unknown>;

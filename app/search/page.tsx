@@ -3,20 +3,11 @@ import { DramaCard } from "@/components/DramaCard";
 import { redirect } from "next/navigation";
 
 interface SearchPageProps {
-  searchParams: { q?: string; page?: string };
+  searchParams: Promise<{ q?: string; page?: string }>;
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  let params: { q?: string; page?: string };
-  if (
-    typeof searchParams === "object" &&
-    searchParams !== null &&
-    "then" in searchParams
-  ) {
-    params = await searchParams;
-  } else {
-    params = searchParams as { q?: string; page?: string };
-  }
+  const params = await searchParams;
   const query = params.q || "";
   const page = params.page ? parseInt(params.page, 10) || 1 : 1;
 
