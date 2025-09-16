@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
 import { DramaCard } from "./DramaCard";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { PopularItem } from "@/lib/api";
 import Link from "next/link";
 
 export function ContinueWatching() {
@@ -84,10 +85,6 @@ export function ContinueWatching() {
 
         <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {continueWatchingItems.slice(0, 12).map((item) => {
-            const progressPercent = item.totalEpisodes
-              ? (item.currentEpisode / item.totalEpisodes) * 100
-              : 0;
-
             return (
               <div key={item.slug} className="relative group">
                 <DramaCard
@@ -96,9 +93,7 @@ export function ContinueWatching() {
                       "detail-link": item.slug,
                       title: item.title,
                       image: item.image || "",
-                      "latest-episode": "",
-                      language: "",
-                    } as any
+                    } as PopularItem
                   }
                   variant="popular"
                 />

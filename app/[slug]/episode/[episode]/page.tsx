@@ -1,10 +1,4 @@
-import {
-  fetchEpisode,
-  EpisodeResponse,
-  EpisodeResult,
-  fetchDrama,
-  DramaResponse,
-} from "../../../../lib/api";
+import { fetchEpisode, EpisodeResult, fetchDrama } from "../../../../lib/api";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { EpisodesNavigation } from "./EpisodesNavigation";

@@ -111,7 +111,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Helper function to sanitize watchlist items for Firebase
-  const sanitizeWatchlistItem = (item: any): WatchlistItem => {
+  const sanitizeWatchlistItem = (
+    item: Partial<WatchlistItem> & { status: WatchStatus }
+  ): WatchlistItem => {
     return {
       slug: item.slug || "",
       title: item.title || "",

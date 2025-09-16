@@ -4,8 +4,10 @@ import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
 import { PROFILE_TEMPLATES, WatchStatus } from "@/lib/types";
 import { DramaCard } from "@/components/DramaCard";
+import { PopularItem } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const WATCH_STATUSES: { status: WatchStatus; label: string; color: string }[] =
   [
@@ -27,7 +29,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     updateDisplayName,
     updateProfilePicture,
     getWatchlistByStatus,
-    updateTopRanking,
     removeFromTopRanking,
   } = useProfile();
   const router = useRouter();
@@ -108,10 +109,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             >
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center relative overflow-hidden">
                 {currentTemplate ? (
-                  <img
+                  <Image
                     src={currentTemplate.url}
                     alt={currentTemplate.name}
-                    className="w-20 h-20 rounded-full"
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 rounded-full object-cover"
                   />
                 ) : (
                   <span className="text-2xl text-white font-bold">
@@ -164,10 +167,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           : "border-neutral-300 dark:border-neutral-600 hover:border-accent/50"
                       }`}
                     >
-                      <img
+                      <Image
                         src={template.url}
                         alt={template.name}
-                        className="w-full h-full rounded-full"
+                        width={48}
+                        height={48}
+                        className="w-full h-full rounded-full object-cover"
                       />
                     </button>
                   ))}
@@ -288,9 +293,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       "detail-link": item.slug,
                       title: item.title,
                       image: item.image || "",
-                      "latest-episode": "",
-                      language: "",
-                    } as any
+                    } as PopularItem
                   }
                   variant="popular"
                 />
@@ -369,9 +372,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   {ranking ? (
                     <div className="flex-1 flex items-center gap-3">
                       {ranking.image && (
-                        <img
+                        <Image
                           src={ranking.image}
                           alt={ranking.title}
+                          width={48}
+                          height={64}
                           className="w-12 h-16 object-cover rounded"
                         />
                       )}
