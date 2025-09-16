@@ -1,5 +1,8 @@
 import { fetchDrama, DramaResponse } from "../../lib/api";
 import { formatRelativeTime } from "../../lib/api";
+import { WatchlistButton } from "@/components/WatchlistButton";
+import { DescriptionSection } from "@/components/DescriptionSection";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -80,6 +83,14 @@ export default async function DramaDetailPage({
   };
   return (
     <div className="max-w-5xl mx-auto space-y-10">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: detail.title, isActive: true },
+        ]}
+      />
+
       {/* Title Section */}
       <div>
         <h1 className="text-3xl lg:text-4xl font-bold heading leading-tight">
@@ -93,14 +104,21 @@ export default async function DramaDetailPage({
         <div className="flex-shrink-0 flex flex-col gap-4 w-72 lg:w-80">
           {/* Poster Image */}
           {detail.image && (
-            <Image
-              src={detail.image}
-              alt={detail.title}
-              width={520}
-              height={700}
-              className="w-full h-auto rounded-2xl object-cover aspect-[3/4] bg-neutral-100 dark:bg-neutral-800 shadow-lg"
-              priority
-            />
+            <div className="relative">
+              <Image
+                src={detail.image}
+                alt={detail.title}
+                width={520}
+                height={700}
+                className="w-full h-auto rounded-2xl object-cover aspect-[3/4] bg-neutral-100 dark:bg-neutral-800 shadow-lg"
+                priority
+              />
+              <WatchlistButton
+                slug={resolvedParams.slug}
+                title={detail.title}
+                image={detail.image}
+              />
+            </div>
           )}
 
           {/* Meta Information Section (Below Image, Full Width) */}
@@ -179,17 +197,10 @@ export default async function DramaDetailPage({
 
           {/* Description Section */}
           {detail.description && (
-            <div className="bg-transparent backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-xl p-4">
-              <div
-                className="prose prose-neutral dark:prose-invert max-w-none text-secondary leading-relaxed text-sm"
-                dangerouslySetInnerHTML={{ __html: detail.description }}
-              />
-            </div>
+            <DescriptionSection description={detail.description} />
           )}
         </div>
       </div>
-
-      {/* Controls section like: Add to favorite/list, Mark as Watching, Paused and Finish */}
 
       {/* Episodes Section */}
       {detail.episodes && (

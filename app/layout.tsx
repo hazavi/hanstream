@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { SearchBar } from "../components/SearchBar";
 import { AuthProvider } from "@/lib/auth";
+import { ProfileProvider } from "@/lib/profile";
 import { AuthStatus } from "@/components/AuthStatus";
 
 const geistSans = Geist({
@@ -56,63 +57,65 @@ export default function RootLayout({
       >
         <div className="flex flex-col min-h-screen relative">
           <AuthProvider>
-            <header className="sticky top-0 z-50 dark: bg-transparent backdrop-blur-sm ">
-              <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-8">
-                  <Link
-                    href="/"
-                    className="text-2xl font-bold text-gray-500 dark:text-white"
-                  >
-                    HanStream
-                  </Link>
-
-                  {/* Navigation links */}
-                  <div className="hidden md:flex items-center gap-6">
+            <ProfileProvider>
+              <header className="sticky top-0 z-50 dark: bg-transparent backdrop-blur-sm ">
+                <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                  <div className="flex items-center gap-8">
                     <Link
-                      href="/recently-added"
-                      className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      href="/"
+                      className="text-2xl font-bold text-gray-500 dark:text-white"
                     >
-                      Recently Added
+                      HanStream
                     </Link>
-                    {/* <Link
+
+                    {/* Navigation links */}
+                    <div className="hidden md:flex items-center gap-6">
+                      <Link
+                        href="/recently-added"
+                        className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        Recently Added
+                      </Link>
+                      {/* <Link
                     href="/recent-movies"
                     className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     Recent Movies
                   </Link> */}
-                    <Link
-                      href="/popular"
-                      className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      Popular
-                    </Link>
+                      <Link
+                        href="/popular"
+                        className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        Popular
+                      </Link>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-1">
-                  <SearchBar />
+                  <div className="flex items-center gap-1">
+                    <SearchBar />
 
-                  <div className="ml-2">
-                    <ThemeToggle />
+                    <div className="ml-2">
+                      <ThemeToggle />
+                    </div>
+                    <div className="ml-4">
+                      <AuthStatus />
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <AuthStatus />
-                  </div>
+                </nav>
+              </header>
+              <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
+                <div className="animate-fade-in">{children}</div>
+              </main>
+              <footer className="border-t border-neutral-500/50 py-8">
+                <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">
+                  HanStream does not store any files on our server, we only
+                  linked to the media which is hosted on 3rd party services.
+                  <br />
+                  &copy; {new Date().getFullYear()} HanStream • All rights
+                  reserved.
                 </div>
-              </nav>
-            </header>
-            <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
-              <div className="animate-fade-in">{children}</div>
-            </main>
-            <footer className="border-t border-neutral-500/50 py-8">
-              <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">
-                HanStream does not store any files on our server, we only linked
-                to the media which is hosted on 3rd party services.
-                <br />
-                &copy; {new Date().getFullYear()} HanStream • All rights
-                reserved.
-              </div>
-            </footer>
+              </footer>
+            </ProfileProvider>
           </AuthProvider>
         </div>
       </body>

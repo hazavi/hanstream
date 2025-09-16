@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { RecentItem, PopularItem } from "../lib/api";
 import { formatRelativeTime } from "../lib/api";
@@ -22,6 +22,9 @@ function DramaImage({
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Validate src - if empty, undefined, or invalid, trigger error state immediately
+  const isValidSrc = src && src.trim() !== "";
+
   const handleLoad = () => {
     setLoading(false);
     setImageLoaded(true);
@@ -31,6 +34,14 @@ function DramaImage({
     setError(true);
     setLoading(false);
   };
+
+  // If src is invalid, set error state immediately
+  useEffect(() => {
+    if (!isValidSrc) {
+      setError(true);
+      setLoading(false);
+    }
+  }, [isValidSrc]);
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -71,20 +82,22 @@ function DramaImage({
       )}
 
       {/* Main image with smooth fade-in */}
-      <Image
-        src={error ? "/file.svg" : src}
-        alt={alt}
-        onError={handleError}
-        onLoad={handleLoad}
-        className={`transition-opacity duration-300 ${
-          imageLoaded ? "opacity-100" : "opacity-0"
-        } ${props.className || ""}`}
-        {...(props as Record<string, unknown>)}
-        style={{
-          ...(((props as Record<string, unknown>)
-            ?.style as React.CSSProperties) || {}),
-        }}
-      />
+      {isValidSrc && (
+        <Image
+          src={error ? "/file.svg" : src}
+          alt={alt}
+          onError={handleError}
+          onLoad={handleLoad}
+          className={`transition-opacity duration-300 ${
+            imageLoaded ? "opacity-100" : "opacity-0"
+          } ${props.className || ""}`}
+          {...(props as Record<string, unknown>)}
+          style={{
+            ...(((props as Record<string, unknown>)
+              ?.style as React.CSSProperties) || {}),
+          }}
+        />
+      )}
     </div>
   );
 }

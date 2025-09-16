@@ -2,32 +2,26 @@ import {
   fetchEpisode,
   EpisodeResponse,
   EpisodeResult,
+  fetchDrama,
+  DramaResponse,
 } from "../../../../lib/api";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { EpisodesNavigation } from "./EpisodesNavigation";
+import { EpisodeProgressTracker } from "@/components/EpisodeProgressTracker";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
-// Some Next.js canary / future typings allow params to be delivered as a Promise.
-// To stay compatible with those stricter PageProps constraints we accept either
-// a plain object or a thenable and normalize.
+// Next.js 15 PageProps constraint requires params to be Promise<any> | undefined
+// So we make params always a Promise to satisfy the constraint
 type EpisodeRouteParams = { slug: string; episode: string };
 interface EpisodePageProps {
-  params: EpisodeRouteParams | Promise<EpisodeRouteParams>;
-}
-
-async function resolveParams(
-  p: EpisodePageProps["params"]
-): Promise<EpisodeRouteParams> {
-  if (p && typeof p === "object" && "then" in p) {
-    return await p;
-  }
-  return p as EpisodeRouteParams;
+  params: Promise<EpisodeRouteParams>;
 }
 
 export async function generateMetadata({
   params,
 }: EpisodePageProps): Promise<Metadata> {
-  const { slug, episode } = await resolveParams(params);
+  const { slug, episode } = await params;
   try {
     const data = await fetchEpisode(slug, episode);
     return { title: data.result?.title || `${slug} episode ${episode}` };
@@ -37,9 +31,16 @@ export async function generateMetadata({
 }
 
 export default async function EpisodePage({ params }: EpisodePageProps) {
-  const { slug, episode } = await resolveParams(params);
-  const data: EpisodeResponse = await fetchEpisode(slug, episode);
-  const ep: EpisodeResult = data.result;
+  const { slug, episode } = await params;
+
+  // Fetch both episode and drama data in parallel
+  const [episodeData, dramaData] = await Promise.all([
+    fetchEpisode(slug, episode),
+    fetchDrama(slug),
+  ]);
+
+  const ep: EpisodeResult = episodeData.result;
+  const drama = dramaData.result;
 
   if (!ep) {
     return (
@@ -57,30 +58,37 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      {/* Progress Tracker - Auto tracks episode viewing */}
+      <EpisodeProgressTracker
+        slug={slug}
+        episode={episode}
+        title={
+          ep.category?.title ||
+          drama?.title ||
+          slug
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (l: string) => l.toUpperCase())
+        }
+        image={drama?.image}
+        totalEpisodes={ep.episodes?.length}
+      />
+
       {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-2 text-sm text-secondary">
-        <Link
-          href={`/${slug}`}
-          className="hover:text-primary transition-colors font-medium"
-        >
-          {ep.category?.title ||
-            slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-        </Link>
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-        <span className="text-primary font-medium">Episode {episode}</span>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          {
+            label:
+              ep.category?.title ||
+              drama?.title ||
+              slug
+                .replace(/-/g, " ")
+                .replace(/\b\w/g, (l: string) => l.toUpperCase()),
+            href: `/${slug}`,
+          },
+          { label: `Episode ${episode}`, isActive: true },
+        ]}
+      />
 
       {/* Episode Title */}
       <div className="space-y-3">

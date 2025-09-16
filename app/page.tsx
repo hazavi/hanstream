@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { DramaCard } from "@/components/DramaCard";
+import { ContinueWatching } from "@/components/ContinueWatching";
 import {
   fetchRecentCached,
   fetchPopularCached,
@@ -79,6 +80,11 @@ export default async function Home() {
             </a>
           </div>
         </div>
+
+        {/* Continue Watching Section - Only shown for logged in users */}
+        <Suspense fallback={null}>
+          <ContinueWatching />
+        </Suspense>
 
         <div id="recent" className="space-y-6">
           <div className="flex items-center justify-between">
