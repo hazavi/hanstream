@@ -12,26 +12,15 @@ export async function generateMetadata({
 }: {
   params: { slug: string; episode: string };
 }): Promise<Metadata> {
-  let resolvedParams: { slug: string; episode: string };
-  if (typeof params === "object" && params !== null && "then" in params) {
-    resolvedParams = await params;
-  } else {
-    resolvedParams = params as { slug: string; episode: string };
-  }
+  // params is already a plain object provided by Next.js
+  const { slug, episode } = params;
   try {
-    const data = await fetchEpisode(
-      resolvedParams.slug,
-      resolvedParams.episode
-    );
+    const data = await fetchEpisode(slug, episode);
     return {
-      title:
-        data.result?.title ||
-        `${resolvedParams.slug} episode ${resolvedParams.episode}`,
+      title: data.result?.title || `${slug} episode ${episode}`,
     };
   } catch {
-    return {
-      title: `${resolvedParams.slug} episode ${resolvedParams.episode}`,
-    };
+    return { title: `${slug} episode ${episode}` };
   }
 }
 
@@ -40,17 +29,10 @@ export default async function EpisodePage({
 }: {
   params: { slug: string; episode: string };
 }) {
-  let resolvedParams: { slug: string; episode: string };
-  if (typeof params === "object" && params !== null && "then" in params) {
-    resolvedParams = await params;
-  } else {
-    resolvedParams = params as { slug: string; episode: string };
-  }
-  const data: EpisodeResponse = await fetchEpisode(
-    resolvedParams.slug,
-    resolvedParams.episode
-  );
+  const { slug, episode } = params;
+  const data: EpisodeResponse = await fetchEpisode(slug, episode);
   const ep: EpisodeResult = data.result;
+
   if (!ep) {
     return (
       <div className="max-w-4xl mx-auto py-20 text-center space-y-4">
@@ -58,27 +40,23 @@ export default async function EpisodePage({
         <p className="text-sm text-secondary">
           The episode you&apos;re looking for may have been removed.
         </p>
-        <Link
-          href={`/${resolvedParams.slug}`}
-          className="glass-btn mt-4 inline-block"
-        >
+        <Link href={`/${slug}`} className="glass-btn mt-4 inline-block">
           Back to drama
         </Link>
       </div>
     );
   }
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm text-secondary">
         <Link
-          href={`/${resolvedParams.slug}`}
+          href={`/${slug}`}
           className="hover:text-primary transition-colors font-medium"
         >
           {ep.category?.title ||
-            resolvedParams.slug
-              .replace(/-/g, " ")
-              .replace(/\b\w/g, (l) => l.toUpperCase())}
+            slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
         </Link>
         <svg
           className="w-4 h-4"
@@ -93,9 +71,7 @@ export default async function EpisodePage({
             d="M9 5l7 7-7 7"
           />
         </svg>
-        <span className="text-primary font-medium">
-          Episode {resolvedParams.episode}
-        </span>
+        <span className="text-primary font-medium">Episode {episode}</span>
       </nav>
 
       {/* Episode Title */}
@@ -136,8 +112,8 @@ export default async function EpisodePage({
       {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
         <EpisodesNavigation
           episodes={ep.episodes}
-          currentEpisode={resolvedParams.episode}
-          dramaSlug={resolvedParams.slug}
+          currentEpisode={episode}
+          dramaSlug={slug}
         />
       )}
     </div>
