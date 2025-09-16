@@ -7,29 +7,37 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { EpisodesNavigation } from "./EpisodesNavigation";
 
+// Some Next.js canary / future typings allow params to be delivered as a Promise.
+// To stay compatible with those stricter PageProps constraints we accept either
+// a plain object or a thenable and normalize.
+type EpisodeRouteParams = { slug: string; episode: string };
+interface EpisodePageProps {
+  params: EpisodeRouteParams | Promise<EpisodeRouteParams>;
+}
+
+async function resolveParams(
+  p: EpisodePageProps["params"]
+): Promise<EpisodeRouteParams> {
+  if (p && typeof p === "object" && "then" in p) {
+    return await p;
+  }
+  return p as EpisodeRouteParams;
+}
+
 export async function generateMetadata({
   params,
-}: {
-  params: { slug: string; episode: string };
-}): Promise<Metadata> {
-  // params is already a plain object provided by Next.js
-  const { slug, episode } = params;
+}: EpisodePageProps): Promise<Metadata> {
+  const { slug, episode } = await resolveParams(params);
   try {
     const data = await fetchEpisode(slug, episode);
-    return {
-      title: data.result?.title || `${slug} episode ${episode}`,
-    };
+    return { title: data.result?.title || `${slug} episode ${episode}` };
   } catch {
     return { title: `${slug} episode ${episode}` };
   }
 }
 
-export default async function EpisodePage({
-  params,
-}: {
-  params: { slug: string; episode: string };
-}) {
-  const { slug, episode } = params;
+export default async function EpisodePage({ params }: EpisodePageProps) {
+  const { slug, episode } = await resolveParams(params);
   const data: EpisodeResponse = await fetchEpisode(slug, episode);
   const ep: EpisodeResult = data.result;
 
