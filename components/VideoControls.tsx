@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 interface VideoControlsProps {
-  episodes: any[];
+  episodes: { id: string }[];
   currentEpisode: string;
   slug: string;
 }
