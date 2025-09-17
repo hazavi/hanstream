@@ -68,6 +68,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                   ? data.topRankings
                   : [],
               };
+              console.log("Profile loaded from Firebase");
               setProfile(normalizedProfile);
             } else {
               // Create default profile in Firebase

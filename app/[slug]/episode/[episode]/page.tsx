@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { EpisodesNavigation } from "./EpisodesNavigation";
 import { EpisodeProgressTracker } from "@/components/EpisodeProgressTracker";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { VideoControls } from "@/components/VideoControls";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 // Next.js 15 PageProps constraint requires params to be Promise<any> | undefined
 // So we make params always a Promise to satisfy the constraint
@@ -107,16 +109,33 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
       </div>
 
       {/* Video Player */}
-      <div className="relative">
-        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-neutral-900 shadow-2xl">
-          <iframe
-            src={ep.video}
-            allowFullScreen
-            className="w-full h-full border-0"
-            title={ep.title}
-          />
-        </div>
+      <div className="relative video-container">
+        <VideoPlayer src={ep.video} title={ep.title} currentEpisode={episode} />
       </div>
+
+      {/* Video Controls */}
+      {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
+        <VideoControls
+          episodes={ep.episodes}
+          currentEpisode={episode}
+          slug={slug}
+        />
+      )}
+
+      {/* Episode Progress Tracker */}
+      <EpisodeProgressTracker
+        slug={slug}
+        episode={episode}
+        title={
+          ep.category?.title ||
+          drama?.title ||
+          slug
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (l: string) => l.toUpperCase())
+        }
+        image={drama?.image}
+        totalEpisodes={ep.episodes?.length}
+      />
 
       {/* Episodes Navigation */}
       {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
