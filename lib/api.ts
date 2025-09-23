@@ -68,6 +68,18 @@ async function get<T = unknown>(path: string, cacheTTL: number = 0, init?: Reque
 }
 
 export interface RecentResponse { results: RecentItem[] }
+export interface RecentMoviesResponse { 
+  result: { 
+    movies: RecentMovieItem[]
+    page: number
+    pagination: {
+      current: number
+      last: number
+      next?: number
+      pages: number[]
+    }
+  } 
+}
 export interface PopularResponse { results: PopularItem[] }
 export interface SearchResponse { results: SearchResultItem[] }
 export interface DramaResponse { result?: { title?: string; image?: string; description?: string; other_names?: string; meta?: Record<string, unknown>; episodes?: { id: string; type?: string; time?: string }[]; [k: string]: unknown } }
@@ -83,6 +95,10 @@ export interface EpisodeResponse { result: EpisodeResult }
 
 export async function fetchRecent(page: number = 1): Promise<RecentResponse> {
   return get<RecentResponse>(`/recently-added${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
+}
+
+export async function fetchRecentMovies(page: number = 1): Promise<RecentMoviesResponse> {
+  return get<RecentMoviesResponse>(`/recent-movies${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
 }
 
 export async function fetchPopular(page: number = 1): Promise<PopularResponse> {
@@ -204,8 +220,17 @@ export async function batchRequests<T>(requests: (() => Promise<T>)[], batchSize
 
 export type RecentItem = {
   'episode-link': string;
-  episode_number: number;
+  episode_number?: number;
   image: string;
+  time: string;
+  title: string;
+  type: string;
+};
+
+export type RecentMovieItem = {
+  ep: string;
+  id: string;
+  img: string;
   time: string;
   title: string;
   type: string;

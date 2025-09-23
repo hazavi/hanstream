@@ -76,17 +76,17 @@ export default function RootLayout({
                       >
                         Recently Added
                       </Link>
-                      {/* <Link
-                    href="/recent-movies"
-                    className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    Recent Movies
-                  </Link> */}
                       <Link
                         href="/popular"
                         className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                       >
                         Popular
+                      </Link>
+                      <Link
+                        href="/recent-movies"
+                        className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        Recent Movies
                       </Link>
                     </div>
                   </div>
@@ -94,11 +94,12 @@ export default function RootLayout({
                   <div className="flex items-center gap-1">
                     <SearchBar />
 
-                    <div className="ml-2">
-                      <ThemeToggle />
-                    </div>
                     <div className="ml-4">
                       <AuthStatus />
+                    </div>
+
+                    <div className="ml-10">
+                      <ThemeToggle />
                     </div>
                   </div>
                 </nav>
