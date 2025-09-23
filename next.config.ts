@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'images.asianctv.co',
+      },      
+      {
+        protocol: 'https',
+        hostname: 'kissasian.mba',
       },
       {
         protocol: 'https',
