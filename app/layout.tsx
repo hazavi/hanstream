@@ -7,7 +7,6 @@ import { SearchBar } from "../components/SearchBar";
 import { AuthProvider } from "@/lib/auth";
 import { ProfileProvider } from "@/lib/profile";
 import { AuthStatus } from "@/components/AuthStatus";
-import { TopAiringSection } from "@/components/TopAiringSection";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

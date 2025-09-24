@@ -116,7 +116,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
       {/* Video Controls */}
       {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
         <VideoControls
-          episodes={ep.episodes}
+          episodes={ep.episodes.filter((ep): ep is { id: string } => Boolean(ep.id))}
           currentEpisode={episode}
           slug={slug}
         />
@@ -140,7 +140,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
       {/* Episodes Navigation */}
       {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
         <EpisodesNavigation
-          episodes={ep.episodes}
+          episodes={ep.episodes.filter((ep): ep is { id: string; title?: string; type?: string; time?: string } => Boolean(ep.id))}
           currentEpisode={episode}
           dramaSlug={slug}
         />

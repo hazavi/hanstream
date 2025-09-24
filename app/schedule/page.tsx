@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { ScheduleDramaCard } from "@/components/ScheduleDramaCard";
 import { DayCard } from "@/components/DayCard";
 
 interface Drama {
