@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { DayCard } from "@/components/DayCard";
 
+// Force dynamic rendering to prevent build-time prerendering
+export const dynamic = "force-dynamic";
+
 interface Drama {
   countdown: string;
   countdown_seconds: number;
