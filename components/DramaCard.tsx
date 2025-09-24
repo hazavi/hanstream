@@ -107,11 +107,15 @@ export function DramaCard({ item, variant }: DramaCardProps) {
     const d = item as RecentItem;
     const slug = d["episode-link"].split("/").filter(Boolean)[0];
     const episodeNum = d.episode_number;
+
+    // For movies (no episode number), use the direct episode link
+    // For TV shows, construct the episode URL
+    const href = episodeNum
+      ? `/${slug}/episode/${episodeNum}`
+      : d["episode-link"];
+
     return (
-      <Link
-        href={`/${slug}/episode/${episodeNum}`}
-        className="group block animate-slide-up"
-      >
+      <Link href={href} className="group block animate-slide-up">
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
           <div className="relative aspect-[4/5] overflow-hidden">
             <DramaImage

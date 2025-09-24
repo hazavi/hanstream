@@ -83,7 +83,7 @@ export function ContinueWatching() {
           </Link>
         </div>
 
-        <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
           {continueWatchingItems.slice(0, 12).map((item) => {
             return (
               <div key={item.slug} className="relative group">

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { DramaCard } from "@/components/DramaCard";
 import { ContinueWatching } from "@/components/ContinueWatching";
+import { TopAiringSection } from "@/components/TopAiringSection";
 import {
   fetchRecentCached,
   fetchPopularCached,
@@ -35,8 +36,8 @@ interface PopularResponse {
 async function RecentPreview() {
   const data: RecentResponse = await fetchRecentCached();
   return (
-    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-      {data.results.slice(0, 12).map((d) => (
+    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5">
+      {data.results.slice(0, 10).map((d) => (
         <DramaCard key={d["episode-link"]} item={d} variant="recent" />
       ))}
     </div>
@@ -46,8 +47,8 @@ async function RecentPreview() {
 async function PopularPreview() {
   const data: PopularResponse = await fetchPopularCached();
   return (
-    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-      {data.results.slice(0, 12).map((d) => (
+    <div className="grid gap-3 grid-cols-3 sm:gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5">
+      {data.results.slice(0, 10).map((d) => (
         <DramaCard key={d["detail-link"]} item={d} variant="popular" />
       ))}
     </div>
@@ -56,45 +57,75 @@ async function PopularPreview() {
 
 export default async function Home() {
   return (
-    <div className="space-y-12">
-      <section className="space-y-6">
-        <div className="text-center space-y-4 py-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100">
-            Asian Dramas
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Discover the latest episodes and most popular ongoing Asian dramas.
-          </p>
-        </div>
-
-        <div className="flex justify-center">
-          <div className="flex gap-2 p-1 rounded-2xl glass-surface">
-            <a
-              href="#recent"
-              className="glass-btn !bg-neutral-900 !text-white dark:!bg-white dark:!text-neutral-900"
-            >
-              Recently Added
-            </a>
-            <a href="#popular" className="glass-btn">
-              Popular
-            </a>
+    <div className="flex gap-8">
+      <div className="flex-1 animate-fade-in space-y-12">
+        <section className="space-y-6">
+          <div className="text-center space-y-4 py-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100">
+              Asian Dramas
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Discover the latest episodes and most popular ongoing Asian
+              dramas.
+            </p>
           </div>
-        </div>
 
-        {/* Continue Watching Section - Only shown for logged in users */}
-        <Suspense fallback={null}>
-          <ContinueWatching />
-        </Suspense>
+          <div className="flex justify-center">
+            <div className="flex gap-2 p-1 rounded-2xl glass-surface">
+              <a
+                href="#recent"
+                className="glass-btn !bg-neutral-900 !text-white dark:!bg-white dark:!text-neutral-900"
+              >
+                Recently Added
+              </a>
+              <a href="#popular" className="glass-btn">
+                Popular
+              </a>
+            </div>
+          </div>
 
-        <div id="recent" className="space-y-6">
+          {/* Continue Watching Section - Only shown for logged in users */}
+          <Suspense fallback={null}>
+            <ContinueWatching />
+          </Suspense>
+
+          <div id="recent" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold heading">Latest Episodes</h2>
+              </div>
+              <Link
+                href="/recently-added"
+                className="glass-btn group !px-4 !py-2"
+              >
+                View all
+                <svg
+                  className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </Link>
+            </div>
+            <Suspense fallback={<GridSkeleton />}>
+              <RecentPreview />
+            </Suspense>
+          </div>
+        </section>
+
+        <section id="popular" className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold heading">Latest Episodes</h2>
+              <h2 className="text-2xl font-bold heading">Popular Dramas</h2>
             </div>
-            <Link
-              href="/recently-added"
-              className="glass-btn group !px-4 !py-2"
-            >
+            <Link href="/popular" className="glass-btn group !px-4 !py-2">
               View all
               <svg
                 className="w-4 h-4 group-hover:translate-x-1 transition-transform"
@@ -112,37 +143,15 @@ export default async function Home() {
             </Link>
           </div>
           <Suspense fallback={<GridSkeleton />}>
-            <RecentPreview />
+            <PopularPreview />
           </Suspense>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section id="popular" className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold heading">Popular Dramas</h2>
-          </div>
-          <Link href="/popular" className="glass-btn group !px-4 !py-2">
-            View all
-            <svg
-              className="w-4 h-4 group-hover:translate-x-1 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </Link>
-        </div>
-        <Suspense fallback={<GridSkeleton />}>
-          <PopularPreview />
-        </Suspense>
-      </section>
+      {/* TopAiringSection - Only on homepage */}
+      <div className="hidden lg:block">
+        <TopAiringSection />
+      </div>
     </div>
   );
 }

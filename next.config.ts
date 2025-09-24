@@ -11,7 +11,35 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'i.axcdn.top',
-      },      
+      },    
+      {
+        protocol: 'https',
+        hostname: 'i0.wp.com',
+      },  
+      {
+        protocol: 'https',
+        hostname: 'i1.wp.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i2.wp.com',
+      }, 
+      {
+        protocol: 'https',
+        hostname: 'i3.wp.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'vcover-vt-pic.wetvinfo.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.wp.com',
+      },  
+      {
+        protocol: 'https',
+        hostname: 'kissasian.dk',
+      },
       {
         protocol: 'https',
         hostname: 'i.mydramalist.com',

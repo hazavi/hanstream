@@ -7,6 +7,7 @@ import { SearchBar } from "../components/SearchBar";
 import { AuthProvider } from "@/lib/auth";
 import { ProfileProvider } from "@/lib/profile";
 import { AuthStatus } from "@/components/AuthStatus";
+import { TopAiringSection } from "@/components/TopAiringSection";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,12 +72,6 @@ export default function RootLayout({
                     {/* Navigation links */}
                     <div className="hidden md:flex items-center gap-6">
                       <Link
-                        href="/recently-added"
-                        className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                      >
-                        Recently Added
-                      </Link>
-                      <Link
                         href="/popular"
                         className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                       >
@@ -87,6 +82,12 @@ export default function RootLayout({
                         className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                       >
                         Recent Movies
+                      </Link>
+                      <Link
+                        href="/schedule"
+                        className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        Schedule
                       </Link>
                     </div>
                   </div>
@@ -105,7 +106,7 @@ export default function RootLayout({
                 </nav>
               </header>
               <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
-                <div className="animate-fade-in">{children}</div>
+                {children}
               </main>
               <footer className="border-t border-neutral-500/50 py-8">
                 <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">

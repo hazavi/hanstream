@@ -82,8 +82,8 @@ export interface RecentMoviesResponse {
 }
 export interface PopularResponse { results: PopularItem[] }
 export interface SearchResponse { results: SearchResultItem[] }
-export interface DramaResponse { result?: { title?: string; image?: string; description?: string; other_names?: string; meta?: Record<string, unknown>; episodes?: { id: string; type?: string; time?: string }[]; [k: string]: unknown } }
-export interface EpisodeListItem { id: string; type?: string; time?: string }
+export interface DramaResponse { result?: { title?: string; image?: string; description?: string; other_names?: string; meta?: Record<string, unknown>; episodes?: { id?: string; type?: string; time?: string }[]; [k: string]: unknown } }
+export interface EpisodeListItem { id?: string; type?: string; time?: string }
 export interface EpisodeResult {
   title: string;
   type?: string;
@@ -117,6 +117,10 @@ export async function fetchSearch(query: string, page: number = 1): Promise<Sear
   const q = query.trim().toLowerCase().replace(/\s+/g, '-');
   const pageParam = page > 1 ? `&page=${page}` : '';
   return get<SearchResponse>(`/search?q=${encodeURIComponent(q)}${pageParam}`, CACHE_TTL.search);
+}
+
+export async function fetchPopularSeries(): Promise<PopularSeriesResponse> {
+  return get<PopularSeriesResponse>('/popular-series', CACHE_TTL.popular);
 }
 
 // Next.js cached versions for server components
@@ -247,6 +251,29 @@ export type SearchResultItem = {
   image: string;
   title: string;
 };
+
+export type PopularSeriesItem = {
+  detail_link: string;
+  genres: string[];
+  id: string[];
+  image: string;
+  range: 'weekly' | 'monthly' | 'all';
+  rank: number;
+  rating_percent: number;
+  score: number;
+  slug: string;
+  title: string;
+};
+
+export interface PopularSeriesResponse {
+  result: {
+    lists: {
+      weekly: PopularSeriesItem[];
+      monthly: PopularSeriesItem[];
+      all: PopularSeriesItem[];
+    };
+  };
+}
 
 // Utility function to format relative time
 export function formatRelativeTime(timeString: string): string {

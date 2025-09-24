@@ -31,7 +31,13 @@ interface DramaDetail {
   image?: string;
   description?: string;
   other_names?: string;
-  episodes?: { id: string; type?: string; time?: string }[];
+  episodes?: {
+    episode: number;
+    episode_link: string;
+    type?: string;
+    release_date?: string;
+    title?: string;
+  }[];
   meta?: Record<string, unknown>;
 }
 
@@ -67,7 +73,13 @@ export default async function DramaDetailPage({
     other_names:
       typeof base.other_names === "string" ? base.other_names : undefined,
     episodes: Array.isArray(base.episodes)
-      ? (base.episodes as { id: string; type?: string; time?: string }[])
+      ? (base.episodes as {
+          episode: number;
+          episode_link: string;
+          type?: string;
+          release_date?: string;
+          title?: string;
+        }[])
       : undefined,
     meta: rootMeta || undefined,
   };
@@ -202,47 +214,48 @@ export default async function DramaDetailPage({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {detail.episodes.map(
-              (ep: { id: string; type?: string; time?: string }) => {
-                const epNum = ep.id.split("/").filter(Boolean).pop();
-                return (
-                  <Link
-                    key={ep.id}
-                    href={`/${resolvedParams.slug}/episode/${epNum}`}
-                    className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-lg glass-surface flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary">
-                          {epNum}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-primary truncate hover:text-accent transition-colors">
-                            Episode {epNum}
-                          </p>
-                          {ep.type && (
-                            <span
-                              className={`badge ${
-                                ep.type === "SUB" ? "badge-sub" : "badge-dub"
-                              }`}
-                            >
-                              {ep.type}
-                            </span>
-                          )}
-                        </div>
-                        {ep.time && (
-                          <p className="text-xs faint">
-                            {formatRelativeTime(ep.time)}
-                          </p>
+            {detail.episodes.map((ep) => {
+              // Handle cases where episode_link might be undefined or null
+              if (!ep.episode_link) return null;
+
+              const epNum = ep.episode;
+              return (
+                <Link
+                  key={ep.episode_link}
+                  href={`/${resolvedParams.slug}/episode/${epNum}`}
+                  className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg glass-surface flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary">
+                        {epNum}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-primary truncate hover:text-accent transition-colors">
+                          Episode {epNum}
+                        </p>
+                        {ep.type && (
+                          <span
+                            className={`badge ${
+                              ep.type === "SUB" ? "badge-sub" : "badge-dub"
+                            }`}
+                          >
+                            {ep.type}
+                          </span>
                         )}
                       </div>
+                      {ep.release_date && (
+                        <p className="text-xs faint">
+                          {formatRelativeTime(ep.release_date)}
+                        </p>
+                      )}
                     </div>
-                  </Link>
-                );
-              }
-            )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
