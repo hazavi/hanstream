@@ -22,7 +22,16 @@ interface ProfileContextType {
   removeFromWatchlist: (slug: string) => Promise<void>;
   rateItem: (slug: string, rating: number) => Promise<void>;
   updateTopRanking: (ranking: TopRanking) => Promise<void>;
+  addToTopRanking: (
+    rank: number,
+    slug: string,
+    title: string,
+    image?: string,
+    rating?: number,
+    isPublic?: boolean
+  ) => Promise<void>;
   removeFromTopRanking: (rank: number) => Promise<void>;
+  reorderTopRankings: (fromRank: number, toRank: number) => Promise<void>;
   getWatchlistByStatus: (status: WatchStatus) => WatchlistItem[];
   // Continue watching functions
   addToContinueWatching: (
@@ -248,12 +257,73 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     await saveProfileToFirebase(updatedProfile);
   };
 
+  const addToTopRanking = async (
+    rank: number,
+    slug: string,
+    title: string,
+    image?: string,
+    rating: number = 10,
+    isPublic: boolean = true
+  ) => {
+    if (!profile) return;
+
+    const newRanking: TopRanking = {
+      rank,
+      slug,
+      title,
+      image,
+      rating,
+      isPublic,
+    };
+
+    // Remove existing ranking at this position
+    const filtered = profile.topRankings.filter((r) => r.rank !== rank);
+
+    const updatedProfile = {
+      ...profile,
+      topRankings: [...filtered, newRanking].sort((a, b) => a.rank - b.rank),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveProfileToFirebase(updatedProfile);
+  };
+
   const removeFromTopRanking = async (rank: number) => {
     if (!profile) return;
 
     const updatedProfile = {
       ...profile,
       topRankings: profile.topRankings.filter((r) => r.rank !== rank),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveProfileToFirebase(updatedProfile);
+  };
+
+  const reorderTopRankings = async (fromRank: number, toRank: number) => {
+    if (!profile || fromRank === toRank) return;
+
+    const rankings = [...profile.topRankings];
+    const fromItem = rankings.find((r) => r.rank === fromRank);
+    const toItem = rankings.find((r) => r.rank === toRank);
+
+    if (!fromItem) return;
+
+    // Remove the items being moved
+    const filtered = rankings.filter(
+      (r) => r.rank !== fromRank && r.rank !== toRank
+    );
+
+    // Create new ranking items with swapped positions
+    const newRankings = [...filtered];
+    newRankings.push({ ...fromItem, rank: toRank });
+    if (toItem) {
+      newRankings.push({ ...toItem, rank: fromRank });
+    }
+
+    const updatedProfile = {
+      ...profile,
+      topRankings: newRankings.sort((a, b) => a.rank - b.rank),
       updatedAt: new Date().toISOString(),
     };
 
@@ -369,7 +439,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     removeFromWatchlist,
     rateItem,
     updateTopRanking,
+    addToTopRanking,
     removeFromTopRanking,
+    reorderTopRankings,
     getWatchlistByStatus,
     addToContinueWatching,
     updateContinueWatchingProgress,

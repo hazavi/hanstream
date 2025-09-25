@@ -6,8 +6,8 @@ import type { RecentItem, PopularItem } from "../lib/api";
 import { formatRelativeTime } from "../lib/api";
 
 type DramaCardProps =
-  | { item: RecentItem; variant: "recent" }
-  | { item: PopularItem; variant: "popular" };
+  | { item: RecentItem; variant: "recent"; disabled?: boolean }
+  | { item: PopularItem; variant: "popular"; disabled?: boolean };
 
 function DramaImage({
   src,
@@ -102,7 +102,7 @@ function DramaImage({
   );
 }
 
-export function DramaCard({ item, variant }: DramaCardProps) {
+export function DramaCard({ item, variant, disabled = false }: DramaCardProps) {
   if (variant === "recent") {
     const d = item as RecentItem;
     const slug = d["episode-link"].split("/").filter(Boolean)[0];
@@ -188,53 +188,60 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
   const p: PopularItem = item;
   const slug = p["detail-link"].replace(/^\//, "");
-  return (
-    <Link href={`/${slug}`} className="group block animate-slide-up">
-      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
-        <div className="relative aspect-[4/5] overflow-hidden">
-          <DramaImage
-            src={p.image}
-            alt={p.title}
-            priority={false} // Popular items load lazily
-            fill
-            sizes="(max-width:640px) 33vw, (max-width:768px) 25vw, (max-width:1200px) 20vw, 16vw"
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <svg
-                className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
+  const cardContent = (
+    <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
+      <div className="relative aspect-[4/5] overflow-hidden">
+        <DramaImage
+          src={p.image}
+          alt={p.title}
+          priority={false} // Popular items load lazily
+          fill
+          sizes="(max-width:640px) 33vw, (max-width:768px) 25vw, (max-width:1200px) 20vw, 16vw"
+          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <svg
+              className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
           </div>
         </div>
-
-        <div className="p-2 sm:p-3 md:p-4">
-          <h3
-            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-            title={p.title}
-            style={{
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {p.title}
-          </h3>
-        </div>
       </div>
+
+      <div className="p-2 sm:p-3 md:p-4">
+        <h3
+          className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+          title={p.title}
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {p.title}
+        </h3>
+      </div>
+    </div>
+  );
+
+  return disabled ? (
+    <div className="group block animate-slide-up">{cardContent}</div>
+  ) : (
+    <Link href={`/${slug}`} className="group block animate-slide-up">
+      {cardContent}
     </Link>
   );
 }

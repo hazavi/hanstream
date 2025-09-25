@@ -181,6 +181,54 @@ export async function fetchSearchCached(query: string, page: number = 1) {
   return response.json();
 }
 
+// Client-side search function (calls internal API route)
+export async function fetchSearchClient(query: string, page: number = 1) {
+  const cacheKey = `search-${query}-${page}`;
+  
+  // Check client-side cache first
+  const cached = cache.get(cacheKey) as CacheEntry<any> | undefined;
+  if (cached && isValidCache(cached)) {
+    return cached.data;
+  }
+  
+  const q = query.trim().toLowerCase().replace(/\s+/g, '-');
+  const pageParam = page > 1 ? `&page=${page}` : '';
+  
+  // Use internal API route instead of external API directly
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+  
+  try {
+    const response = await fetch(`/api/search?q=${encodeURIComponent(q)}${pageParam}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'public, max-age=300'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`Request failed ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Cache the result
+    cache.set(cacheKey, {
+      data,
+      timestamp: Date.now(),
+      ttl: CACHE_TTL.search
+    });
+    
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 // Cache utilities
 export function clearCache() {
   cache.clear();
