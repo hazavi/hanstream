@@ -38,10 +38,7 @@ export function ScheduleDramaCard({ drama }: ScheduleDramaCardProps) {
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-200"
             sizes="40px"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = fallbackImage;
-            }}
+            unoptimized
           />
         </div>
         <div className="flex-1 min-w-0">

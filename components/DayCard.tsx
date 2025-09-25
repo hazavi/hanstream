@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScheduleDramaCard } from "@/components/ScheduleDramaCard";
 
 interface Drama {
@@ -30,10 +30,15 @@ interface DayCardProps {
 
 export function DayCard({ day, schedule }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const today = new Date()
-    .toLocaleDateString("en", { weekday: "long" })
-    .toLowerCase();
-  const isToday = day.toLowerCase() === today;
+  const [isToday, setIsToday] = useState(false);
+
+  // Use useEffect to avoid hydration mismatch with date comparison
+  useEffect(() => {
+    const today = new Date()
+      .toLocaleDateString("en", { weekday: "long" })
+      .toLowerCase();
+    setIsToday(day.toLowerCase() === today);
+  }, [day]);
 
   const dramasToShow = isExpanded
     ? schedule.dramas

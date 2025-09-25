@@ -86,7 +86,7 @@ export function TopAiringSection() {
 
   if (loading) {
     return (
-      <aside className="w-64 mt-16">
+      <aside className="w-64 mt-50">
         <div className="glass-card p-4">
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
           <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-4" />

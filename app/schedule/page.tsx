@@ -39,20 +39,76 @@ interface ScheduleResponse {
 }
 
 async function fetchSchedule(): Promise<ScheduleResponse> {
-  const baseUrl =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : process.env.NEXT_PUBLIC_BASE_URL || "https://hanstream.vercel.app";
+  try {
+    console.log("Fetching schedule data...");
 
-  const res = await fetch(`${baseUrl}/api/schedule`, {
-    next: { revalidate: 3600 }, // Cache for 1 hour
-  });
+    // Fetch directly from the external API to avoid SSR issues with internal API routes
+    const res = await fetch("https://kdrama-one.vercel.app/schedule", {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Accept: "application/json",
+      },
+    });
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch schedule");
+    if (!res.ok) {
+      console.error(`External API failed with status: ${res.status}`);
+      throw new Error(
+        `Failed to fetch schedule: ${res.status} ${res.statusText}`
+      );
+    }
+
+    const data = await res.json();
+
+    // Validate the response structure
+    if (!data || !data.result || !data.result.days) {
+      console.error("Invalid schedule data structure:", data);
+
+      // Return fallback structure
+      return {
+        error: null,
+        page: "schedule",
+        result: {
+          days: {
+            monday: { count: 0, day: "Monday", dramas: [] },
+            tuesday: { count: 0, day: "Tuesday", dramas: [] },
+            wednesday: { count: 0, day: "Wednesday", dramas: [] },
+            thursday: { count: 0, day: "Thursday", dramas: [] },
+            friday: { count: 0, day: "Friday", dramas: [] },
+            saturday: { count: 0, day: "Saturday", dramas: [] },
+            sunday: { count: 0, day: "Sunday", dramas: [] },
+          },
+          schedule_note: "Schedule data temporarily unavailable",
+        },
+        status: 200,
+      };
+    }
+
+    console.log("Successfully fetched schedule data");
+    return data;
+  } catch (error) {
+    console.error("Error in fetchSchedule:", error);
+
+    // Return fallback data instead of throwing
+    return {
+      error: null,
+      page: "schedule",
+      result: {
+        days: {
+          monday: { count: 0, day: "Monday", dramas: [] },
+          tuesday: { count: 0, day: "Tuesday", dramas: [] },
+          wednesday: { count: 0, day: "Wednesday", dramas: [] },
+          thursday: { count: 0, day: "Thursday", dramas: [] },
+          friday: { count: 0, day: "Friday", dramas: [] },
+          saturday: { count: 0, day: "Saturday", dramas: [] },
+          sunday: { count: 0, day: "Sunday", dramas: [] },
+        },
+        schedule_note: "Unable to load schedule data at this time",
+      },
+      status: 200,
+    };
   }
-
-  return res.json();
 }
 
 function ScheduleSkeleton() {
@@ -113,7 +169,11 @@ async function ScheduleContent() {
           Weekly Schedule
         </h1>
         <p className="schedule-drama-meta max-w-xl mx-auto text-xs sm:text-sm leading-relaxed">
-          T{schedule_note}
+          {schedule_note
+            ? schedule_note.startsWith("T")
+              ? schedule_note
+              : `T${schedule_note}`
+            : "Weekly drama schedule"}
         </p>
       </div>
 
