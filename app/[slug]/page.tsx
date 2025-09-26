@@ -3,6 +3,7 @@ import { formatRelativeTime } from "../../lib/api";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { DescriptionSection } from "@/components/DescriptionSection";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { DramaRatingButton } from "@/components/DramaRatingButton";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -120,6 +121,11 @@ export default async function DramaDetailPage({
                 title={detail.title}
                 image={detail.image}
               />
+              <DramaRatingButton
+                slug={resolvedParams.slug}
+                title={detail.title}
+                image={detail.image}
+              />
             </div>
           )}
 
@@ -214,14 +220,14 @@ export default async function DramaDetailPage({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {detail.episodes.map((ep) => {
+            {detail.episodes.map((ep, index) => {
               // Handle cases where episode_link might be undefined or null
               if (!ep.episode_link) return null;
 
               const epNum = ep.episode;
               return (
                 <Link
-                  key={ep.episode_link}
+                  key={`${ep.episode_link}-${index}-${epNum}`}
                   href={`/${resolvedParams.slug}/episode/${epNum}`}
                   className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
                 >

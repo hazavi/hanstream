@@ -453,6 +453,105 @@
   font-weight: 800;
 }
 
+.watchlist-rating-badge.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.watchlist-rating-badge.clickable:hover {
+  background: rgba(0, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.add-rating-button {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border: none;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-rating-button:hover {
+  background: rgba(0, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.add-rating-button .text {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* Drama Detail Page Rating Button */
+.drama-rating-badge {
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border: none;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+}
+
+.drama-rating-badge.clickable:hover {
+  background: rgba(0, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.drama-rating-badge .score {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.drama-add-rating-button {
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border: none;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drama-add-rating-button:hover {
+  background: rgba(0, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.drama-add-rating-button .text {
+  color: #ffffff;
+  font-weight: 800;
+}
+
 /* Pagination Styles */
 .pagination-container {
   display: flex;
@@ -512,7 +611,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--muted-foreground);
+  color: var(--foreground);
 }
 
 .dark .pagination-number {
@@ -1163,7 +1262,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: var(--spacing-4);
 }
 
@@ -1412,7 +1511,7 @@ body {
 
 /* Text scale & color utilities (centralized) */
 .text-primary { color: var(--foreground) !important; }
-.text-secondary { color: var(--muted) !important; }
+.text-secondary { color: #6b7280 !important; } /* Dark gray that works in both modes */
 .text-tertiary { color: color-mix(in srgb, var(--muted) 75%, var(--background)) !important; }
 .text-accent { color: var(--accent) !important; }
 .hover\:text-accent:hover { color: var(--accent-hover) !important; }
@@ -1421,7 +1520,7 @@ body {
 .heading { color: var(--foreground); font-weight: 700; }
 .heading-muted { color: var(--muted); font-weight: 600; }
 .subtle { color: var(--muted); opacity: .85; }
-.faint { color: var(--muted); opacity: .6; }
+.faint { color: var(--foreground); opacity: .6; }
 
 /* Theme toggle specific styling */
 .theme-toggle-btn {
@@ -1437,6 +1536,9 @@ body {
 .dark .theme-toggle-btn:hover {
   color: #ffffff !important; /* White on hover in dark mode */
 }
+.dark .text-secondary {
+  color: var(--muted-foreground) !important; /* Better contrast in dark mode */
+}
 
 /* Pagination number styling */
 .pagination-current {
@@ -1450,7 +1552,7 @@ body {
 
 /* In dark mode adjust tertiary & faint for contrast */
 .dark .text-tertiary { color: color-mix(in srgb, var(--muted) 65%, #000) !important; }
-.dark .faint { opacity: .55; }
+.dark .faint { color: var(--muted-foreground); opacity: .75; }
 
 /* Glass utilities */
 .glass-surface {
@@ -2111,13 +2213,13 @@ a { color: inherit; }
 .top-airing-rank:not(.top-3) {
   background: rgba(156, 163, 175, 0.1);
   border: 1px solid rgba(156, 163, 175, 0.2);
-  color: var(--muted);
+  color: var(--foreground);
 }
 
 .dark .top-airing-rank:not(.top-3) {
   background: rgba(75, 85, 99, 0.2);
   border: 1px solid rgba(75, 85, 99, 0.3);
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 
 /* Top Airing Tabs */

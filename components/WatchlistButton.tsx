@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
 import { WatchStatus } from "@/lib/types";
+import { Portal } from "./Portal";
 
 interface WatchlistButtonProps {
   slug: string;
@@ -126,8 +127,11 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
     addToWatchlist,
     updateWatchlistStatus,
     removeFromWatchlist,
+    rateItem,
   } = useProfile();
   const [isOpen, setIsOpen] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [tempRating, setTempRating] = useState(10);
 
   if (!user || !profile) {
     return null;
@@ -145,6 +149,12 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
       } else {
         // Update existing status
         await updateWatchlistStatus(slug, status);
+
+        // If marking as finished, show rating modal
+        if (status === "finished") {
+          setTempRating(existingItem.rating || 10);
+          setShowRatingModal(true);
+        }
       }
     } else {
       // Add new item to watchlist
@@ -154,6 +164,12 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
         image,
         status,
       });
+
+      // If adding as finished, show rating modal
+      if (status === "finished") {
+        setTempRating(10);
+        setShowRatingModal(true);
+      }
     }
     setIsOpen(false);
   };
@@ -280,6 +296,108 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
             </div>
           </div>
         </>
+      )}
+
+      {/* Rating Modal */}
+      {showRatingModal && (
+        <Portal>
+          <div
+            className="search-modal-overlay z-[9999]"
+            onClick={() => setShowRatingModal(false)}
+          >
+            <div className="search-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="search-modal-header">
+                <h3 className="text-lg font-semibold">Rate this Drama</h3>
+                <button
+                  onClick={() => setShowRatingModal(false)}
+                  className="close-btn"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="search-modal-body">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="search-result-image">
+                    {image && (
+                      <img
+                        src={image}
+                        alt={title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-foreground">
+                      {title}
+                    </h4>
+                    <p className="text-sm text-secondary">Drama</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Your Rating (1-10)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="0.1"
+                        value={tempRating}
+                        onChange={(e) => setTempRating(Number(e.target.value))}
+                        className="flex-1 rating-slider"
+                      />
+                      <div className="rating-display">
+                        <svg
+                          className="w-4 h-4"
+                          fill="#fbbf24"
+                          stroke="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <span className="score">{tempRating}/10</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <button
+                      onClick={async () => {
+                        await rateItem(slug, tempRating);
+                        setShowRatingModal(false);
+                      }}
+                      className="btn-primary flex-1"
+                    >
+                      Save Rating
+                    </button>
+                    <button
+                      onClick={() => setShowRatingModal(false)}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
       )}
     </div>
   );

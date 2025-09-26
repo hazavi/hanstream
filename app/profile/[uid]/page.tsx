@@ -32,6 +32,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     addToTopRanking,
     removeFromTopRanking,
     reorderTopRankings,
+    rateItem,
   } = useProfile();
   const router = useRouter();
 
@@ -55,6 +56,15 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [editingRankingItem, setEditingRankingItem] = useState<number | null>(
     null
   );
+  const [showWatchlistRatingModal, setShowWatchlistRatingModal] =
+    useState(false);
+  const [selectedWatchlistItem, setSelectedWatchlistItem] = useState<{
+    slug: string;
+    title: string;
+    image?: string;
+    rating?: number;
+  } | null>(null);
+  const [tempWatchlistRating, setTempWatchlistRating] = useState(10);
 
   const ITEMS_PER_PAGE = 10; // 2 rows of 5 items each
 
@@ -139,7 +149,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const currentTemplate = PROFILE_TEMPLATES.find(
     (t) => t.id === profile.profilePicture
   );
-  const watchlistItems = getWatchlistByStatus(activeTab);
+  const watchlistItems = getWatchlistByStatus(activeTab).sort((a, b) => {
+    // Sort by dateAdded timestamp in descending order (newest first)
+    const aTime = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
+    const bTime = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
+    return bTime - aTime;
+  });
 
   // Pagination logic
   const totalPages = Math.ceil(watchlistItems.length / ITEMS_PER_PAGE);
@@ -221,6 +236,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     setTempRating(ranking.rating || 10);
     setEditingRankingItem(ranking.rank);
     setShowRatingModal(true);
+  };
+
+  const handleEditWatchlistRating = (item: {
+    slug: string;
+    title: string;
+    image?: string;
+    rating?: number;
+  }) => {
+    setSelectedWatchlistItem(item);
+    setTempWatchlistRating(item.rating || 10);
+    setShowWatchlistRatingModal(true);
   };
 
   return (
@@ -420,7 +446,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     </div>
                   )}
                   {item.rating && (
-                    <div className="watchlist-rating-badge">
+                    <button
+                      onClick={() =>
+                        handleEditWatchlistRating({
+                          slug: item.slug,
+                          title: item.title,
+                          image: item.image,
+                          rating: item.rating,
+                        })
+                      }
+                      className="watchlist-rating-badge clickable"
+                    >
                       <svg
                         className="w-3 h-3"
                         fill="#fbbf24"
@@ -430,7 +466,35 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                       <span className="score">{item.rating}/10</span>
-                    </div>
+                    </button>
+                  )}
+                  {item.status === "finished" && !item.rating && (
+                    <button
+                      onClick={() =>
+                        handleEditWatchlistRating({
+                          slug: item.slug,
+                          title: item.title,
+                          image: item.image,
+                          rating: undefined,
+                        })
+                      }
+                      className="add-rating-button"
+                    >
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                        />
+                      </svg>
+                      <span className="text">Add Rating</span>
+                    </button>
                   )}
                 </div>
               ))}
@@ -628,7 +692,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       } as PopularItem
                     }
                     variant="popular"
-                    disabled={editingRanking}
                   />
                   <div className="ranking-title">{ranking.title}</div>
                   <div className="ranking-rating-overlay">
@@ -646,9 +709,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   {editingRanking && (
                     <>
                       <button
-                        onClick={async () =>
-                          await removeFromTopRanking(ranking.rank)
-                        }
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await removeFromTopRanking(ranking.rank);
+                        }}
                         className="remove-ranking-button"
                       >
                         <svg
@@ -666,7 +731,11 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleEditRanking(ranking)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleEditRanking(ranking);
+                        }}
                         className="edit-rating-button"
                       >
                         <svg
@@ -1011,6 +1080,130 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       setShowRatingModal(false);
                       setEditingRankingItem(null);
                       setSelectedDrama(null);
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Watchlist Rating Modal */}
+      {showWatchlistRatingModal && selectedWatchlistItem && (
+        <div
+          className="search-modal-overlay"
+          onClick={() => setShowWatchlistRatingModal(false)}
+        >
+          <div className="search-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="search-modal-header">
+              <h3 className="text-lg font-semibold">
+                {selectedWatchlistItem.rating ? "Edit Rating" : "Add Rating"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowWatchlistRatingModal(false);
+                  setSelectedWatchlistItem(null);
+                }}
+                className="close-btn"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="search-modal-body">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="search-result-image">
+                  {selectedWatchlistItem.image && (
+                    <Image
+                      src={selectedWatchlistItem.image}
+                      alt={selectedWatchlistItem.title}
+                      width={48}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-foreground">
+                    {selectedWatchlistItem.title}
+                  </h4>
+                  <p className="text-sm text-secondary">Drama</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Your Rating (1-10)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="0.1"
+                      value={tempWatchlistRating}
+                      onChange={(e) =>
+                        setTempWatchlistRating(Number(e.target.value))
+                      }
+                      className="flex-1 rating-slider"
+                    />
+                    <div className="rating-display">
+                      <svg
+                        className="w-4 h-4"
+                        fill="#fbbf24"
+                        stroke="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      <span className="score">{tempWatchlistRating}/10</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <button
+                    onClick={async () => {
+                      if (selectedWatchlistItem) {
+                        try {
+                          await rateItem(
+                            selectedWatchlistItem.slug,
+                            tempWatchlistRating
+                          );
+                        } catch (error) {
+                          console.error("Error updating rating:", error);
+                        }
+                      }
+                      setShowWatchlistRatingModal(false);
+                      setSelectedWatchlistItem(null);
+                    }}
+                    className="btn-primary flex-1"
+                  >
+                    {selectedWatchlistItem.rating
+                      ? "Update Rating"
+                      : "Add Rating"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowWatchlistRatingModal(false);
+                      setSelectedWatchlistItem(null);
                     }}
                     className="btn-secondary"
                   >
