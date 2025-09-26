@@ -83,7 +83,7 @@ export function SearchBar() {
         if (selectedIndex >= 0 && suggestions[selectedIndex]) {
           selectSuggestion(suggestions[selectedIndex]);
         } else {
-          handleSubmit(e as any);
+          handleSubmit(e as React.FormEvent<HTMLInputElement>);
         }
         break;
       case "Escape":
@@ -294,7 +294,7 @@ export function SearchBar() {
             <div className="search-dropdown-footer px-3 py-2 rounded-b-lg">
               <p className="text-xs text-center leading-relaxed">
                 Press <kbd className="search-dropdown-kbd">Enter</kbd> to search
-                for "{query}" or click a suggestion
+                for &quot;{query}&quot; or click a suggestion
               </p>
             </div>
           )}

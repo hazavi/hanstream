@@ -43,14 +43,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [profileUid, setProfileUid] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<PopularItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [dragOverItem, setDragOverItem] = useState<number | null>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [selectedDrama, setSelectedDrama] = useState<any>(null);
+  const [selectedDrama, setSelectedDrama] = useState<PopularItem | null>(null);
   const [tempRating, setTempRating] = useState(10);
 
   const ITEMS_PER_PAGE = 10; // 2 rows of 5 items each
@@ -820,7 +820,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <div className="search-results">
                 {searchResults.map((drama, index) => (
                   <button
-                    key={drama.id || drama.slug || drama.title || index}
+                    key={drama['detail-link'] || drama.title || index}
                     onClick={() => {
                       setSelectedDrama(drama);
                       setShowSearchModal(false);
@@ -941,7 +941,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           await addToTopRanking(
                             selectedSlot,
                             selectedDrama["detail-link"] ||
-                              selectedDrama.slug ||
+                              selectedDrama['detail-link'] ||
                               "",
                             selectedDrama.title,
                             selectedDrama.image,

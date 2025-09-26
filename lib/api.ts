@@ -186,7 +186,7 @@ export async function fetchSearchClient(query: string, page: number = 1) {
   const cacheKey = `search-${query}-${page}`;
   
   // Check client-side cache first
-  const cached = cache.get(cacheKey) as CacheEntry<any> | undefined;
+  const cached = cache.get(cacheKey) as CacheEntry<SearchResultItem[]> | undefined;
   if (cached && isValidCache(cached)) {
     return cached.data;
   }
