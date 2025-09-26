@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
-import { PROFILE_TEMPLATES, WatchStatus } from "@/lib/types";
+import { PROFILE_TEMPLATES, WatchStatus, TopRanking } from "@/lib/types";
 import { DramaCard } from "@/components/DramaCard";
 import { PopularItem, fetchSearchClient } from "@/lib/api";
 import { useState, useEffect, useCallback } from "react";
@@ -52,6 +52,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedDrama, setSelectedDrama] = useState<PopularItem | null>(null);
   const [tempRating, setTempRating] = useState(10);
+  const [editingRankingItem, setEditingRankingItem] = useState<number | null>(
+    null
+  );
 
   const ITEMS_PER_PAGE = 10; // 2 rows of 5 items each
 
@@ -207,6 +210,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const handleMouseDown = (rank: number) => {
     console.log("Mouse down on rank:", rank, "Edit mode:", editingRanking);
+  };
+
+  const handleEditRanking = (ranking: TopRanking) => {
+    setSelectedDrama({
+      "detail-link": ranking.slug,
+      title: ranking.title,
+      image: ranking.image || "",
+    } as PopularItem);
+    setTempRating(ranking.rating || 10);
+    setEditingRankingItem(ranking.rank);
+    setShowRatingModal(true);
   };
 
   return (
@@ -616,6 +630,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     variant="popular"
                     disabled={editingRanking}
                   />
+                  <div className="ranking-title">{ranking.title}</div>
                   <div className="ranking-rating-overlay">
                     <svg
                       className="w-3 h-3"
@@ -629,26 +644,46 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   </div>
 
                   {editingRanking && (
-                    <button
-                      onClick={async () =>
-                        await removeFromTopRanking(ranking.rank)
-                      }
-                      className="remove-ranking-button"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    <>
+                      <button
+                        onClick={async () =>
+                          await removeFromTopRanking(ranking.rank)
+                        }
+                        className="remove-ranking-button"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleEditRanking(ranking)}
+                        className="edit-rating-button"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -820,7 +855,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <div className="search-results">
                 {searchResults.map((drama, index) => (
                   <button
-                    key={drama['detail-link'] || drama.title || index}
+                    key={drama["detail-link"] || drama.title || index}
                     onClick={() => {
                       setSelectedDrama(drama);
                       setShowSearchModal(false);
@@ -861,10 +896,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
           <div className="search-modal" onClick={(e) => e.stopPropagation()}>
             <div className="search-modal-header">
               <h3 className="text-lg font-semibold">
-                Rate & Add to Rank #{selectedSlot}
+                {editingRankingItem
+                  ? `Edit Rank #${editingRankingItem}`
+                  : `Rate & Add to Rank #${selectedSlot}`}
               </h3>
               <button
-                onClick={() => setShowRatingModal(false)}
+                onClick={() => {
+                  setShowRatingModal(false);
+                  setEditingRankingItem(null);
+                  setSelectedDrama(null);
+                }}
                 className="close-btn"
               >
                 <svg
@@ -914,7 +955,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                       type="range"
                       min="1"
                       max="10"
-                      step="0.5"
+                      step="0.1"
                       value={tempRating}
                       onChange={(e) => setTempRating(Number(e.target.value))}
                       className="flex-1 rating-slider"
@@ -936,33 +977,41 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 <div className="flex gap-2 pt-4">
                   <button
                     onClick={async () => {
-                      if (selectedSlot && selectedDrama) {
+                      if (selectedDrama) {
                         try {
-                          await addToTopRanking(
-                            selectedSlot,
-                            selectedDrama["detail-link"] ||
-                              selectedDrama['detail-link'] ||
-                              "",
-                            selectedDrama.title,
-                            selectedDrama.image,
-                            tempRating,
-                            true // Always public
-                          );
+                          const targetSlot = editingRankingItem || selectedSlot;
+                          if (targetSlot) {
+                            await addToTopRanking(
+                              targetSlot,
+                              selectedDrama["detail-link"] ||
+                                selectedDrama["detail-link"] ||
+                                "",
+                              selectedDrama.title,
+                              selectedDrama.image,
+                              tempRating,
+                              true // Always public
+                            );
+                          }
                         } catch (error) {
-                          console.error("Error adding to ranking:", error);
+                          console.error("Error updating ranking:", error);
                         }
                       }
                       setShowRatingModal(false);
                       setSelectedDrama(null);
+                      setEditingRankingItem(null);
                       setSearchQuery("");
                       setSearchResults([]);
                     }}
                     className="btn-primary flex-1"
                   >
-                    Add to Rankings
+                    {editingRankingItem ? "Update Ranking" : "Add to Rankings"}
                   </button>
                   <button
-                    onClick={() => setShowRatingModal(false)}
+                    onClick={() => {
+                      setShowRatingModal(false);
+                      setEditingRankingItem(null);
+                      setSelectedDrama(null);
+                    }}
                     className="btn-secondary"
                   >
                     Cancel

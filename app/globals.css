@@ -26,7 +26,7 @@
   --destructive-foreground: #ffffff;
   --overlay: rgba(0, 0, 0, 0.85);
   --overlay-foreground: #ffffff;
-  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --overlay-bg: rgba(0, 0, 0, 0.9);
   --overlay-border: rgba(255, 255, 255, 0.15);
   --accent-muted: rgba(14, 165, 233, 0.08);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -80,7 +80,7 @@
   --destructive-foreground: #ffffff;
   --overlay: rgba(0, 0, 0, 0.9);
   --overlay-foreground: #ffffff;
-  --overlay-bg: rgba(0, 0, 0, 0.7);
+  --overlay-bg: rgba(0, 0, 0, 0.92);
   --overlay-border: rgba(255, 255, 255, 0.15);
   --accent-muted: rgba(59, 130, 246, 0.15);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -623,7 +623,7 @@
 .rankings-grid-container {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: var(--spacing-4);
+  gap: var(--spacing-8) var(--spacing-4);
   max-width: 100%;
   padding: 0;
   box-sizing: border-box;
@@ -680,7 +680,7 @@
 }
 
 .ranking-item.editable .ranking-card-container::before {
-  content: '🔄 Click & Drag to Reorder';
+  content: 'Click & Drag to Reorder';
   position: absolute;
   top: 0;
   left: 0;
@@ -950,8 +950,8 @@
 
 .remove-ranking-button {
   position: absolute;
-  top: var(--spacing-2);
-  right: var(--spacing-2);
+  bottom: var(--spacing-2);
+  left: var(--spacing-2);
   background: var(--destructive);
   color: var(--destructive-foreground);
   border: none;
@@ -973,6 +973,52 @@
   transform: scale(1.1);
 }
 
+.edit-ranking-button:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.edit-rating-button {
+  position: absolute;
+  bottom: var(--spacing-2);
+  right: var(--spacing-2);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: var(--radius-full);
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.edit-rating-button:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.ranking-title {
+  margin-top: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 var(--spacing-1);
+}
+
+
+
 .add-ranking-placeholder {
   display: flex;
   flex-direction: column;
@@ -983,7 +1029,6 @@
   height: 100%;
   min-height: 300px;
   color: var(--muted-foreground);
-  background: linear-gradient(135deg, var(--muted), var(--accent));
   border: none;
   cursor: pointer;
   border-radius: var(--radius-lg);
@@ -992,7 +1037,6 @@
 
 .add-ranking-placeholder:hover {
   color: var(--foreground);
-  background: var(--accent);
   transform: translateY(-2px) scale(1.02);
   box-shadow: var(--shadow-lg);
 }
@@ -1115,10 +1159,11 @@
   inset: 0;
   background: var(--overlay-bg);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 1000;
   padding: var(--spacing-4);
 }
 

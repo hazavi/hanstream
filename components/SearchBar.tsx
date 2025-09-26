@@ -83,7 +83,11 @@ export function SearchBar() {
         if (selectedIndex >= 0 && suggestions[selectedIndex]) {
           selectSuggestion(suggestions[selectedIndex]);
         } else {
-          handleSubmit(e as React.FormEvent<HTMLInputElement>);
+          if (query.trim()) {
+            const searchQuery = query.trim().toLowerCase().replace(/\s+/g, "-");
+            router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+            setShowDropdown(false);
+          }
         }
         break;
       case "Escape":
