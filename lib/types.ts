@@ -37,6 +37,7 @@ export interface ContinueWatchingItem {
 
 export interface UserProfile {
   displayName?: string;
+  displayNameLastChanged?: string; // ISO date string - when display name was last changed
   profilePicture: string; // template picture identifier
   watchlist: WatchlistItem[];
   continueWatching: ContinueWatchingItem[];
