@@ -31,9 +31,7 @@ interface ProfileContextType {
   searchUsersByDisplayName: (
     query: string
   ) => Promise<{ uid: string; displayName: string; profilePicture: string }[]>;
-  searchUsers: (
-    query: string
-  ) => Promise<
+  searchUsers: (query: string) => Promise<
     {
       uid: string;
       displayName: string;
@@ -591,7 +589,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           authError
         );
         // Log the specific auth error but don't throw it
-        const error = authError as any;
+        const error = authError as { code?: string; message?: string };
         if (error?.code === "auth/requires-recent-login") {
           console.warn(
             "Auth update requires recent login - user may need to re-authenticate"
@@ -712,7 +710,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             );
 
             // Check if it's a specific permission error
-            const error = profileUpdateError as any;
+            const error = profileUpdateError as {
+              code?: string;
+              message?: string;
+            };
             if (error?.code === "auth/requires-recent-login") {
               throw new Error(
                 "Please log out and log back in, then try again. Recent authentication required."

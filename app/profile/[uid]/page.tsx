@@ -32,10 +32,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const {
     profile,
     updateDisplayName,
-    syncDisplayNameToAuth,
     forceSyncDisplayNameToAuth,
     checkSyncStatus,
-    refreshAuthUser,
     updateProfilePicture,
     getWatchlistByStatus,
     addToTopRanking,
@@ -800,8 +798,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                             </svg>
                             <div className="flex-1">
                               <p className="text-sm text-yellow-800">
-                                Your display name isn't fully synced across all
-                                services. This might affect how others find you.
+                                Your display name isn&apos;t fully synced across
+                                all services. This might affect how others find
+                                you.
                               </p>
                               <button
                                 onClick={async () => {
