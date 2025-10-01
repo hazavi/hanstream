@@ -7,6 +7,7 @@ import {
   WatchStatus,
   TopRanking,
   UserProfile,
+  WatchlistItem,
 } from "@/lib/types";
 import { DramaCard } from "@/components/DramaCard";
 import { PopularItem, fetchSearchClient } from "@/lib/api";
@@ -129,7 +130,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const isUpdatingPoints = useRef(false);
 
   // Function to calculate user points based on watchlist
-  const calculateUserPoints = useCallback((watchlist: any[]) => {
+  const calculateUserPoints = useCallback((watchlist: WatchlistItem[]) => {
     if (!Array.isArray(watchlist)) return 0;
 
     let points = 0;
