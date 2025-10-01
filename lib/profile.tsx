@@ -40,8 +40,18 @@ interface ProfileContextType {
       rankingsCount: number;
     }[]
   >;
+  getAllUsers: () => Promise<
+    {
+      uid: string;
+      displayName: string;
+      profilePicture: string;
+      watchlistCount: number;
+      rankingsCount: number;
+    }[]
+  >;
   loadUserProfile: (uid: string) => Promise<UserProfile | null>;
   updateProfilePicture: (pictureId: string) => Promise<void>;
+  updateUserPoints: (points: number) => Promise<void>;
   addToWatchlist: (item: Omit<WatchlistItem, "dateAdded">) => Promise<void>;
   updateWatchlistStatus: (slug: string, status: WatchStatus) => Promise<void>;
   removeFromWatchlist: (slug: string) => Promise<void>;
@@ -479,6 +489,55 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Get all users for leaderboard (no search filter)
+  const getAllUsers = async (): Promise<
+    {
+      uid: string;
+      displayName: string;
+      profilePicture: string;
+      watchlistCount: number;
+      rankingsCount: number;
+    }[]
+  > => {
+    try {
+      console.log("Getting all users for leaderboard...");
+      const profilesRef = ref(database, "profiles");
+      const snapshot = await get(profilesRef);
+
+      if (!snapshot.exists()) {
+        console.log("No profiles found in database");
+        return [];
+      }
+
+      const profiles = snapshot.val();
+      console.log("Found profiles:", Object.keys(profiles || {}).length);
+
+      const allUsers = Object.entries(profiles as Record<string, UserProfile>)
+        .filter(([uid, userProfile]) => {
+          // Skip current user optionally (you can remove this if you want to include current user)
+          // if (uid === user?.uid) return false;
+          return true; // Include all users
+        })
+        .map(([uid, userProfile]) => ({
+          uid,
+          displayName: userProfile.displayName || "Anonymous User",
+          profilePicture: userProfile.profilePicture || "",
+          watchlistCount: Array.isArray(userProfile.watchlist)
+            ? userProfile.watchlist.length
+            : 0,
+          rankingsCount: Array.isArray(userProfile.topRankings)
+            ? userProfile.topRankings.filter((r) => r.isPublic).length
+            : 0,
+        }));
+
+      console.log(`Found ${allUsers.length} total users:`, allUsers);
+      return allUsers;
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      return [];
+    }
+  };
+
   // Load other user's profile
   const loadUserProfile = async (uid: string): Promise<UserProfile | null> => {
     try {
@@ -751,6 +810,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const updatedProfile = {
       ...profile,
       profilePicture: pictureId,
+      updatedAt: new Date().toISOString(),
+    };
+    await saveProfileToFirebase(updatedProfile);
+  };
+
+  const updateUserPoints = async (points: number) => {
+    if (!profile) return;
+    const updatedProfile = {
+      ...profile,
+      points: points,
       updatedAt: new Date().toISOString(),
     };
     await saveProfileToFirebase(updatedProfile);
@@ -1068,8 +1137,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     getDaysUntilNextChange,
     searchUsersByDisplayName,
     searchUsers,
+    getAllUsers,
     loadUserProfile,
     updateProfilePicture,
+    updateUserPoints,
     addToWatchlist,
     updateWatchlistStatus,
     removeFromWatchlist,

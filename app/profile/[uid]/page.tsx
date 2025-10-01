@@ -10,7 +10,7 @@ import {
 } from "@/lib/types";
 import { DramaCard } from "@/components/DramaCard";
 import { PopularItem, fetchSearchClient } from "@/lib/api";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -35,6 +35,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     forceSyncDisplayNameToAuth,
     checkSyncStatus,
     updateProfilePicture,
+    updateUserPoints,
     getWatchlistByStatus,
     addToTopRanking,
     removeFromTopRanking,
@@ -43,6 +44,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     canChangeDisplayName,
     getDaysUntilNextChange,
     searchUsers,
+    getAllUsers,
     loadUserProfile,
   } = useProfile();
   const router = useRouter();
@@ -96,6 +98,18 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   >([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
+  // State for top users leaderboard
+  const [topUsers, setTopUsers] = useState<
+    {
+      uid: string;
+      displayName: string;
+      profilePicture: string;
+      points: number;
+      rank: number;
+    }[]
+  >([]);
+  const [isLoadingTopUsers, setIsLoadingTopUsers] = useState(false);
+
   // State for viewing other users' profiles
   const [viewedUserProfile, setViewedUserProfile] =
     useState<UserProfile | null>(null);
@@ -110,6 +124,25 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }[]
   >([]);
   const [activeUserTab, setActiveUserTab] = useState<string | null>(null);
+
+  // Ref to prevent multiple simultaneous point updates
+  const isUpdatingPoints = useRef(false);
+
+  // Function to calculate user points based on watchlist
+  const calculateUserPoints = useCallback((watchlist: any[]) => {
+    if (!Array.isArray(watchlist)) return 0;
+
+    let points = 0;
+    watchlist.forEach((item) => {
+      if (item.status === "finished") {
+        points += 5;
+      } else if (item.status === "watching") {
+        points += 2;
+      }
+    });
+
+    return points;
+  }, []);
 
   const ITEMS_PER_PAGE = 10; // 2 rows of 5 items each
 
@@ -131,6 +164,64 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       setIsSearching(false);
     }
   }, []);
+
+  // Function to fetch top 3 users by points
+  const fetchTopUsers = useCallback(async () => {
+    if (isLoadingTopUsers) return; // Prevent duplicate calls
+
+    setIsLoadingTopUsers(true);
+    try {
+      // Get all users' basic info
+      const allUsersResults = await getAllUsers(); // Get all users
+
+      // Load full profile for each user and get stored points
+      const usersWithPoints = await Promise.all(
+        allUsersResults.map(async (user) => {
+          try {
+            const fullProfile = await loadUserProfile(user.uid);
+            // Use stored points from database, fallback to calculation if not available
+            const points =
+              fullProfile?.points !== undefined
+                ? fullProfile.points
+                : calculateUserPoints(fullProfile?.watchlist || []);
+
+            return {
+              uid: user.uid,
+              displayName: user.displayName,
+              profilePicture: user.profilePicture,
+              points,
+              rank: 0, // Will be set after sorting
+            };
+          } catch (error) {
+            console.error(`Error loading profile for ${user.uid}:`, error);
+            return {
+              uid: user.uid,
+              displayName: user.displayName,
+              profilePicture: user.profilePicture,
+              points: 0,
+              rank: 0,
+            };
+          }
+        })
+      );
+
+      // Filter users and sort by points, then assign ranks
+      const topThreeUsers = usersWithPoints
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 3)
+        .map((user, index) => ({
+          ...user,
+          rank: index + 1,
+        }));
+
+      setTopUsers(topThreeUsers);
+    } catch (error) {
+      console.error("Error fetching top users:", error);
+      setTopUsers([]);
+    } finally {
+      setIsLoadingTopUsers(false);
+    }
+  }, [getAllUsers, loadUserProfile, calculateUserPoints]);
 
   // Search users function
   const handleUserSearch = useCallback(
@@ -241,7 +332,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     if (!profileUid || !user) return;
 
     const isOwnProfile = profileUid === user.uid;
-    setIsViewingOtherUser(!isOwnProfile);
+
+    // Only update state if it actually changed
+    setIsViewingOtherUser((prev) => {
+      const newValue = !isOwnProfile;
+      return prev !== newValue ? newValue : prev;
+    });
 
     if (!isOwnProfile) {
       // Load other user's profile
@@ -251,7 +347,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     } else {
       setViewedUserProfile(null);
     }
-  }, [profileUid, user, loadUserProfile]);
+  }, [profileUid, user?.uid]); // Remove loadUserProfile from dependencies
 
   // Debounce search
   useEffect(() => {
@@ -268,6 +364,55 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }, 500);
     return () => clearTimeout(timer);
   }, [userSearchQuery, handleUserSearch]);
+
+  // Fetch top users when switching to Users tab
+  useEffect(() => {
+    if (activeMainTab === "users" && !activeUserTab && !isLoadingTopUsers) {
+      fetchTopUsers();
+    }
+  }, [activeMainTab, activeUserTab, fetchTopUsers]);
+
+  // Function to update current user's points in database
+  const updateCurrentUserPoints = useCallback(async () => {
+    if (isUpdatingPoints.current) return; // Prevent concurrent updates
+
+    if (profile && user && profileUid === user.uid && !activeUserTab) {
+      const points = calculateUserPoints(profile.watchlist || []);
+      // Only update if points are different from stored points
+      if (profile.points !== points) {
+        isUpdatingPoints.current = true;
+        try {
+          await updateUserPoints(points);
+        } catch (error) {
+          console.error("Error updating user points:", error);
+        } finally {
+          isUpdatingPoints.current = false;
+        }
+      }
+    }
+  }, [
+    profile?.watchlist,
+    profile?.points,
+    user?.uid,
+    profileUid,
+    activeUserTab,
+    calculateUserPoints,
+    updateUserPoints,
+  ]);
+
+  // Update current user's points when watchlist changes
+  useEffect(() => {
+    // Only run for own profile and when not viewing other user tabs
+    if (profileUid === user?.uid && !activeUserTab && profile?.watchlist) {
+      updateCurrentUserPoints();
+    }
+  }, [
+    profile?.watchlist,
+    user?.uid,
+    profileUid,
+    activeUserTab,
+    updateCurrentUserPoints,
+  ]);
 
   // Early returns after all hooks
   if (loading) {
@@ -322,7 +467,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     if (displayProfile?.displayName && !canChangeDisplayName()) {
       const daysLeft = getDaysUntilNextChange();
       setNameChangeError(
-        `You can change your display name again in ${daysLeft} days.`
+        `You can change your display name again in ${daysLeft} day${
+          daysLeft !== 1 ? "s" : ""
+        }.`
       );
       return;
     }
@@ -333,7 +480,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   const handleNameSave = async () => {
     try {
-      console.log("Starting display name save process...");
       setNameChangeError("");
       setNameChangeSuccess("");
 
@@ -342,17 +488,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         return;
       }
 
-      console.log("Calling updateDisplayName with:", tempName);
       await updateDisplayName(tempName);
 
-      console.log("Display name updated successfully");
       setEditingName(false);
       setNameChangeSuccess("Display name updated and synced to your account!");
 
       // Clear success message after 3 seconds
       setTimeout(() => setNameChangeSuccess(""), 3000);
     } catch (error) {
-      console.error("Error in handleNameSave:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -390,12 +533,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, rank: number) => {
-    console.log("Drag started for rank:", rank);
-    console.log("Edit mode:", editingRanking);
-    console.log("Target element:", e.currentTarget);
-
     if (!editingRanking) {
-      console.log("Not in edit mode, preventing drag");
       e.preventDefault();
       return;
     }
@@ -448,7 +586,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   };
 
   const handleMouseDown = (rank: number) => {
-    console.log("Mouse down on rank:", rank, "Edit mode:", editingRanking);
+    // Mouse down handler for rankings
   };
 
   const handleEditRanking = (ranking: TopRanking) => {
@@ -746,6 +884,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                               />
                             </svg>
+                            <div className="edit-btn-tooltip">
+                              {displayProfile?.displayName &&
+                              !canChangeDisplayName()
+                                ? `Available in ${getDaysUntilNextChange()} day${
+                                    getDaysUntilNextChange() !== 1 ? "s" : ""
+                                  }`
+                                : "Edit display name"}
+                            </div>
                           </button>
                         )}
                       </div>
@@ -759,15 +905,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           {nameChangeSuccess}
                         </div>
                       )}
-                      {displayProfile?.displayName &&
-                        !canChangeDisplayName() &&
-                        !nameChangeError &&
-                        isOwnProfile && (
-                          <div className="text-sm text-yellow-600">
-                            You can change your display name again in{" "}
-                            {getDaysUntilNextChange()} days.
-                          </div>
-                        )}
                     </div>
                   )}
                   {displayProfile?.displayName && isOwnProfile && (
@@ -852,14 +989,67 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
                 <div className="profile-stats">
                   <div className="stat-item">
+                    <div className="stat-icon">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 010 2h-1v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 010-2h4zM6 6v14h12V6H6zm3-2V3h6v1H9z"
+                        />
+                      </svg>
+                    </div>
                     <div className="stat-number">
                       {Array.isArray(displayProfile?.watchlist)
                         ? displayProfile.watchlist.length
                         : 0}
                     </div>
-                    <div className="stat-label">Total Shows</div>
+                    <div className="stat-label">Shows</div>
                   </div>
                   <div className="stat-item">
+                    <div className="stat-icon">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="stat-number">
+                      {displayProfile?.points !== undefined
+                        ? displayProfile.points
+                        : calculateUserPoints(displayProfile?.watchlist || [])}
+                    </div>
+                    <div className="stat-label">Points</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-icon">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                        />
+                      </svg>
+                    </div>
                     <div className="stat-number">
                       {
                         (displayProfile?.topRankings || []).filter(
@@ -867,7 +1057,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         ).length
                       }
                     </div>
-                    <div className="stat-label">Public Rankings</div>
+                    <div className="stat-label">Rankings</div>
                   </div>
                 </div>
               </div>
@@ -1760,6 +1950,87 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       ) : (
         /* Users Tab Content */
         <div className="users-tab-content">
+          {/* Top Users Leaderboard - Card Style */}
+          <div className="leaderboard-section">
+            <div className="top-users-title-container">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <h2 className="top-users-title">Top Users</h2>
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+
+            {isLoadingTopUsers ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              </div>
+            ) : topUsers.length > 0 ? (
+              <div className="top-users-grid">
+                {topUsers.map((user, index) => (
+                  <div
+                    key={user.uid}
+                    className={`top-user-card rank-${user.rank}`}
+                    onClick={() => openUserTab(user.uid, user.displayName)}
+                  >
+                    <div className="rank-badge-large">#{user.rank}</div>
+                    <div className="user-avatar-large">
+                      <img
+                        src={
+                          user.profilePicture
+                            ? PROFILE_TEMPLATES.find(
+                                (t) => t.id === user.profilePicture
+                              )?.url || "/avatars/avatar-1.svg"
+                            : "/avatars/avatar-1.svg"
+                        }
+                        alt={user.displayName}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    </div>
+                    <div className="user-info-large">
+                      <h3 className="user-name-large">{user.displayName}</h3>
+                      <div className="points-large">
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        {user.points} points
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  No leaderboard data
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-500 text-center">
+                  Start adding shows to earn points!
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* User Search Section */}
           <div className="users-search-section">
             <h2 className="section-title">Discover Users</h2>

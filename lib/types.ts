@@ -42,6 +42,7 @@ export interface UserProfile {
   watchlist: WatchlistItem[];
   continueWatching: ContinueWatchingItem[];
   topRankings: TopRanking[];
+  points?: number; // User points based on watchlist
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
@@ -64,6 +65,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   watchlist: [],
   continueWatching: [],
   topRankings: [],
+  points: 0,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

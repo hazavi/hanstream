@@ -93,8 +93,35 @@ export interface EpisodeResult {
 }
 export interface EpisodeResponse { result: EpisodeResult }
 
+export interface HotSeriesUpdateItem {
+  content_type: string;
+  drama_detail_link: string;
+  drama_slug: string;
+  episode_detail_link: string;
+  episode_number: number;
+  full_title: string;
+  id: string[];
+  image: string;
+  series_title: string;
+  subtitle_type: string;
+}
+
+export interface HotSeriesResponse {
+  error: null | string;
+  page: string;
+  result: {
+    source_url: string;
+    updates: HotSeriesUpdateItem[];
+  };
+  status: number;
+}
+
 export async function fetchRecent(page: number = 1): Promise<RecentResponse> {
   return get<RecentResponse>(`/recently-added${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
+}
+
+export async function fetchHotSeries(): Promise<HotSeriesResponse> {
+  return get<HotSeriesResponse>('/hot-series-update', CACHE_TTL.recent);
 }
 
 export async function fetchRecentMovies(page: number = 1): Promise<RecentMoviesResponse> {
@@ -140,6 +167,17 @@ export async function fetchPopularCached(page: number = 1) {
     next: { 
       revalidate: 600, // 10 minutes
       tags: ['popular-dramas']
+    }
+  });
+  if (!response.ok) throw new Error(`Request failed ${response.status}`);
+  return response.json();
+}
+
+export async function fetchHotSeriesCached() {
+  const response = await fetch(`${BASE}/hot-series-update`, {
+    next: { 
+      revalidate: 300, // 5 minutes
+      tags: ['hot-series-update']
     }
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);

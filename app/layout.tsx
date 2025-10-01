@@ -7,6 +7,7 @@ import { SearchBar } from "../components/SearchBar";
 import { AuthProvider } from "@/lib/auth";
 import { ProfileProvider } from "@/lib/profile";
 import { AuthStatus } from "@/components/AuthStatus";
+import { MobileMenu } from "@/components/MobileMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,7 +64,7 @@ export default function RootLayout({
                   <div className="flex items-center gap-8">
                     <Link
                       href="/"
-                      className="text-2xl font-bold text-gray-500 dark:text-white"
+                      className="text-lg sm:text-xl md:text-2xl font-bold text-gray-500 dark:text-white"
                     >
                       HanStream
                     </Link>
@@ -94,12 +95,17 @@ export default function RootLayout({
                   <div className="flex items-center gap-1">
                     <SearchBar />
 
-                    <div className="ml-4">
+                    <div className="ml-4 hidden md:block">
                       <AuthStatus />
                     </div>
 
-                    <div className="ml-10">
+                    <div className="ml-10 hidden md:block">
                       <ThemeToggle />
+                    </div>
+
+                    {/* Mobile Menu Button */}
+                    <div className="flex items-center md:hidden ml-4">
+                      <MobileMenu />
                     </div>
                   </div>
                 </nav>

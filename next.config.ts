@@ -59,7 +59,89 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'wiki.d-addicts.com',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.asianctv.co',
+      },
+      // Common drama image hosting domains
+      {
+        protocol: 'https',
+        hostname: '*.mydramalist.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.viki.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.dramacool.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.dramanice.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.kissasian.*',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.asianload.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.gdrive.*',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.imgur.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.imagekit.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.netlify.app',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.vercel.app',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.github.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.githubusercontent.com',
+      },
+      // Catch-all for HTTPS images (use with caution)
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
@@ -67,6 +149,8 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 3600, // Cache for 1 hour
     deviceSizes: [640, 768, 1024, 1280, 1600],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Fallback for unoptimized images
+    unoptimized: false,
   }
 };
 

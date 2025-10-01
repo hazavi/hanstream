@@ -15,8 +15,6 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log('Fetching search results for:', query);
-
     const q = query.trim().toLowerCase().replace(/\s+/g, '-');
     const pageParam = parseInt(page) > 1 ? `&page=${page}` : '';
     
@@ -36,8 +34,6 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    
-    console.log('Successfully fetched search results');
     
     return NextResponse.json(data, {
       headers: {

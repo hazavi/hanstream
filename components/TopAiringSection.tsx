@@ -86,7 +86,7 @@ export function TopAiringSection() {
 
   if (loading) {
     return (
-      <aside className="w-64 mt-50">
+      <aside className="w-64 mt-100">
         <div className="glass-card p-4">
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
           <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-4" />
@@ -120,7 +120,7 @@ export function TopAiringSection() {
   }
 
   return (
-    <aside className="w-64 mt-50">
+    <aside className="w-64 mt-100">
       <div className="glass-card p-4">
         {/* Clean header */}
         <div className="flex items-center justify-between mb-4">

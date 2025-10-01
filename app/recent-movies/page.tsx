@@ -15,9 +15,6 @@ export default async function RecentMoviesPage({
   try {
     const data = await fetchRecentMovies(page);
 
-    // Debug: Log the actual response structure
-    console.log("Recent movies API response:", JSON.stringify(data, null, 2));
-
     // Check if data has the expected structure
     if (
       !data ||
@@ -25,7 +22,6 @@ export default async function RecentMoviesPage({
       !data.result.movies ||
       !Array.isArray(data.result.movies)
     ) {
-      console.log("Invalid data structure:", data);
       return (
         <div className="space-y-8">
           <div className="text-center space-y-4">

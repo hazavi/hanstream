@@ -178,8 +178,8 @@ export function SearchBar() {
             )}
           </div>
 
-          {/* Keyboard shortcut hint - simple and small */}
-          <span className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-0.5">
+          {/* Keyboard shortcut hint - simple and small - hidden on mobile */}
+          <span className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:flex items-center gap-0.5">
             <kbd className="px-1 py-0.5 text-[9px] font-normal bg-gray-100 dark:bg-black text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded">
               Ctrl
             </kbd>
