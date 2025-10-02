@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const response = await fetch('https://kdrama-one.vercel.app/popular-series', {
+    const response = await fetch('https://kdrama-one.vercel.app/top-dramas', {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'HanStream/1.0',

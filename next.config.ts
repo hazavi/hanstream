@@ -137,6 +137,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.githubusercontent.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'https://i.axcdn.top',
+      },
       // Catch-all for HTTPS images (use with caution)
       {
         protocol: 'https',

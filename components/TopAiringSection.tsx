@@ -2,16 +2,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { PopularSeriesItem } from "../lib/api";
+import { PopularSeriesItem, TopDramaItem } from "../lib/api";
 
-type TabType = "weekly" | "monthly" | "all";
+type TabType = "week" | "month" | "day";
 
 export function TopAiringSection() {
-  const [activeTab, setActiveTab] = useState<TabType>("weekly");
+  const [activeTab, setActiveTab] = useState<TabType>("week");
   const [data, setData] = useState<{
-    weekly: PopularSeriesItem[];
-    monthly: PopularSeriesItem[];
-    all: PopularSeriesItem[];
+    week: TopDramaItem[];
+    month: TopDramaItem[];
+    day: TopDramaItem[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +31,18 @@ export function TopAiringSection() {
         // Add a small delay to ensure client-side execution
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Use internal API route to avoid CORS issues
+        // Use internal API route to avoid CORS issues with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
         const directResponse = await fetch("/api/popular-series", {
           headers: {
             Accept: "application/json",
           },
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!directResponse.ok) {
           throw new Error(
@@ -51,15 +57,40 @@ export function TopAiringSection() {
           throw new Error(response.error);
         }
 
-        // Validate the response structure
-        if (!response?.result?.lists) {
-          throw new Error("Invalid response structure");
+        // Validate the response structure - be more lenient
+        if (!response?.result) {
+          throw new Error("Invalid response structure: missing result");
         }
 
-        setData(response.result.lists);
+        if (!response.result.periods) {
+          throw new Error("Invalid response structure: missing periods");
+        }
+
+        // Ensure periods is an object with the expected properties
+        const periods = response.result.periods;
+        if (typeof periods !== "object" || !periods) {
+          throw new Error(
+            "Invalid response structure: periods is not an object"
+          );
+        }
+
+        // Set data even if some periods are empty
+        setData({
+          week: periods.week || [],
+          month: periods.month || [],
+          day: periods.day || [],
+        });
       } catch (err) {
         console.error("Error fetching popular series:", err);
-        setError("Failed to load popular series");
+        if (err instanceof Error) {
+          if (err.name === "AbortError") {
+            setError("Request timed out. Please try again.");
+          } else {
+            setError(err.message || "Failed to load popular series");
+          }
+        } else {
+          setError("Failed to load popular series");
+        }
       } finally {
         setLoading(false);
       }
@@ -72,9 +103,9 @@ export function TopAiringSection() {
   }, [isClient]);
 
   const tabs = [
-    { key: "weekly" as TabType, label: "Weekly" },
-    { key: "monthly" as TabType, label: "Monthly" },
-    { key: "all" as TabType, label: "All Time" },
+    { key: "day" as TabType, label: "Daily" },
+    { key: "week" as TabType, label: "Weekly" },
+    { key: "month" as TabType, label: "Monthly" },
   ];
 
   const currentList = data?.[activeTab] || [];
@@ -137,7 +168,7 @@ export function TopAiringSection() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`relative flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-300 ease-out ${
+                className={`relative flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-300 ease-out hover:cursor-pointer ${
                   activeTab === tab.key
                     ? "top-airing-tab-active"
                     : "text-secondary hover:text-primary"
@@ -193,8 +224,7 @@ export function TopAiringSection() {
                 </h3>
 
                 <span className="text-xs text-secondary">
-                  {item.genres[0]}
-                  {item.genres.length > 1 && ` +${item.genres.length - 1}`}
+                  {item.release_year}
                 </span>
               </div>
             </Link>

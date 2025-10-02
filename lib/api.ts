@@ -146,8 +146,8 @@ export async function fetchSearch(query: string, page: number = 1): Promise<Sear
   return get<SearchResponse>(`/search?q=${encodeURIComponent(q)}${pageParam}`, CACHE_TTL.search);
 }
 
-export async function fetchPopularSeries(): Promise<PopularSeriesResponse> {
-  return get<PopularSeriesResponse>('/popular-series', CACHE_TTL.popular);
+export async function fetchPopularSeries(): Promise<TopDramasResponse> {
+  return get<TopDramasResponse>('/top-dramas', CACHE_TTL.popular);
 }
 
 // Next.js cached versions for server components
@@ -359,6 +359,30 @@ export interface PopularSeriesResponse {
       all: PopularSeriesItem[];
     };
   };
+}
+
+export type TopDramaItem = {
+  detail_link: string;
+  external_link: string;
+  image: string;
+  rank: number;
+  release_year: number;
+  slug: string;
+  title: string;
+};
+
+export interface TopDramasResponse {
+  error: null | string;
+  page: string;
+  result: {
+    periods: {
+      day: TopDramaItem[];
+      month: TopDramaItem[];
+      week: TopDramaItem[];
+    };
+    source_url: string;
+  };
+  status: number;
 }
 
 // Utility function to format relative time
