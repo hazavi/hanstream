@@ -153,6 +153,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 3600, // Cache for 1 hour
     deviceSizes: [640, 768, 1024, 1280, 1600],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    qualities: [75, 90, 100], // Configure allowed quality values
     // Fallback for unoptimized images
     unoptimized: false,
   }

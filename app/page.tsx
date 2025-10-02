@@ -49,11 +49,7 @@ async function PopularPreview() {
   try {
     const data: PopularResponse = await fetchPopularCached();
 
-    // Add debugging
-    console.log("Popular data:", data);
-
     if (!data || !data.results || !Array.isArray(data.results)) {
-      console.error("Invalid popular data structure:", data);
       return (
         <div className="homepage-grid">
           <div className="col-span-full text-center p-8 text-secondary">
