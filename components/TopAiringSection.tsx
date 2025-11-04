@@ -7,7 +7,7 @@ import { PopularSeriesItem, TopDramaItem } from "../lib/api";
 type TabType = "week" | "month" | "day";
 
 export function TopAiringSection() {
-  const [activeTab, setActiveTab] = useState<TabType>("week");
+  const [activeTab, setActiveTab] = useState<TabType>("day");
   const [data, setData] = useState<{
     week: TopDramaItem[];
     month: TopDramaItem[];
@@ -203,7 +203,7 @@ export function TopAiringSection() {
               </div>
 
               {/* Bigger cleaner image */}
-              <div className="flex-shrink-0 relative w-10 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-sm">
+              <div className="flex-shrink-0 relative w-10 h-14 rounded-sm overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-sm">
                 <Image
                   src={item.image}
                   alt={item.title}
