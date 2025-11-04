@@ -108,21 +108,56 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         </div>
       </div>
 
-      {/* Video Player */}
-      <div className="relative video-container">
-        <VideoPlayer src={ep.video} title={ep.title} currentEpisode={episode} />
-      </div>
+      {/* Two Column Layout: Video Player + Episodes List */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Video Player (Larger) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Video Player */}
+          <div className="relative video-container aspect-video">
+            <VideoPlayer
+              src={ep.video}
+              title={ep.title}
+              currentEpisode={episode}
+            />
+          </div>
 
-      {/* Video Controls */}
-      {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
-        <VideoControls
-          episodes={ep.episodes.filter((ep): ep is { id: string } =>
-            Boolean(ep.id)
+          {/* Video Controls */}
+          {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
+            <VideoControls
+              episodes={ep.episodes.filter((ep): ep is { id: string } =>
+                Boolean(ep.id)
+              )}
+              currentEpisode={episode}
+              slug={slug}
+            />
           )}
-          currentEpisode={episode}
-          slug={slug}
-        />
-      )}
+        </div>
+
+        {/* Right Column: Episodes List - Full height matching video + controls */}
+        <div className="lg:col-span-4">
+          <div
+            className="glass-card p-4 overflow-hidden flex flex-col"
+            style={{ height: "425px" }}
+          >
+            {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
+              <EpisodesNavigation
+                episodes={ep.episodes.filter(
+                  (
+                    ep
+                  ): ep is {
+                    id: string;
+                    title?: string;
+                    type?: string;
+                    time?: string;
+                  } => Boolean(ep.id)
+                )}
+                currentEpisode={episode}
+                dramaSlug={slug}
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Episode Progress Tracker */}
       <EpisodeProgressTracker
@@ -138,24 +173,6 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         image={drama?.image}
         totalEpisodes={ep.episodes?.length}
       />
-
-      {/* Episodes Navigation */}
-      {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
-        <EpisodesNavigation
-          episodes={ep.episodes.filter(
-            (
-              ep
-            ): ep is {
-              id: string;
-              title?: string;
-              type?: string;
-              time?: string;
-            } => Boolean(ep.id)
-          )}
-          currentEpisode={episode}
-          dramaSlug={slug}
-        />
-      )}
     </div>
   );
 }

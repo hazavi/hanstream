@@ -26,85 +26,105 @@ export function EpisodesNavigation({
   const hasMore = episodes.length > 12;
 
   return (
-    <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold heading">
-          All Episodes ({episodes.length})
+    <section className="space-y-3 h-full flex flex-col">
+      <div className="flex items-center justify-between flex-shrink-0">
+        <h2 className="text-sm font-semibold heading">
+          Episodes{" "}
+          <span className="text-xs text-secondary ml-1">
+            ({episodes.length})
+          </span>
         </h2>
       </div>
 
-      <div className="grid gap-2 grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
-        {displayedEpisodes.map((e) => {
+      <div className="flex flex-col gap-1 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-accent/20 scrollbar-track-transparent hover:scrollbar-thumb-accent/40">
+        {episodes.map((e) => {
           const epNum = e.id.split("/").filter(Boolean).pop();
           const active = epNum === currentEpisode;
           return (
             <Link
               key={e.id}
               href={`/${dramaSlug}/episode/${epNum}`}
-              className={`group relative rounded-lg text-xs font-medium transition-all duration-200 overflow-hidden
-                ${active ? "episode-active" : "episode-inactive"}`}
+              className={`group relative rounded-md font-medium transition-all duration-200 flex-shrink-0 ${
+                active
+                  ? "glass-card hover:ring-1 hover:ring-accent/30"
+                  : "glass-card hover:ring-1 hover:ring-accent/30"
+              }`}
             >
-              <div className="p-1.5 space-y-0.5">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-[10px] font-semibold subtle">EP</span>
+              <div
+                className={`flex items-center justify-between gap-2 ${
+                  active ? "px-2 py-1.5" : "px-2 py-1.5"
+                }`}
+              >
+                {/* Left: Episode Number */}
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {active && (
+                    <svg
+                      className="w-4 h-4 text-accent flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                    </svg>
+                  )}
+
+                  <div
+                    className={`flex items-center justify-center w-6 h-6 rounded flex-shrink-0 ${
+                      active ? "bg-accent/20" : "bg-surface/50"
+                    }`}
+                  >
+                    <span
+                      className={`text-[10px] font-bold ${
+                        active ? "text-accent" : "text-primary"
+                      }`}
+                    >
+                      {epNum}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col min-w-0">
+                    <span
+                      className={`text-[10px] font-medium truncate ${
+                        active ? "text-accent" : "text-primary"
+                      }`}
+                    >
+                      Episode {epNum}
+                    </span>
+                    {e.time && (
+                      <span className="text-[9px] text-secondary truncate">
+                        {formatRelativeTime(e.time)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Type Badge */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   {e.type && (
                     <span
-                      className={`text-[9px] px-1 py-0.5 rounded ${
+                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase ${
                         e.type === "SUB"
                           ? active
-                            ? "badge-soft-sub"
-                            : "badge-sub"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-blue-500/10 text-blue-500"
                           : active
-                          ? "badge-soft-dub"
-                          : "badge-dub"
+                          ? "bg-purple-500/20 text-purple-400"
+                          : "bg-purple-500/10 text-purple-500"
                       }`}
                     >
                       {e.type}
                     </span>
                   )}
                 </div>
-                <div className="text-center">
-                  <span className="text-sm font-bold">{epNum}</span>
-                </div>
-                {e.time && (
-                  <div className="text-[10px] faint text-center truncate">
-                    {formatRelativeTime(e.time)}
-                  </div>
-                )}
               </div>
+
+              {/* Active Indicator */}
+              {active && (
+                <div className="absolute inset-y-0 left-0 w-0.5 bg-accent" />
+              )}
             </Link>
           );
         })}
       </div>
-
-      {hasMore && !showAll && (
-        <div className="flex justify-center">
-          <button onClick={() => setShowAll(true)} className="glass-btn">
-            <span>View All Episodes</span>
-          </button>
-        </div>
-      )}
-
-      {showAll && hasMore && (
-        <div className="flex justify-center">
-          <button onClick={() => setShowAll(false)} className="glass-btn">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 15l7-7 7 7"
-              />
-            </svg>
-            <span>Show Less</span>
-          </button>
-        </div>
-      )}
     </section>
   );
 }

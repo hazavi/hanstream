@@ -144,7 +144,7 @@ export default async function DramaDetailPage({
                     return (
                       <div key={key} className="flex flex-col">
                         <dt className="font-medium text-gray-400 dark:text-gray-500">
-                          {key}
+                          {key.replace(/_/g, " ")}
                         </dt>
                         <dd className="text-[13px] text-primary dark:text-white leading-tight">
                           {displayValue}
@@ -191,7 +191,7 @@ export default async function DramaDetailPage({
                     return (
                       <div key={key} className="flex flex-col">
                         <dt className="font-medium text-gray-400 dark:text-gray-500">
-                          {key}
+                          {key.replace(/_/g, " ")}
                         </dt>
                         <dd className="text-[11px] text-primary dark:text-white leading-tight">
                           {displayValue}
