@@ -54,9 +54,9 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen transition-colors duration-300 bg-neutral-100 dark:bg-neutral-900 text-primary`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen transition-colors duration-300 bg-neutral-100 dark:bg-neutral-900 text-primary overflow-x-hidden`}
       >
-        <div className="flex flex-col min-h-screen relative">
+        <div className="flex flex-col min-h-screen relative overflow-x-hidden">
           <AuthProvider>
             <ProfileProvider>
               <header className="sticky top-0 z-50 dark: bg-transparent backdrop-blur-sm ">
@@ -110,7 +110,7 @@ export default function RootLayout({
                   </div>
                 </nav>
               </header>
-              <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
+              <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 overflow-x-hidden">
                 {children}
               </main>
               <footer className="border-t border-neutral-500/50 py-8">

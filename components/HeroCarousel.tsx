@@ -127,11 +127,11 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
         <>
           <button
             onClick={goToPrevious}
-            className="absolute left-1 sm:left-1 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 glass-btn rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/70 hover:cursor-pointer hover:bg-black/90 backdrop-blur-sm flex items-center justify-center transition-all"
             aria-label="Previous slide"
           >
             <svg
-              className="w-4 h-4 sm:w-5 sm:h-5"
+              className="w-5 h-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -146,11 +146,11 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           </button>
           <button
             onClick={goToNext}
-            className="absolute right-1 sm:right-1 lg:right-1 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 glass-btn rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/70 hover:cursor-pointer hover:bg-black/90 backdrop-blur-sm flex items-center justify-center transition-all"
             aria-label="Next slide"
           >
             <svg
-              className="w-4 h-4 sm:w-5 sm:h-5"
+              className="w-5 h-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

@@ -90,12 +90,12 @@ async function PopularPreview() {
 
 export default async function Home() {
   return (
-    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full overflow-x-hidden">
+    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full">
       <div className="flex-1 animate-fade-in space-y-8 sm:space-y-12 min-w-0">
         {/* Hero Carousel Section */}
         <HeroSection />
 
-        <section className="space-y-4 sm:space-y-6">
+        <section className="space-y-4 sm:space-y-6 ">
           <div className="flex justify-center">
             <div className="flex gap-2 p-1 rounded-xl sm:rounded-2xl glass-surface">
               <a

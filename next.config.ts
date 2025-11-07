@@ -47,7 +47,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'images.asianctv.co',
-      },      
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.drama9.top',
+      },
       {
         protocol: 'https',
         hostname: 'kissasian.mba',
@@ -137,10 +141,6 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.githubusercontent.com',
       },
-      {
-        protocol: 'https',
-        hostname: 'https://i.axcdn.top',
-      },
       // Catch-all for HTTPS images (use with caution)
       {
         protocol: 'https',
@@ -158,8 +158,9 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 768, 1024, 1280, 1600],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     qualities: [75, 90, 100], // Configure allowed quality values
-    // Fallback for unoptimized images
-    unoptimized: false,
+    // Fallback for unoptimized images - disabled optimization to avoid 500 errors from external hosts
+    unoptimized: true,
+    formats: ['image/webp', 'image/avif'],
   }
 };
 
