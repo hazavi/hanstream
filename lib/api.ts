@@ -424,6 +424,7 @@ export function formatRelativeTime(timeString: string): string {
     if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
     if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+    if (diffMonths < 1) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`; // Show weeks instead of 0 months
     if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
     return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
   } catch {
