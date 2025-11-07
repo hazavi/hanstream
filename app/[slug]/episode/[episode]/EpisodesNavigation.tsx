@@ -36,7 +36,7 @@ export function EpisodesNavigation({
         </h2>
       </div>
 
-      <div className="flex flex-col gap-1 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-accent/20 scrollbar-track-transparent hover:scrollbar-thumb-accent/40">
+      <div className="flex flex-col gap-1 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent hover:scrollbar-thumb-white/50">
         {episodes.map((e) => {
           const epNum = e.id.split("/").filter(Boolean).pop();
           const active = epNum === currentEpisode;
