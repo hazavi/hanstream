@@ -1,4 +1,8 @@
-const BASE = 'https://kdrama-one.vercel.app';
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+
+if (!BASE) {
+  throw new Error('NEXT_PUBLIC_API_BASE_URL is not defined in environment variables');
+}
 
 // Cache management
 interface CacheEntry<T> { data: T; timestamp: number; ttl: number }

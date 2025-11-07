@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+
 export async function GET() {
   try {
-    const response = await fetch('https://kdrama-one.vercel.app/top-dramas', {
+    const response = await fetch(`${API_BASE_URL}/top-dramas`, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'HanStream/1.0',

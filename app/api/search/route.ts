@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BASE = 'https://kdrama-one.vercel.app';
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
 export async function GET(request: Request) {
   try {

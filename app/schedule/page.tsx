@@ -42,8 +42,9 @@ async function fetchSchedule(): Promise<ScheduleResponse> {
   try {
     console.log("Fetching schedule data...");
 
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
     // Fetch directly from the external API to avoid SSR issues with internal API routes
-    const res = await fetch("https://kdrama-one.vercel.app/schedule", {
+    const res = await fetch(`${API_BASE_URL}/schedule`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
       headers: {
         "User-Agent":

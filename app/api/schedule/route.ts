@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+
 export async function GET() {
   try {
-    const response = await fetch('https://kdrama-one.vercel.app/schedule', {
+    const response = await fetch(`${API_BASE_URL}/schedule`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'application/json',
