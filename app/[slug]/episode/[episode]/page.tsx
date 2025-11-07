@@ -111,7 +111,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
       {/* Two Column Layout: Video Player + Episodes List */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Video Player (Larger) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-9 space-y-6">
           {/* Video Player */}
           <div className="relative video-container aspect-video">
             <VideoPlayer
@@ -134,7 +134,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         </div>
 
         {/* Right Column: Episodes List - Full height matching video + controls */}
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
           <div
             className="glass-card p-4 overflow-hidden flex flex-col"
             style={{ height: "425px" }}
