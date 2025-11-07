@@ -137,7 +137,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         <div className="lg:col-span-3">
           <div
             className="glass-card p-4 overflow-hidden flex flex-col"
-            style={{ height: "425px" }}
+            style={{ height: "480px" }}
           >
             {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
               <EpisodesNavigation
