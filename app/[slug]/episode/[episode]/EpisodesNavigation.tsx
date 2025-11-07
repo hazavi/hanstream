@@ -26,7 +26,7 @@ export function EpisodesNavigation({
   const hasMore = episodes.length > 12;
 
   return (
-    <section className="space-y-3 h-full flex flex-col">
+    <section className="space-y-2 h-full flex flex-col">
       <div className="flex items-center justify-between flex-shrink-0">
         <h2 className="text-sm font-semibold heading">
           Episodes{" "}
@@ -59,7 +59,7 @@ export function EpisodesNavigation({
                 <div className="flex items-center gap-1.5 min-w-0">
                   {active && (
                     <svg
-                      className="w-4 h-4 text-accent flex-shrink-0"
+                      className="w-4 h-4 text-blue-500 dark:text-accent flex-shrink-0"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -69,12 +69,14 @@ export function EpisodesNavigation({
 
                   <div
                     className={`flex items-center justify-center w-6 h-6 rounded flex-shrink-0 ${
-                      active ? "bg-accent/20" : "bg-surface/50"
+                      active ? "dark:bg-accent/20" : "bg-surface/50"
                     }`}
                   >
                     <span
                       className={`text-[10px] font-bold ${
-                        active ? "text-accent" : "text-primary"
+                        active
+                          ? "text-blue-600 dark:text-accent"
+                          : "text-primary"
                       }`}
                     >
                       {epNum}
@@ -84,7 +86,9 @@ export function EpisodesNavigation({
                   <div className="flex flex-col min-w-0">
                     <span
                       className={`text-[10px] font-medium truncate ${
-                        active ? "text-accent" : "text-primary"
+                        active
+                          ? "text-blue-600 dark:text-accent"
+                          : "text-primary"
                       }`}
                     >
                       Episode {epNum}
