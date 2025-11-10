@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "site_access_token";
 const EXPIRY_DAYS = 60;
+const TEMP_EXPIRY_DAYS = 1;
 
 interface SitePasswordGateProps {
   children: React.ReactNode;
@@ -60,16 +61,28 @@ export function SitePasswordGate({ children }: SitePasswordGateProps) {
     setError("");
 
     const sitePassword = process.env.NEXT_PUBLIC_SITE_PASSWORD;
+    const tempPassword = process.env.NEXT_PUBLIC_TEMP_PASSWORD;
 
     if (!sitePassword) {
       setError("Site password not configured. Please contact administrator.");
       return;
     }
 
+    let expiryDays = EXPIRY_DAYS;
+    let isValidPassword = false;
+
     if (password === sitePassword) {
+      isValidPassword = true;
+      expiryDays = EXPIRY_DAYS;
+    } else if (tempPassword && password === tempPassword) {
+      isValidPassword = true;
+      expiryDays = TEMP_EXPIRY_DAYS;
+    }
+
+    if (isValidPassword) {
       // Generate access token with expiry
       const now = new Date().getTime();
-      const expiryTime = now + EXPIRY_DAYS * 24 * 60 * 60 * 1000; // 60 days in milliseconds
+      const expiryTime = now + expiryDays * 24 * 60 * 60 * 1000;
 
       const accessData = {
         token: btoa(`${password}-${now}`), // Simple token generation
@@ -224,7 +237,7 @@ export function SitePasswordGate({ children }: SitePasswordGateProps) {
 
             <div className="mt-6 pt-6 border-t border-white/10 text-center">
               <p className="text-xs text-gray-500">
-                Valid for {EXPIRY_DAYS} days after authentication
+                Access expires after 1 or 60 days depending on password used
               </p>
             </div>
           </div>
