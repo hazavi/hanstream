@@ -229,7 +229,7 @@ export function SitePasswordGate({ children }: SitePasswordGateProps) {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-3.5 px-4 rounded-xl transition-colors"
+                className="w-full bg-blue-600 hover:cursor-pointer hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-3.5 px-4 rounded-xl transition-colors"
               >
                 Unlock
               </button>
