@@ -9,13 +9,13 @@ interface CacheEntry<T> { data: T; timestamp: number; ttl: number }
 const cache = new Map<string, CacheEntry<unknown>>();
 const pendingRequests = new Map<string, Promise<unknown>>();
 
-// Cache TTL in milliseconds
+// Cache TTL in milliseconds - Reduced for faster updates
 const CACHE_TTL = {
-  recent: 5 * 60 * 1000,     // 5 minutes for recent episodes
-  popular: 10 * 60 * 1000,   // 10 minutes for popular shows
-  drama: 30 * 60 * 1000,     // 30 minutes for drama details
-  episode: 60 * 60 * 1000,   // 1 hour for episode data
-  search: 15 * 60 * 1000,    // 15 minutes for search results
+  recent: 2 * 60 * 1000,     // 2 minutes for recent episodes (reduced from 5)
+  popular: 5 * 60 * 1000,    // 5 minutes for popular shows (reduced from 10)
+  drama: 10 * 60 * 1000,     // 10 minutes for drama details (reduced from 30)
+  episode: 30 * 60 * 1000,   // 30 minutes for episode data (reduced from 60)
+  search: 5 * 60 * 1000,     // 5 minutes for search results (reduced from 15)
 };
 
 function getCacheKey(endpoint: string): string {
@@ -29,11 +29,46 @@ function isValidCache(cacheEntry: { timestamp: number; ttl: number }): boolean {
 async function get<T = unknown>(path: string, cacheTTL: number = 0, init?: RequestInit): Promise<T> {
   const cacheKey = getCacheKey(path);
   
-  // Check cache first
+  // Check cache first - stale-while-revalidate pattern
   if (cacheTTL > 0) {
     const cached = cache.get(cacheKey) as CacheEntry<T> | undefined;
-    if (cached && isValidCache(cached)) {
-      return cached.data as T;
+    if (cached) {
+      const cacheAge = Date.now() - cached.timestamp;
+      const isStale = cacheAge > cached.ttl;
+      
+      // Return fresh cache immediately
+      if (!isStale) {
+        return cached.data as T;
+      }
+      
+      // If cache is stale but not too old (within 2x TTL), return it and revalidate in background
+      if (cacheAge < cached.ttl * 2) {
+        // Start background revalidation if not already pending
+        if (!pendingRequests.has(cacheKey)) {
+          const revalidatePromise = fetch(BASE + path, { 
+            ...init, 
+            headers: { 
+              ...(init?.headers || {}), 
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache' // Force fresh data
+            } 
+          }).then(async (res) => {
+            if (res.ok) {
+              const data = await res.json() as T;
+              cache.set(cacheKey, { data, timestamp: Date.now(), ttl: cacheTTL });
+              return data;
+            }
+            return cached.data;
+          }).catch(() => cached.data).finally(() => {
+            pendingRequests.delete(cacheKey);
+          });
+          
+          pendingRequests.set(cacheKey, revalidatePromise);
+        }
+        
+        // Return stale data immediately
+        return cached.data as T;
+      }
     }
   }
   
@@ -42,21 +77,21 @@ async function get<T = unknown>(path: string, cacheTTL: number = 0, init?: Reque
     return pendingRequests.get(cacheKey) as Promise<T>;
   }
   
-  // Make new request
+  // Make new request with no-cache to get fresh data
   const requestPromise: Promise<T> = fetch(BASE + path, { 
     ...init, 
     headers: { 
       ...(init?.headers || {}), 
       'Accept': 'application/json',
-      'Cache-Control': 'public, max-age=300' // 5 minutes browser cache
+      'Cache-Control': 'no-cache' // Force fresh data from API
     } 
   }).then(async (res) => {
     if (!res.ok) throw new Error(`Request failed ${res.status}`);
-  const data = await res.json() as T;
+    const data = await res.json() as T;
     
     // Store in cache if TTL specified
     if (cacheTTL > 0) {
-  cache.set(cacheKey, { data, timestamp: Date.now(), ttl: cacheTTL });
+      cache.set(cacheKey, { data, timestamp: Date.now(), ttl: cacheTTL });
     }
     
     return data;
@@ -154,13 +189,14 @@ export async function fetchPopularSeries(): Promise<TopDramasResponse> {
   return get<TopDramasResponse>('/top-dramas', CACHE_TTL.popular);
 }
 
-// Next.js cached versions for server components
+// Next.js cached versions for server components - Reduced revalidation times
 export async function fetchRecentCached(page: number = 1) {
   const response = await fetch(`${BASE}/recently-added${page > 1 ? `?page=${page}` : ''}`, {
     next: { 
-      revalidate: 300, // 5 minutes
+      revalidate: 120, // 2 minutes (reduced from 5)
       tags: ['recent-dramas']
-    }
+    },
+    cache: 'no-store' // Don't use browser cache
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -169,9 +205,10 @@ export async function fetchRecentCached(page: number = 1) {
 export async function fetchPopularCached(page: number = 1) {
   const response = await fetch(`${BASE}/popular${page > 1 ? `?page=${page}` : ''}`, {
     next: { 
-      revalidate: 600, // 10 minutes
+      revalidate: 300, // 5 minutes (reduced from 10)
       tags: ['popular-dramas']
-    }
+    },
+    cache: 'no-store'
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -180,9 +217,10 @@ export async function fetchPopularCached(page: number = 1) {
 export async function fetchHotSeriesCached() {
   const response = await fetch(`${BASE}/hot-series-update`, {
     next: { 
-      revalidate: 300, // 5 minutes
+      revalidate: 120, // 2 minutes (reduced from 5)
       tags: ['hot-series-update']
-    }
+    },
+    cache: 'no-store'
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -191,9 +229,10 @@ export async function fetchHotSeriesCached() {
 export async function fetchDramaCached(slug: string) {
   const response = await fetch(`${BASE}/${slug}`, {
     next: { 
-      revalidate: 1800, // 30 minutes
+      revalidate: 600, // 10 minutes (reduced from 30)
       tags: [`drama-${slug}`]
-    }
+    },
+    cache: 'no-store'
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -202,9 +241,10 @@ export async function fetchDramaCached(slug: string) {
 export async function fetchEpisodeCached(slug: string, episode: string) {
   const response = await fetch(`${BASE}/${slug}/episode/${episode}`, {
     next: { 
-      revalidate: 3600, // 1 hour
+      revalidate: 1800, // 30 minutes (reduced from 1 hour)
       tags: [`episode-${slug}-${episode}`]
-    }
+    },
+    cache: 'no-store'
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -215,9 +255,10 @@ export async function fetchSearchCached(query: string, page: number = 1) {
   const pageParam = page > 1 ? `&page=${page}` : '';
   const response = await fetch(`${BASE}/search?q=${encodeURIComponent(q)}${pageParam}`, {
     next: { 
-      revalidate: 900, // 15 minutes
+      revalidate: 300, // 5 minutes (reduced from 15)
       tags: [`search-${q}`]
-    }
+    },
+    cache: 'no-store'
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -244,7 +285,7 @@ export async function fetchSearchClient(query: string, page: number = 1) {
     const response = await fetch(`/api/search?q=${encodeURIComponent(q)}${pageParam}`, {
       headers: {
         'Accept': 'application/json',
-        'Cache-Control': 'public, max-age=300'
+        'Cache-Control': 'no-cache' // Always get fresh search results
       },
       signal: controller.signal
     });
