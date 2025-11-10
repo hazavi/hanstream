@@ -3896,7 +3896,9 @@ a { color: inherit; }
   border: 1px solid transparent;
   box-shadow: none;
 }
-
+.title-text{
+  color: var(--foreground);
+}
 /* Tablet Menu Animation */
 @keyframes slide-in-right {
   from {

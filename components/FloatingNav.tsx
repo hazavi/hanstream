@@ -65,7 +65,7 @@ export function FloatingNav() {
               className="h-8 w-auto xl:hidden"
               priority
             />
-            <span className="hidden xl:block text-lg sm:text-xl md:text-2xl font-bold text-gray-700 dark:text-white whitespace-nowrap">
+            <span className="title-text hidden xl:block text-lg sm:text-xl md:text-xl font-bold text-gray-700 dark:text-white whitespace-nowrap">
               HanStream
             </span>
           </Link>
