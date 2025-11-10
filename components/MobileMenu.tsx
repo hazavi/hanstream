@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { AuthStatus } from "./AuthStatus";
 
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -15,6 +16,32 @@ export function MobileMenu() {
   const closeMenu = () => {
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Close menu when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    // Close menu when scrolling
+    const handleScroll = () => {
+      closeMenu();
+    };
+
+    // Add event listeners
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [isOpen]);
 
   return (
     <>
@@ -42,30 +69,29 @@ export function MobileMenu() {
 
       {/* Mobile Navigation Menu */}
       <div
+        ref={menuRef}
         className={`mobile-menu ${
           isOpen ? "open" : ""
-        } fixed top-0 left-0 h-full w-65 `}
+        } fixed top-0 left-0 h-full w-80`}
       >
-        <div className="p-3  surface">
+        <div className="p-3 surface">
           <div className="flex items-center justify-between">
             <span className="text-lg font-bold text-primary">Menu</span>
             <button
               onClick={closeMenu}
-              className="p-2 text-secondary hover:text-primary transition-colors"
+              className="p-2 text-secondary hover:text-primary transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
               aria-label="Close menu"
             >
               <svg
-                className="w-5 h-5"
+                className="w-6 h-6"
+                viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                strokeLinecap="round"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>

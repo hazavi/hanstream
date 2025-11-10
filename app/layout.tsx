@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
-import { ThemeToggle } from "../components/ThemeToggle";
-import { SearchBar } from "../components/SearchBar";
 import { AuthProvider } from "@/lib/auth";
 import { ProfileProvider } from "@/lib/profile";
-import { AuthStatus } from "@/components/AuthStatus";
-import { MobileMenu } from "@/components/MobileMenu";
 import { SitePasswordGate } from "@/components/SitePasswordGate";
+import { FloatingNav } from "@/components/FloatingNav";
+import { ScrollToTop } from "@/components/ScrollToTop";
+import { DynamicMain } from "@/components/DynamicMain";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +21,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "HanStream | Asian Drama Streaming",
   description: "Watch Asian dramas online for free.",
-  metadataBase: new URL("https://hanstream.local"),
+  metadataBase: new URL("https://hanstream.site"),
   icons: {
     icon: "/favicon.ico",
   },
@@ -61,60 +59,9 @@ export default function RootLayout({
           <div className="flex flex-col min-h-screen relative overflow-x-hidden">
             <AuthProvider>
               <ProfileProvider>
-                <header className="sticky top-0 z-50 dark: bg-transparent backdrop-blur-sm ">
-                  <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-8">
-                      <Link
-                        href="/"
-                        className="text-lg sm:text-xl md:text-2xl font-bold text-gray-500 dark:text-white"
-                      >
-                        HanStream
-                      </Link>
-
-                      {/* Navigation links */}
-                      <div className="hidden md:flex items-center gap-6">
-                        <Link
-                          href="/popular"
-                          className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                          Popular
-                        </Link>
-                        <Link
-                          href="/recent-movies"
-                          className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                          Recent Movies
-                        </Link>
-                        <Link
-                          href="/schedule"
-                          className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                          Schedule
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <SearchBar />
-
-                      <div className="ml-4 hidden md:block">
-                        <AuthStatus />
-                      </div>
-
-                      <div className="ml-10 hidden md:block">
-                        <ThemeToggle />
-                      </div>
-
-                      {/* Mobile Menu Button */}
-                      <div className="flex items-center md:hidden ml-4">
-                        <MobileMenu />
-                      </div>
-                    </div>
-                  </nav>
-                </header>
-                <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 overflow-x-hidden">
-                  {children}
-                </main>
+                <FloatingNav />
+                <ScrollToTop />
+                <DynamicMain>{children}</DynamicMain>
                 <footer className="border-t border-neutral-500/50 py-8">
                   <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">
                     HanStream does not store any files on our server, we only
