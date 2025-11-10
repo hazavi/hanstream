@@ -1,15 +1,16 @@
 # HanStream
-A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese series. 
 
-## Features
+A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese series.
 
-### Authentication & Security
+## ✨ Features
 
-- Site-wide password protection 
+### 🔐 Authentication & Security
+
+- Site-wide password protection
 - Firebase authentication with email/password and password recovery
 - Secure user sessions with automatic expiry management
 
-### Content Discovery
+### 🎥 Content Discovery
 
 - **Popular Series** — Trending dramas and top-rated content
 - **Recent Movies** — Latest drama releases
@@ -17,7 +18,7 @@ A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese s
 - **Search** — Fast search across entire drama library
 - **Hero Carousel** — Featured content with auto-rotating banners
 
-### Viewing Experience
+### 📺 Viewing Experience
 
 - Custom video player with intuitive controls
 - Episode navigation with prev/next functionality
@@ -25,7 +26,7 @@ A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese s
 - Breadcrumb navigation for easy browsing
 - Responsive design for mobile, tablet, and desktop
 
-### User Features
+### 👤 User Features
 
 - Personalized user profiles with custom display names
 - Avatar selection system
@@ -35,7 +36,7 @@ A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese s
 - **User Search** — Discover other users and explore their profiles
 - View others' top-rated dramas and watchlists
 
-### Design & UX
+### 🎨 Design & UX
 
 - Modern dark/light theme optimized for viewing
 - Smooth animations and transitions
@@ -43,7 +44,7 @@ A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese s
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Category        | Technology                          |
 | --------------- | ----------------------------------- |
