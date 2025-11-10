@@ -40,8 +40,6 @@ interface ScheduleResponse {
 
 async function fetchSchedule(): Promise<ScheduleResponse> {
   try {
-    console.log("Fetching schedule data...");
-
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
     // Fetch directly from the external API to avoid SSR issues with internal API routes
     const res = await fetch(`${API_BASE_URL}/schedule`, {
@@ -86,7 +84,6 @@ async function fetchSchedule(): Promise<ScheduleResponse> {
       };
     }
 
-    console.log("Successfully fetched schedule data");
     return data;
   } catch (error) {
     console.error("Error in fetchSchedule:", error);

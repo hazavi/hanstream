@@ -148,18 +148,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         user.displayName !== profile.displayName
       ) {
         try {
-          console.log(
-            "Auto-syncing display name from database to Firebase Auth"
-          );
           await updateProfile(user, {
             displayName: profile.displayName,
           });
-          console.log("Display name auto-synced to Firebase Auth successfully");
         } catch (error) {
-          console.warn(
-            "Error auto-syncing display name (this is non-critical):",
-            error
-          );
           // Don't throw the error as this is a background sync
           // Users can manually sync if needed
         }
@@ -175,21 +167,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   // Save profile to Firebase (also updates local state for immediate feedback)
   const saveProfileToFirebase = async (updatedProfile: UserProfile) => {
     if (!user?.uid) {
-      console.error("No user UID available for saving profile");
       throw new Error("User not authenticated");
     }
 
     try {
-      console.log("Saving profile to Firebase for user:", user.uid);
-      console.log("Profile data:", updatedProfile);
-
       setProfile(updatedProfile); // Update local state immediately
       const profileRef = ref(database, `profiles/${user.uid}`);
-
-      console.log("Firebase reference created:", `profiles/${user.uid}`);
       await set(profileRef, updatedProfile);
-
-      console.log("Profile successfully saved to Firebase");
     } catch (error) {
       console.error("Error saving profile to Firebase:", error);
 
@@ -228,27 +212,22 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     name: string
   ): Promise<boolean> => {
     if (!name.trim()) {
-      console.log("Empty name provided, returning false");
       return false;
     }
 
     const trimmedName = name.trim().toLowerCase();
-    console.log("Checking availability for:", trimmedName);
 
     // Check if it's the same as current display name (case-insensitive)
     if (profile?.displayName?.toLowerCase() === trimmedName) {
-      console.log("Same as current display name, allowing");
       return true;
     }
 
     try {
       const usersRef = ref(database, "users");
-      console.log("Querying Firebase for users...");
 
       return new Promise((resolve, reject) => {
         // Add timeout to prevent hanging
         const timeout = setTimeout(() => {
-          console.error("Timeout checking display name availability");
           reject(new Error("Timeout checking display name availability"));
         }, 10000); // 10 second timeout
 
@@ -256,11 +235,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           usersRef,
           (snapshot) => {
             clearTimeout(timeout);
-            console.log("Firebase query completed");
 
             const users = snapshot.val();
             if (!users) {
-              console.log("No users found, name is available");
               resolve(true);
               return;
             }
@@ -270,11 +247,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
               users as Record<string, UserProfile>
             ).some((userProfile) => {
               const userDisplayName = userProfile.displayName?.toLowerCase();
-              console.log("Comparing with user display name:", userDisplayName);
               return userDisplayName === trimmedName;
             });
 
-            console.log("Availability result:", isAvailable);
             resolve(isAvailable);
           },
           {
@@ -386,17 +361,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const trimmedQuery = query.trim().toLowerCase();
 
     try {
-      console.log("Searching users with query:", trimmedQuery);
       const profilesRef = ref(database, "profiles"); // Use "profiles" to match where data is saved
       const snapshot = await get(profilesRef);
 
       if (!snapshot.exists()) {
-        console.log("No profiles found in database");
         return [];
       }
 
       const profiles = snapshot.val();
-      console.log("Found profiles:", Object.keys(profiles || {}).length);
 
       const matchingUsers = Object.entries(
         profiles as Record<string, UserProfile>
@@ -453,10 +425,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         })
         .slice(0, 20); // Limit to 20 results
 
-      console.log(
-        `User search for "${query}" found ${matchingUsers.length} results:`,
-        matchingUsers
-      );
       return matchingUsers;
     } catch (error) {
       console.error("Error searching users:", error);
@@ -466,10 +434,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         error instanceof Error &&
         error.message.includes("Permission denied")
       ) {
-        console.log(
-          "Permission denied for profiles search, falling back to limited search"
-        );
-
         // Fallback: only return current user's info if they match the search
         if (user && user.uid.toLowerCase().includes(trimmedQuery)) {
           return [
@@ -499,17 +463,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }[]
   > => {
     try {
-      console.log("Getting all users for leaderboard...");
       const profilesRef = ref(database, "profiles");
       const snapshot = await get(profilesRef);
 
       if (!snapshot.exists()) {
-        console.log("No profiles found in database");
         return [];
       }
 
       const profiles = snapshot.val();
-      console.log("Found profiles:", Object.keys(profiles || {}).length);
 
       const allUsers = Object.entries(profiles as Record<string, UserProfile>)
         .filter(([uid, userProfile]) => {
@@ -529,7 +490,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             : 0,
         }));
 
-      console.log(`Found ${allUsers.length} total users:`, allUsers);
       return allUsers;
     } catch (error) {
       console.error("Error getting all users:", error);
@@ -580,8 +540,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
 
     const trimmedName = name.trim();
-    console.log("Updating display name to:", trimmedName);
-    console.log("Current profile:", profile);
 
     // Check if user can change display name (90-day cooldown)
     // Skip this check for first-time users (no existing display name)
@@ -593,15 +551,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     // Check if display name is available (skip if it's the same as current name)
     if (trimmedName !== profile.displayName) {
-      console.log(
-        "Checking availability for:",
-        trimmedName,
-        "vs current:",
-        profile.displayName
-      );
       try {
         const isAvailable = await checkDisplayNameAvailability(trimmedName);
-        console.log("Availability check result:", isAvailable);
         if (!isAvailable) {
           const error =
             "This display name is already taken. Please choose another one.";
@@ -624,23 +575,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
 
-    console.log("Saving updated profile:", updatedProfile);
     try {
       // Update Firebase Realtime Database first
       await saveProfileToFirebase(updatedProfile);
-      console.log("Profile saved successfully to Realtime Database");
 
       // Try to update Firebase Authentication user profile
       // But don't fail the entire operation if this fails
       try {
-        console.log(
-          "Updating Firebase Auth user profile with display name:",
-          trimmedName
-        );
         await updateProfile(user, {
           displayName: trimmedName || null,
         });
-        console.log("Firebase Auth user profile updated successfully");
       } catch (authError) {
         console.warn(
           "Failed to update Firebase Auth profile (database update succeeded):",
@@ -669,24 +613,17 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const syncDisplayNameToAuth = async () => {
     if (!user) {
-      console.error("No authenticated user found for display name sync");
       return;
     }
 
     if (!profile?.displayName) {
-      console.log("No display name to sync to Firebase Auth");
       return;
     }
 
     try {
-      console.log(
-        "Syncing display name to Firebase Auth:",
-        profile.displayName
-      );
       await updateProfile(user, {
         displayName: profile.displayName,
       });
-      console.log("Display name synced to Firebase Auth successfully");
     } catch (error) {
       console.error("Error syncing display name to Firebase Auth:", error);
       throw error;
@@ -695,20 +632,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const forceSyncDisplayNameToAuth = async () => {
     if (!user) {
-      console.error("No authenticated user found for force sync");
       throw new Error("No authenticated user");
     }
 
     try {
-      console.log("Starting force sync...");
-      console.log("Current Firebase Auth displayName:", user.displayName);
-      console.log("User authentication state:", {
-        uid: user.uid,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        isAnonymous: user.isAnonymous,
-      });
-
       // Get the current display name from the database
       const userRef = ref(database, `users/${user.uid}`);
       const snapshot = await get(userRef);
@@ -717,16 +644,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         const userData = snapshot.val();
         const displayName = userData.displayName;
 
-        console.log("Database displayName:", displayName);
-
         if (displayName) {
           // Check if already synced
           if (user.displayName === displayName) {
-            console.log("Display names already match, no sync needed");
             return; // No error, just return success
           }
-
-          console.log("Attempting to sync display name:", displayName);
 
           try {
             // Update Firebase Auth profile with more specific error handling
@@ -734,15 +656,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
               displayName: displayName,
             });
 
-            console.log("updateProfile call completed successfully");
-
             // Try to reload user, but don't fail if this causes COOP issues
             try {
               await user.reload();
-              console.log(
-                "User reloaded successfully, new displayName:",
-                user.displayName
-              );
             } catch (reloadError) {
               console.warn(
                 "User reload failed (this might be due to COOP policy):",
@@ -754,13 +670,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             // Try to refresh token, but don't fail if this causes issues
             try {
               await user.getIdToken(true);
-              console.log("Token refreshed successfully");
             } catch (tokenError) {
               console.warn("Token refresh failed:", tokenError);
               // Don't throw here either
             }
-
-            console.log("Force sync completed successfully");
           } catch (profileUpdateError) {
             console.error(
               "Failed to update Firebase Auth profile:",
@@ -1092,12 +1005,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log("Refreshing auth user state...");
       await user.reload();
-      console.log(
-        "Auth user refreshed, current displayName:",
-        user.displayName
-      );
     } catch (error) {
       console.warn(
         "Failed to refresh auth user (might be due to COOP policy):",

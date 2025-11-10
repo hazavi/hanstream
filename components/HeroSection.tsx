@@ -4,20 +4,24 @@ import { fetchHotSeriesCached, HotSeriesResponse } from "@/lib/api";
 
 function HeroSkeleton() {
   return (
-    <div className="relative h-96 surface animate-pulse">
-      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20" />
-      <div className="relative z-10 h-full flex items-center">
-        <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-2xl space-y-4">
-            <div className="w-24 h-6 bg-gray-400 dark:bg-gray-600 rounded-full" />
-            <div className="w-96 h-12 bg-gray-400 dark:bg-gray-600 rounded-lg" />
-            <div className="w-64 h-6 bg-gray-400 dark:bg-gray-600 rounded" />
-            <div className="flex gap-4">
-              <div className="w-32 h-12 bg-gray-400 dark:bg-gray-600 rounded-lg" />
-              <div className="w-32 h-12 bg-gray-400 dark:bg-gray-600 rounded-lg" />
+    <div className="relative h-48 sm:h-56 md:h-64 lg:h-70 overflow-hidden bg-transparent animate-pulse">
+      <div className="flex h-full">
+        {/* Left side - Content */}
+        <div className="flex-[2] sm:flex-[2] flex items-center">
+          <div className="px-4 sm:px-6 lg:px-12 xl:px-20 py-4 sm:py-6 lg:py-8">
+            <div className="max-w-xl lg:max-w-2xl space-y-3 sm:space-y-4">
+              <div className="w-20 sm:w-24 h-5 sm:h-6 bg-gray-300 dark:bg-gray-700 rounded-full" />
+              <div className="w-64 sm:w-80 md:w-96 h-8 sm:h-10 md:h-12 bg-gray-300 dark:bg-gray-700 rounded-lg" />
+              <div className="w-48 sm:w-56 md:w-64 h-5 sm:h-6 bg-gray-300 dark:bg-gray-700 rounded" />
+              <div className="flex gap-2 pt-2">
+                <div className="w-20 sm:w-28 h-8 sm:h-10 bg-gray-300 dark:bg-gray-700 rounded-lg" />
+                <div className="w-16 sm:w-24 h-8 sm:h-10 bg-gray-300 dark:bg-gray-700 rounded-lg" />
+              </div>
             </div>
           </div>
         </div>
+        {/* Right side - Image placeholder */}
+        <div className="flex-1 relative max-w-xs sm:max-w-sm lg:max-w-lg bg-gray-300 dark:bg-gray-700" />
       </div>
     </div>
   );
