@@ -10,6 +10,8 @@ import {
   formatRelativeTime,
 } from '../lib/api';
 
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 // Mock fetch globally
 global.fetch = vi.fn();
 
@@ -37,7 +39,7 @@ describe('API Functions', () => {
       const result = await fetchDrama('test-drama');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://kdrama-one.vercel.app/test-drama',
+        `${BASE}/test-drama`,
         expect.objectContaining({
           headers: expect.objectContaining({
             Accept: 'application/json',
@@ -94,7 +96,7 @@ describe('API Functions', () => {
       const result = await fetchEpisode('test-drama', '1');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://kdrama-one.vercel.app/test-drama/episode/1',
+        `${BASE}/test-drama/episode/1`,
         expect.any(Object)
       );
       expect(result).toEqual(mockData);
@@ -162,7 +164,7 @@ describe('API Functions', () => {
       const result = await fetchRecent();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://kdrama-one.vercel.app/recently-added',
+        `${BASE}/recently-added`,
         expect.any(Object)
       );
       expect(result.results).toHaveLength(1);
@@ -185,7 +187,7 @@ describe('API Functions', () => {
       const result = await fetchPopular();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://kdrama-one.vercel.app/popular',
+        `${BASE}/popular`,
         expect.any(Object)
       );
       expect(result.results).toHaveLength(1);
@@ -212,7 +214,7 @@ describe('API Functions', () => {
       const result = await fetchPopularSeries();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://kdrama-one.vercel.app/top-dramas',
+        `${BASE}/top-dramas`,
         expect.any(Object)
       );
       expect(result.result.periods.week).toHaveLength(1);

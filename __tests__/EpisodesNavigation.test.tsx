@@ -51,7 +51,7 @@ describe("EpisodesNavigation Component", () => {
     expect(screen.getByText("(3)")).toBeInTheDocument();
   });
 
-  it("should highlight active episode", () => {
+  it("should render active indicator for current episode", () => {
     render(
       <EpisodesNavigation
         episodes={mockEpisodes}
@@ -61,7 +61,9 @@ describe("EpisodesNavigation Component", () => {
     );
 
     const episode2Link = screen.getByText("Episode 2").closest("a");
-    expect(episode2Link).toHaveClass("bg-gradient-to-r");
+    // Active episodes contain a left edge accent bar element
+    const activeBar = episode2Link?.querySelector(".bg-accent");
+    expect(activeBar).toBeInTheDocument();
   });
 
   it("should display episode types (SUB/DUB)", () => {

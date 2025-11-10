@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SearchBar } from "../components/SearchBar";
+
+// Mock internal search client used for suggestions
+vi.mock("@/lib/api", () => ({
+  fetchSearchClient: vi.fn(async () => ({ results: [] })),
+}));
 
 // Mock Next.js router
 const mockPush = vi.fn();
@@ -34,7 +39,7 @@ describe("SearchBar Component", () => {
     expect(input.value).toBe("test drama");
   });
 
-  it("should navigate to search page on form submit", () => {
+  it("should navigate to search page on form submit (hyphenated query)", async () => {
     render(<SearchBar />);
 
     const input = screen.getByPlaceholderText(/search/i);
@@ -43,7 +48,9 @@ describe("SearchBar Component", () => {
     fireEvent.change(input, { target: { value: "test query" } });
     fireEvent.submit(form!);
 
-    expect(mockPush).toHaveBeenCalledWith("/search?q=test%20query");
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/search?q=test-query");
+    });
   });
 
   it("should not submit empty search", () => {
@@ -57,7 +64,7 @@ describe("SearchBar Component", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("should trim whitespace from search query", () => {
+  it("should trim whitespace and hyphenate", async () => {
     render(<SearchBar />);
 
     const input = screen.getByPlaceholderText(/search/i);
@@ -66,25 +73,30 @@ describe("SearchBar Component", () => {
     fireEvent.change(input, { target: { value: "  test drama  " } });
     fireEvent.submit(form!);
 
-    expect(mockPush).toHaveBeenCalledWith("/search?q=test%20drama");
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/search?q=test-drama");
+    });
   });
 
   it("should have search button", () => {
     render(<SearchBar />);
-
-    const button = screen.getByRole("button", { name: /search/i });
+    // The button has no accessible name (icon only), so just query by role
+    const button = screen.getByRole("button");
     expect(button).toBeInTheDocument();
   });
 
-  it("should trigger search on button click", () => {
+  it("should trigger search on button click (hyphenated)", async () => {
     render(<SearchBar />);
 
     const input = screen.getByPlaceholderText(/search/i);
-    const button = screen.getByRole("button", { name: /search/i });
+    // The button has no accessible name (icon only), so query by role only
+    const button = screen.getByRole("button");
 
     fireEvent.change(input, { target: { value: "button test" } });
     fireEvent.click(button);
 
-    expect(mockPush).toHaveBeenCalledWith("/search?q=button%20test");
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/search?q=button-test");
+    });
   });
 });

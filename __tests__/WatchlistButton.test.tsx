@@ -1,34 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { WatchlistButton } from "../components/WatchlistButton";
 
-// Mock Firebase auth
-vi.mock("../lib/auth", () => ({
+// Mock Firebase auth using alias path to match component imports
+vi.mock("@/lib/auth", () => ({
   useAuth: vi.fn(() => ({
     user: { uid: "test-user-123" },
     loading: false,
   })),
 }));
+import { useAuth } from "@/lib/auth";
 
-// Mock Firebase functions
+// Mock Profile hook with mutable state per test
 const mockAddToWatchlist = vi.fn();
 const mockRemoveFromWatchlist = vi.fn();
-const mockIsInWatchlist = vi.fn();
+const mockUpdateWatchlistStatus = vi.fn();
+let currentProfile: any = { watchlist: [], ratings: {} };
 
-vi.mock("../lib/profile", () => ({
-  addToWatchlist: (...args: any[]) => mockAddToWatchlist(...args),
-  removeFromWatchlist: (...args: any[]) => mockRemoveFromWatchlist(...args),
-  isInWatchlist: (...args: any[]) => mockIsInWatchlist(...args),
+vi.mock("@/lib/profile", () => ({
+  useProfile: () => ({
+    profile: currentProfile,
+    addToWatchlist: mockAddToWatchlist,
+    removeFromWatchlist: mockRemoveFromWatchlist,
+    updateWatchlistStatus: mockUpdateWatchlistStatus,
+    rateItem: vi.fn(),
+  }),
 }));
 
 describe("WatchlistButton Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    currentProfile = { watchlist: [], ratings: {} };
   });
 
   it("should render watchlist button", () => {
-    mockIsInWatchlist.mockResolvedValue(false);
-
     render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />
     );
@@ -38,8 +49,6 @@ describe("WatchlistButton Component", () => {
   });
 
   it('should show "Add to Watchlist" when not in watchlist', async () => {
-    mockIsInWatchlist.mockResolvedValue(false);
-
     render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />
     );
@@ -49,67 +58,84 @@ describe("WatchlistButton Component", () => {
     });
   });
 
-  it('should show "Remove from Watchlist" when in watchlist', async () => {
-    mockIsInWatchlist.mockResolvedValue(true);
+  it("should show status dropdown and allow removal when selecting same status", async () => {
+    currentProfile = {
+      watchlist: [{ slug: "test-drama", status: "watching" }],
+      ratings: {},
+    };
 
     render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />
     );
 
+    // Open menu
+    fireEvent.click(screen.getByRole("button"));
+    // Wait until dropdown renders items (there will be two 'Watching' entries)
     await waitFor(() => {
-      expect(screen.getByText(/remove from watchlist/i)).toBeInTheDocument();
+      expect(screen.getAllByText("Watching").length).toBeGreaterThan(1);
+    });
+    const statusBtn = screen.getAllByText("Watching")[1];
+    fireEvent.click(statusBtn);
+
+    await waitFor(() => {
+      expect(mockRemoveFromWatchlist).toHaveBeenCalledWith("test-drama");
     });
   });
 
-  it("should add drama to watchlist when clicked", async () => {
-    mockIsInWatchlist.mockResolvedValue(false);
-    mockAddToWatchlist.mockResolvedValue(undefined);
-
+  it("should add drama to watchlist when selecting a status", async () => {
     render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />
     );
 
-    await waitFor(() => {
-      const button = screen.getByRole("button");
-      fireEvent.click(button);
-    });
+    // Open menu
+    fireEvent.click(screen.getByRole("button"));
+    // Choose a status, e.g., Watching (disambiguate duplicates)
+    const allWatching = await screen.findAllByText("Watching");
+    const statusBtn =
+      allWatching.find((el) => el.className.includes("font-medium")) ||
+      allWatching[0];
+    fireEvent.click(statusBtn);
 
     await waitFor(() => {
-      expect(mockAddToWatchlist).toHaveBeenCalledWith("test-user-123", {
+      expect(mockAddToWatchlist).toHaveBeenCalledWith({
         slug: "test-drama",
         title: "Test Drama",
         image: "test.jpg",
-        addedAt: expect.any(Number),
+        status: "watching",
       });
     });
   });
 
-  it("should remove drama from watchlist when clicked", async () => {
-    mockIsInWatchlist.mockResolvedValue(true);
-    mockRemoveFromWatchlist.mockResolvedValue(undefined);
+  it("should update status when selecting a different status", async () => {
+    currentProfile = {
+      watchlist: [{ slug: "test-drama", status: "paused" }],
+      ratings: {},
+    };
 
     render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />
     );
 
-    await waitFor(() => {
-      const button = screen.getByRole("button");
-      fireEvent.click(button);
-    });
+    fireEvent.click(screen.getByRole("button"));
+    const allWatching = await screen.findAllByText("Watching");
+    const statusBtn =
+      allWatching.find((el) => el.className.includes("font-medium")) ||
+      allWatching[0];
+    fireEvent.click(statusBtn);
 
     await waitFor(() => {
-      expect(mockRemoveFromWatchlist).toHaveBeenCalledWith(
-        "test-user-123",
-        "test-drama"
+      expect(mockUpdateWatchlistStatus).toHaveBeenCalledWith(
+        "test-drama",
+        "watching"
       );
     });
   });
 
   it("should not render for unauthenticated users", () => {
-    vi.mocked(require("../lib/auth").useAuth).mockReturnValueOnce({
+    vi.mocked(useAuth).mockReturnValueOnce({
       user: null,
       loading: false,
-    });
+    } as any);
 
     const { container } = render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />

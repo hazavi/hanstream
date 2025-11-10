@@ -57,8 +57,8 @@ describe("DramaCard Component - Recent Variant", () => {
 
   it("should display episode number badge", () => {
     render(<DramaCard item={mockRecentDrama} variant="recent" />);
-
-    expect(screen.getByText("5")).toBeInTheDocument();
+    // Badge shows as "EP 5" in the component
+    expect(screen.getByText(/EP\s*5/)).toBeInTheDocument();
   });
 
   it("should display SUB badge", () => {
