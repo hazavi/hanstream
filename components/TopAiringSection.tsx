@@ -162,7 +162,7 @@ export function TopAiringSection() {
         </div>
 
         {/* Smooth minimal tabs */}
-        <div className="relative top-airing-tabs rounded-xl p-1 mb-4">
+        <div className="relative top-airing-tabs rounded-lg p-1 mb-4">
           <div className="flex relative">
             {tabs.map((tab) => (
               <button

@@ -79,28 +79,32 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href={currentItem.episode_detail_link}
-                  className="btn-primary flex items-center gap-2 sm:gap-2 !px-2 sm:!px-3 !py-1.5 sm:!py-2 !text-xs sm:!text-xs"
-                >
-                  <svg
-                    className="w-2.5 h-2.5 sm:w-3 sm:h-3"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                {currentItem.episode_detail_link && (
+                  <Link
+                    href={currentItem.episode_detail_link}
+                    className="btn-primary flex items-center gap-2 sm:gap-2 !px-2 sm:!px-3 !py-1.5 sm:!py-2 !text-xs sm:!text-xs"
                   >
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  <span className="hidden sm:inline">Watch Now</span>
-                  <span className="sm:hidden">Watch</span>
-                </Link>
+                    <svg
+                      className="w-2.5 h-2.5 sm:w-3 sm:h-3"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    <span className="hidden sm:inline">Watch Now</span>
+                    <span className="sm:hidden">Watch</span>
+                  </Link>
+                )}
 
-                <Link
-                  href={currentItem.drama_detail_link}
-                  className="glass-btn !px-2 sm:!px-3 !py-1.5 sm:!py-2 !text-xs sm:!text-sm"
-                >
-                  <span className="hidden sm:inline">More Info</span>
-                  <span className="sm:hidden">Info</span>
-                </Link>
+                {currentItem.drama_detail_link && (
+                  <Link
+                    href={currentItem.drama_detail_link}
+                    className="glass-btn !px-2 sm:!px-3 !py-1.5 sm:!py-2 !text-xs sm:!text-sm"
+                  >
+                    <span className="hidden sm:inline">More Info</span>
+                    <span className="sm:hidden">Info</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

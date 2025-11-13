@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
@@ -14,12 +14,12 @@ export async function GET() {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-
+    
     const data = await response.json();
     
     return NextResponse.json(data, {
       headers: {
-        'Cache-Control': 'public, max-age=300', // 5 minutes cache
+        'Cache-Control': 'public, max-age=300',
       },
     });
   } catch (error) {
