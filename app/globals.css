@@ -125,6 +125,7 @@
   flex-shrink: 0;
   border-bottom: 2px solid transparent;
   min-height: 48px;
+  cursor: pointer;
 }
 
 .main-tab:hover:not(.active) {
@@ -927,7 +928,6 @@
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1047,9 +1047,6 @@
 .empty-search-state {
   text-align: center;
   padding: var(--spacing-16) var(--spacing-8);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   margin-top: var(--spacing-8);
   position: relative;
   overflow: hidden;
@@ -1062,7 +1059,6 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--accent-muted), transparent);
   opacity: 0.3;
 }
 
@@ -1073,7 +1069,7 @@
 
 .empty-search-state .empty-icon {
   margin: 0 auto var(--spacing-6);
-  color: var(--muted-foreground);
+  color: white;
   opacity: 0.7;
 }
 

@@ -129,6 +129,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   // Ref to prevent multiple simultaneous point updates
   const isUpdatingPoints = useRef(false);
 
+  // Ref to track if top users have been fetched for current tab session
+  const hasLoadedTopUsers = useRef(false);
+
   // Function to calculate user points based on watchlist
   const calculateUserPoints = useCallback((watchlist: WatchlistItem[]) => {
     if (!Array.isArray(watchlist)) return 0;
@@ -368,10 +371,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
   // Fetch top users when switching to Users tab
   useEffect(() => {
-    if (activeMainTab === "users" && !activeUserTab && !isLoadingTopUsers) {
-      fetchTopUsers();
+    if (activeMainTab === "users" && !activeUserTab) {
+      // Only fetch if we haven't loaded yet or if explicitly switching back to users tab
+      if (!hasLoadedTopUsers.current && !isLoadingTopUsers) {
+        hasLoadedTopUsers.current = true;
+        fetchTopUsers();
+      }
+    } else {
+      // Reset the flag when leaving the users tab so it can be refreshed when returning
+      hasLoadedTopUsers.current = false;
     }
-  }, [activeMainTab, activeUserTab, fetchTopUsers]);
+  }, [activeMainTab, activeUserTab, isLoadingTopUsers, fetchTopUsers]);
 
   // Function to update current user's points in database
   const updateCurrentUserPoints = useCallback(async () => {
@@ -616,7 +626,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 overflow-hidden">
       {/* Main Navigation Tabs */}
       <div className="main-tabs-container">
-        <div className="main-tabs">
+        <div className="main-tabs ">
           {/* My Profile Tab - always visible for own profile */}
           {!isViewingOtherUser && (
             <button
