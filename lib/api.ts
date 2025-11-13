@@ -193,10 +193,10 @@ export async function fetchPopularSeries(): Promise<TopDramasResponse> {
 export async function fetchRecentCached(page: number = 1) {
   const response = await fetch(`${BASE}/recently-added${page > 1 ? `?page=${page}` : ''}`, {
     next: { 
-      revalidate: 120, // 2 minutes (reduced from 5)
+      revalidate: 120, // 2 minutes - ISR with time-based revalidation
       tags: ['recent-dramas']
-    },
-    cache: 'no-store' // Don't use browser cache
+    }
+    // Removed cache: 'no-store' to allow static generation with ISR
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -205,10 +205,10 @@ export async function fetchRecentCached(page: number = 1) {
 export async function fetchPopularCached(page: number = 1) {
   const response = await fetch(`${BASE}/popular${page > 1 ? `?page=${page}` : ''}`, {
     next: { 
-      revalidate: 300, // 5 minutes (reduced from 10)
+      revalidate: 300, // 5 minutes - ISR with time-based revalidation
       tags: ['popular-dramas']
-    },
-    cache: 'no-store'
+    }
+    // Removed cache: 'no-store' to allow static generation with ISR
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -217,10 +217,10 @@ export async function fetchPopularCached(page: number = 1) {
 export async function fetchHotSeriesCached() {
   const response = await fetch(`${BASE}/hot-series-update`, {
     next: { 
-      revalidate: 120, // 2 minutes (reduced from 5)
+      revalidate: 120, // 2 minutes - ISR with time-based revalidation
       tags: ['hot-series-update']
-    },
-    cache: 'no-store'
+    }
+    // Removed cache: 'no-store' to allow static generation with ISR
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -229,10 +229,10 @@ export async function fetchHotSeriesCached() {
 export async function fetchDramaCached(slug: string) {
   const response = await fetch(`${BASE}/${slug}`, {
     next: { 
-      revalidate: 600, // 10 minutes (reduced from 30)
+      revalidate: 600, // 10 minutes - ISR with time-based revalidation
       tags: [`drama-${slug}`]
-    },
-    cache: 'no-store'
+    }
+    // Removed cache: 'no-store' to allow static generation with ISR
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -241,10 +241,10 @@ export async function fetchDramaCached(slug: string) {
 export async function fetchEpisodeCached(slug: string, episode: string) {
   const response = await fetch(`${BASE}/${slug}/episode/${episode}`, {
     next: { 
-      revalidate: 1800, // 30 minutes (reduced from 1 hour)
+      revalidate: 1800, // 30 minutes - ISR with time-based revalidation
       tags: [`episode-${slug}-${episode}`]
-    },
-    cache: 'no-store'
+    }
+    // Removed cache: 'no-store' to allow static generation with ISR
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();
@@ -255,10 +255,10 @@ export async function fetchSearchCached(query: string, page: number = 1) {
   const pageParam = page > 1 ? `&page=${page}` : '';
   const response = await fetch(`${BASE}/search?q=${encodeURIComponent(q)}${pageParam}`, {
     next: { 
-      revalidate: 300, // 5 minutes (reduced from 15)
+      revalidate: 300, // 5 minutes - ISR with time-based revalidation
       tags: [`search-${q}`]
-    },
-    cache: 'no-store'
+    }
+    // Removed cache: 'no-store' to allow static generation with ISR
   });
   if (!response.ok) throw new Error(`Request failed ${response.status}`);
   return response.json();

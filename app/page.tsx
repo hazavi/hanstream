@@ -11,6 +11,9 @@ import {
   PopularItem,
 } from "@/lib/api";
 
+// Enable ISR for this page - it will be statically generated and revalidated
+export const revalidate = 120; // Revalidate every 2 minutes
+
 function GridSkeleton() {
   return (
     <div className="homepage-grid">
