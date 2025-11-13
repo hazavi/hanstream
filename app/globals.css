@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Performance optimizations */
+html {
+  /* Use GPU acceleration for smoother theme transitions */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Dynamic transition duration controlled by JS */
+  --transition-duration: 200ms;
+}
+
+/* Smooth color transitions only - avoid layout thrashing */
+/* Only apply to specific properties, not all elements */
+html,
+body,
+[class*="bg-"],
+[class*="text-"],
+[class*="border-"] {
+  transition: background-color var(--transition-duration) ease-out,
+              border-color var(--transition-duration) ease-out,
+              color var(--transition-duration) ease-out;
+}
+
 :root {
   /* Ultra Modern Light Theme */
   --background: #ffffff;
@@ -3897,6 +3918,22 @@ a { color: inherit; }
 }
 .title-text{
   color: var(--foreground);
+}
+
+/* Ad Blocker Notification Animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 /* Tablet Menu Animation */
 @keyframes slide-in-right {

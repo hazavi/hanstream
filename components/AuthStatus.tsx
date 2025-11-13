@@ -42,6 +42,7 @@ export function AuthStatus() {
               width={24}
               height={24}
               className="w-full h-full object-cover"
+              style={{ width: "auto", height: "auto" }}
             />
           ) : (
             <span>{displayName.charAt(0).toUpperCase()}</span>

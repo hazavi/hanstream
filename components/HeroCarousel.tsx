@@ -121,8 +121,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
             quality={100}
             sizes="(max-width: 640px) 40vw, (max-width: 1024px) 30vw, 25vw"
           />
-          {/* Subtle gradient overlay from left */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-transparent dark:from-black/20 pointer-events-none" />
         </div>
       </div>
 

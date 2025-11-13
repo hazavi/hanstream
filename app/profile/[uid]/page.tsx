@@ -759,6 +759,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         width={96}
                         height={96}
                         className="w-full h-full rounded-full object-cover"
+                        style={{ width: "auto", height: "auto" }}
                       />
                     ) : (
                       <span className="text-2xl text-white font-semibold">
@@ -817,6 +818,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                             width={40}
                             height={40}
                             className="w-full h-full rounded-full object-cover"
+                            style={{ width: "auto", height: "auto" }}
                           />
                         </button>
                       ))}
@@ -1668,6 +1670,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                               width={40}
                               height={56}
                               className="w-full h-full object-cover"
+                              style={{ width: "auto", height: "auto" }}
                             />
                           )}
                         </div>
@@ -1733,6 +1736,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           width={48}
                           height={64}
                           className="w-full h-full object-cover"
+                          style={{ width: "auto", height: "auto" }}
                         />
                       )}
                     </div>
@@ -1876,6 +1880,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                           width={48}
                           height={64}
                           className="w-full h-full object-cover"
+                          style={{ width: "auto", height: "auto" }}
                         />
                       )}
                     </div>
@@ -1987,7 +1992,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   >
                     <div className="rank-badge-large">#{user.rank}</div>
                     <div className="user-avatar-large">
-                      <img
+                      <Image
                         src={
                           user.profilePicture
                             ? PROFILE_TEMPLATES.find(
@@ -1996,6 +2001,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                             : "/avatars/avatar-1.svg"
                         }
                         alt={user.displayName}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     </div>
@@ -2181,6 +2188,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                             width={56}
                             height={56}
                             className="w-full h-full rounded-full object-cover"
+                            style={{ width: "auto", height: "auto" }}
                           />
                         ) : (
                           <span className="text-lg font-semibold">
@@ -2227,6 +2235,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                     width={32}
                                     height={44}
                                     className="preview-item-image"
+                                    style={{ width: "auto", height: "auto" }}
                                   />
                                 )}
                               </div>
