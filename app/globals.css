@@ -3334,13 +3334,16 @@ a { color: inherit; }
 }
 
 .top-airing-rank.top-3 {
-  background: linear-gradient(135deg, #1a80f5, #650bf5);
+  /* background: linear-gradient(135deg, #1a80f5, #650bf5); */
+  background: #1a1a1a;
   color: white !important;
   border: none !important;
 }
 
 .dark .top-airing-rank.top-3 {
-  background: linear-gradient(135deg, #1a80f5, #650bf5);
+  background: #252525;
+  color: white !important;
+  border: none !important;
 }
 
 .top-airing-rank:not(.top-3) {

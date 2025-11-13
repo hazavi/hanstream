@@ -1,10 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PopularSeriesItem, TopDramaItem } from "../lib/api";
 
 type TabType = "week" | "month" | "day";
+
+// Cache data at module level to persist across component re-renders
+let cachedData: {
+  week: TopDramaItem[];
+  month: TopDramaItem[];
+  day: TopDramaItem[];
+} | null = null;
+let cacheTimestamp: number | null = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 export function TopAiringSection() {
   const [activeTab, setActiveTab] = useState<TabType>("day");
@@ -12,24 +21,29 @@ export function TopAiringSection() {
     week: TopDramaItem[];
     month: TopDramaItem[];
     day: TopDramaItem[];
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
+  } | null>(cachedData);
+  const [loading, setLoading] = useState(!cachedData);
   const [error, setError] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
-
-  // Ensure component only renders on client side
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple simultaneous loads
+    if (hasLoadedRef.current) return;
+
+    // Check if we have valid cached data
+    const now = Date.now();
+    if (cachedData && cacheTimestamp && now - cacheTimestamp < CACHE_DURATION) {
+      setData(cachedData);
+      setLoading(false);
+      return;
+    }
+
+    hasLoadedRef.current = true;
+
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Add a small delay to ensure client-side execution
-        await new Promise((resolve) => setTimeout(resolve, 100));
 
         // Use internal API route to avoid CORS issues with timeout
         const controller = new AbortController();
@@ -74,12 +88,16 @@ export function TopAiringSection() {
           );
         }
 
-        // Set data even if some periods are empty
-        setData({
+        // Set data and cache it
+        const newData = {
           week: periods.week || [],
           month: periods.month || [],
           day: periods.day || [],
-        });
+        };
+
+        setData(newData);
+        cachedData = newData;
+        cacheTimestamp = Date.now();
       } catch (err) {
         console.error("Error fetching popular series:", err);
         if (err instanceof Error) {
@@ -96,11 +114,8 @@ export function TopAiringSection() {
       }
     };
 
-    // Only run on client side
-    if (isClient) {
-      loadData();
-    }
-  }, [isClient]);
+    loadData();
+  }, []); // Empty dependency array - only run once
 
   const tabs = [
     { key: "day" as TabType, label: "Daily" },
@@ -109,11 +124,6 @@ export function TopAiringSection() {
   ];
 
   const currentList = data?.[activeTab] || [];
-
-  // Don't render until client-side hydration is complete
-  if (!isClient) {
-    return null;
-  }
 
   if (loading) {
     return (
