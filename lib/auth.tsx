@@ -20,6 +20,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<User | null>;
   resetPassword: (email: string) => Promise<void>;
+  isFirebaseConfigured: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -33,8 +34,14 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isFirebaseConfigured = auth !== null;
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -43,23 +50,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
+    if (!auth) {
+      throw new Error("Firebase is not configured");
+    }
     const res = await signInWithEmailAndPassword(auth, email, password);
     setUser(res.user);
     return res.user;
   }
 
   async function signUp(email: string, password: string) {
+    if (!auth) {
+      throw new Error("Firebase is not configured");
+    }
     const res = await createUserWithEmailAndPassword(auth, email, password);
     setUser(res.user);
     return res.user;
   }
 
   async function signOut() {
+    if (!auth) {
+      throw new Error("Firebase is not configured");
+    }
     await firebaseSignOut(auth);
     setUser(null);
   }
 
   async function signInWithGoogle() {
+    if (!auth) {
+      throw new Error("Firebase is not configured");
+    }
     const provider = new GoogleAuthProvider();
     const res = await signInWithPopup(auth, provider);
     setUser(res.user);
@@ -67,6 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function resetPassword(email: string) {
+    if (!auth) {
+      throw new Error("Firebase is not configured");
+    }
     await sendPasswordResetEmail(auth, email);
   }
 
@@ -80,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         signInWithGoogle,
         resetPassword,
+        isFirebaseConfigured,
       }}
     >
       {children}

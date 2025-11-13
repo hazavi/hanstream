@@ -90,7 +90,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   // Load profile from Firebase when user changes
   useEffect(() => {
-    if (user?.uid) {
+    if (user?.uid && database) {
       const profileRef = ref(database, `profiles/${user.uid}`);
 
       // Set up real-time listener
@@ -170,6 +170,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       throw new Error("User not authenticated");
     }
 
+    if (!database) {
+      throw new Error("Firebase is not configured");
+    }
+
     try {
       setProfile(updatedProfile); // Update local state immediately
       const profileRef = ref(database, `profiles/${user.uid}`);
@@ -213,6 +217,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   ): Promise<boolean> => {
     if (!name.trim()) {
       return false;
+    }
+
+    if (!database) {
+      console.warn("Firebase is not configured");
+      return true; // Allow the name if Firebase isn't configured
     }
 
     const trimmedName = name.trim().toLowerCase();
@@ -301,6 +310,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   > => {
     if (!query.trim() || query.trim().length < 2) return [];
 
+    if (!database) {
+      console.warn("Firebase is not configured");
+      return [];
+    }
+
     const trimmedQuery = query.trim().toLowerCase();
 
     try {
@@ -357,6 +371,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }[]
   > => {
     if (!query.trim() || query.trim().length < 2) return [];
+
+    if (!database) {
+      console.warn("Firebase is not configured");
+      return [];
+    }
 
     const trimmedQuery = query.trim().toLowerCase();
 
@@ -462,6 +481,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       rankingsCount: number;
     }[]
   > => {
+    if (!database) {
+      console.warn("Firebase is not configured");
+      return [];
+    }
+
     try {
       const profilesRef = ref(database, "profiles");
       const snapshot = await get(profilesRef);
@@ -499,6 +523,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   // Load other user's profile
   const loadUserProfile = async (uid: string): Promise<UserProfile | null> => {
+    if (!database) {
+      console.warn("Firebase is not configured");
+      return null;
+    }
+
     try {
       const profileRef = ref(database, `profiles/${uid}`);
       const snapshot = await get(profileRef);
@@ -633,6 +662,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const forceSyncDisplayNameToAuth = async () => {
     if (!user) {
       throw new Error("No authenticated user");
+    }
+
+    if (!database) {
+      throw new Error("Firebase is not configured");
     }
 
     try {
