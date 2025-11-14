@@ -77,6 +77,8 @@ export default function RootLayout({
             </AuthProvider>
           </div>
         </SitePasswordGate>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
