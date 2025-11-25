@@ -1,4 +1,9 @@
-import { fetchEpisode, EpisodeResult, fetchDrama, fetchPopular } from "../../../../lib/api";
+import {
+  fetchEpisode,
+  EpisodeResult,
+  fetchDrama,
+  fetchPopular,
+} from "../../../../lib/api";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { EpisodesNavigation } from "./EpisodesNavigation";
@@ -6,6 +11,7 @@ import { EpisodeProgressTracker } from "@/components/EpisodeProgressTracker";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { VideoControls } from "@/components/VideoControls";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { Watch2getherButton } from "@/components/Watch2getherButton";
 import { Suspense } from "react";
 
 // Next.js 15 PageProps constraint requires params to be Promise<any> | undefined
@@ -20,19 +26,19 @@ export async function generateStaticParams() {
   try {
     const data = await fetchPopular(1);
     const paths: EpisodeRouteParams[] = [];
-    
+
     // Get first 10 popular dramas
     const popularDramas = data.results.slice(0, 10);
-    
+
     for (const drama of popularDramas) {
-      const slug = drama['detail-link'].split('/').filter(Boolean).pop();
+      const slug = drama["detail-link"].split("/").filter(Boolean).pop();
       if (!slug) continue;
-      
+
       try {
         // Fetch drama to get episode count
         const dramaData = await fetchDrama(slug);
         const episodeCount = dramaData.result?.episodes?.length || 0;
-        
+
         // Generate paths for first 3 episodes of each popular drama
         for (let i = 1; i <= Math.min(3, episodeCount); i++) {
           paths.push({ slug, episode: String(i) });
@@ -42,7 +48,7 @@ export async function generateStaticParams() {
         continue;
       }
     }
-    
+
     return paths;
   } catch {
     return [];
@@ -59,9 +65,11 @@ export async function generateMetadata({
       fetchDrama(slug),
     ]);
     const title = episodeData.result?.title || `${slug} episode ${episode}`;
-    const description = `Watch ${dramaData.result?.title || slug} Episode ${episode}`;
+    const description = `Watch ${
+      dramaData.result?.title || slug
+    } Episode ${episode}`;
     const image = dramaData.result?.image;
-    
+
     return {
       title,
       description,
@@ -102,11 +110,10 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     );
   }
 
-  const dramaTitle = ep.category?.title ||
+  const dramaTitle =
+    ep.category?.title ||
     drama?.title ||
-    slug
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (l: string) => l.toUpperCase());
+    slug.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -137,7 +144,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl lg:text-3xl font-bold heading leading-tight">
-            {ep.title}
+            {dramaTitle} - Episode {episode}
           </h1>
           {ep.type && (
             <span
@@ -160,11 +167,13 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         {/* Left Column: Video Player (Larger) */}
         <div className="lg:col-span-9 space-y-6">
           {/* Video Player */}
-          <Suspense fallback={
-            <div className="relative video-container aspect-video bg-gray-900 rounded-xl flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div className="relative video-container aspect-video bg-gray-900 rounded-xl flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+              </div>
+            }
+          >
             <div className="relative video-container aspect-video">
               <VideoPlayer
                 src={ep.video}
@@ -174,20 +183,37 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
             </div>
           </Suspense>
 
-          {/* Video Controls */}
-          {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
-            <Suspense fallback={
-              <div className="h-16 glass-card rounded-xl animate-pulse" />
-            }>
-              <VideoControls
-                episodes={ep.episodes.filter((ep): ep is { id: string } =>
-                  Boolean(ep.id)
-                )}
-                currentEpisode={episode}
+          {/* Video Controls and Watch Together */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            {/* Watch Together Button */}
+            <Suspense fallback={null}>
+              <Watch2getherButton
                 slug={slug}
+                episode={episode}
+                dramaTitle={dramaTitle}
+                videoUrl={ep.video}
               />
             </Suspense>
-          )}
+
+            {/* Video Controls */}
+            {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
+              <Suspense
+                fallback={
+                  <div className="h-16 glass-card rounded-xl animate-pulse flex-1" />
+                }
+              >
+                <div className="flex-1 w-full">
+                  <VideoControls
+                    episodes={ep.episodes.filter((ep): ep is { id: string } =>
+                      Boolean(ep.id)
+                    )}
+                    currentEpisode={episode}
+                    slug={slug}
+                  />
+                </div>
+              </Suspense>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Episodes List - Full height matching video + controls */}
@@ -197,16 +223,21 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
             style={{ height: "480px" }}
           >
             {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
-              <Suspense fallback={
-                <div className="space-y-2 h-full flex flex-col">
-                  <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
-                    ))}
+              <Suspense
+                fallback={
+                  <div className="space-y-2 h-full flex flex-col">
+                    <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="h-12 bg-gray-300 dark:bg-gray-700 rounded animate-pulse"
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              }>
+                }
+              >
                 <EpisodesNavigation
                   episodes={ep.episodes.filter(
                     (

@@ -64,9 +64,7 @@ const EpisodeItem = memo(function EpisodeItem({
           >
             <span
               className={`text-[10px] font-bold ${
-                active
-                  ? "text-blue-600 dark:text-accent"
-                  : "text-primary"
+                active ? "text-blue-600 dark:text-accent" : "text-primary"
               }`}
             >
               {epNum}
@@ -76,9 +74,7 @@ const EpisodeItem = memo(function EpisodeItem({
           <div className="flex flex-col min-w-0">
             <span
               className={`text-[10px] font-medium truncate ${
-                active
-                  ? "text-blue-600 dark:text-accent"
-                  : "text-primary"
+                active ? "text-blue-600 dark:text-accent" : "text-primary"
               }`}
             >
               Episode {epNum}
@@ -112,9 +108,7 @@ const EpisodeItem = memo(function EpisodeItem({
       </div>
 
       {/* Active Indicator */}
-      {active && (
-        <div className="absolute inset-y-0 left-0 w-0.5 bg-accent" />
-      )}
+      {active && <div className="absolute inset-y-0 left-0 w-0.5 bg-accent" />}
     </Link>
   );
 });

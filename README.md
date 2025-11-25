@@ -1,70 +1,51 @@
+<div align="center">
+
 # HanStream
 
-A modern **Streaming Platform** for Asian dramas, primarily Korean and Chinese series.
+### Modern Asian Drama Streaming Platform
 
-## ✨ Features
+[![Website](https://img.shields.io/badge/Website-hanstream.site-blue?style=for-the-badge&logo=google-chrome&logoColor=white)](https://www.hanstream.site/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-### 🔐 Authentication & Security
+A premium streaming platform for Korean and Chinese dramas with social features, watch parties, and personalized recommendations.
 
-- Site-wide password protection
-- Firebase authentication with email/password and password recovery
-- Secure user sessions with automatic expiry management
-
-### 🎥 Content Discovery
-
-- **Popular Series** — Trending dramas and top-rated content
-- **Recent Movies** — Latest drama releases
-- **Schedule** — Upcoming episodes and new releases
-- **Search** — Fast search across entire drama library
-- **Hero Carousel** — Featured content with auto-rotating banners
-
-### 📺 Viewing Experience
-
-- Custom video player with intuitive controls
-- Episode navigation with prev/next functionality
-- **Continue Watching** — Resume from where you left off
-- Breadcrumb navigation for easy browsing
-- Responsive design for mobile, tablet, and desktop
-
-### 👤 User Features
-
-- Personalized user profiles with custom display names
-- Avatar selection system
-- **Top 10 Rated Dramas** — Showcase your favorites in your profile
-- **Watchlist Management** — Save dramas to watch later
-- **Rating System** — Rate dramas and share your opinions
-- **User Search** — Discover other users and explore their profiles
-- View others' top-rated dramas and watchlists
-
-### 🎨 Design & UX
-
-- Modern dark/light theme optimized for viewing
-- Smooth animations and transitions
-- Loading states and skeleton screens
+[Visit Website](https://www.hanstream.site/)  • [Report Bug](https://github.com/hazavi/hanstream/issues)
 
 ---
 
-## 🛠️ Tech Stack
+</div>
 
-| Category        | Technology                          |
-| --------------- | ----------------------------------- |
-| **Framework**   | Next.js 15 (App Router)             |
-| **UI Library**  | React 19                            |
-| **Styling**     | Tailwind CSS 4                      |
-| **Language**    | TypeScript 5                        |
-| **Backend**     | Firebase (Auth & Realtime Database) |
-| **Data Source** | Web Scraping API                    |
-| **Testing**     | Vitest + React Testing Library      |
-| **Build Tool**  | Turbopack                           |
+## Features
+
+### Core Functionality
+- **Authentication & Security** — Password-gated access with Firebase authentication and session management
+- **Content Discovery** — Browse popular series, recent releases, schedules, and advanced search capabilities
+- **Video Streaming** — Custom player with episode navigation and auto-resume functionality
+- **Watch Together** — Real-time watch parties with your friends and family.
+
+### User Features
+- **Personal Library** — Watchlist management, rating system, and viewing history tracking
+- **Social Integration** — User profiles, top 10 lists, and profile sharing
+- **Responsive Design** — Optimized for mobile, tablet, and desktop devices
+- **Theme Support** — Dark and light mode with smooth transitions
+
+---
+
+## Tech Stack
+
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Next.js | 15.x | App Router, SSR, ISR |
+| React | 19.x | Component architecture |
+| TypeScript | 5.x | Type safety |
+| Tailwind CSS | 4.x | Utility-first styling |
+| Firebase | Latest | Authentication & Realtime Database |
+| Vitest | Latest | Unit & integration testing |
+| Turbopack | Latest | Fast bundling |
 
 ---
 
-## 🔑 Site Access
+## Site Access
 
-**Test Credentials:**
-
-```
-Password: usertest123
-```
-
----
+**Demo Password:** `usertest123`

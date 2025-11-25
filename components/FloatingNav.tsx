@@ -123,6 +123,30 @@ export function FloatingNav() {
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left" />
               )}
             </Link>
+            <Link
+              href="/watch2gether"
+              scroll={true}
+              className={`text-sm font-medium transition-all duration-200 relative group flex items-center gap-1.5 ${
+                isActive("/watch2gether")
+                  ? "text-blue-600 dark:text-blue-400"
+                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              <Image
+                src="/stream.png"
+                alt=""
+                width={24}
+                height={24}
+                className="rounded"
+              />
+              Watch2gether
+              {isActive("/watch2gether") && (
+                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+              )}
+              {!isActive("/watch2gether") && (
+                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left" />
+              )}
+            </Link>
           </div>
         </div>
 

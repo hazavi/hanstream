@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ThemeToggle } from "./ThemeToggle";
 import { AuthStatus } from "./AuthStatus";
 
@@ -132,6 +133,20 @@ export function MobileMenu() {
             onClick={closeMenu}
           >
             Schedule
+          </Link>
+          <Link
+            href="/watch2gether"
+            className="flex items-center gap-2 py-2 text-secondary hover:text-primary transition-colors"
+            onClick={closeMenu}
+          >
+            <Image
+              src="/stream.png"
+              alt=""
+              width={20}
+              height={20}
+              className="rounded"
+            />
+            Watch2gether
           </Link>
         </nav>
 

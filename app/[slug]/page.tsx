@@ -16,7 +16,7 @@ export async function generateStaticParams() {
     const slugs = data.results
       .slice(0, 20) // Pre-generate top 20 popular dramas
       .map((item) => ({
-        slug: item['detail-link'].split('/').filter(Boolean).pop() || '',
+        slug: item["detail-link"].split("/").filter(Boolean).pop() || "",
       }))
       .filter((item) => item.slug);
     return slugs;
@@ -33,16 +33,17 @@ export async function generateMetadata({
   const resolvedParams = await params;
   try {
     const data = await fetchDrama(resolvedParams.slug);
-    const title = (data.result && typeof data.result.title === "string"
-      ? data.result.title
-      : undefined) || resolvedParams.slug;
-    const description = typeof data.result?.description === "string" 
-      ? data.result.description.slice(0, 160) 
-      : undefined;
-    const image = typeof data.result?.image === "string" 
-      ? data.result.image 
-      : undefined;
-    
+    const title =
+      (data.result && typeof data.result.title === "string"
+        ? data.result.title
+        : undefined) || resolvedParams.slug;
+    const description =
+      typeof data.result?.description === "string"
+        ? data.result.description.slice(0, 160)
+        : undefined;
+    const image =
+      typeof data.result?.image === "string" ? data.result.image : undefined;
+
     return {
       title,
       description,
@@ -242,26 +243,28 @@ export default async function DramaDetailPage({
 
       {/* Episodes Section */}
       {detail.episodes && (
-        <Suspense fallback={
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold heading">Episodes</h2>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="surface rounded-xl p-4 animate-pulse">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gray-300 dark:bg-gray-700" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4" />
-                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2" />
+        <Suspense
+          fallback={
+            <section className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold heading">Episodes</h2>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="surface rounded-xl p-4 animate-pulse">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-300 dark:bg-gray-700" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4" />
+                        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        }>
+                ))}
+              </div>
+            </section>
+          }
+        >
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold heading">
