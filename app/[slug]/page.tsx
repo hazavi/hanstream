@@ -1,4 +1,4 @@
-import { fetchDrama, DramaResponse } from "../../lib/api";
+import { fetchDrama, fetchPopular, DramaResponse } from "../../lib/api";
 import { formatRelativeTime } from "../../lib/api";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { DescriptionSection } from "@/components/DescriptionSection";
@@ -7,6 +7,23 @@ import { DramaRatingButton } from "@/components/DramaRatingButton";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { Suspense } from "react";
+
+// Generate static paths for popular dramas at build time
+export async function generateStaticParams() {
+  try {
+    const data = await fetchPopular(1);
+    const slugs = data.results
+      .slice(0, 20) // Pre-generate top 20 popular dramas
+      .map((item) => ({
+        slug: item['detail-link'].split('/').filter(Boolean).pop() || '',
+      }))
+      .filter((item) => item.slug);
+    return slugs;
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata({
   params,
@@ -16,11 +33,24 @@ export async function generateMetadata({
   const resolvedParams = await params;
   try {
     const data = await fetchDrama(resolvedParams.slug);
+    const title = (data.result && typeof data.result.title === "string"
+      ? data.result.title
+      : undefined) || resolvedParams.slug;
+    const description = typeof data.result?.description === "string" 
+      ? data.result.description.slice(0, 160) 
+      : undefined;
+    const image = typeof data.result?.image === "string" 
+      ? data.result.image 
+      : undefined;
+    
     return {
-      title:
-        (data.result && typeof data.result.title === "string"
-          ? data.result.title
-          : undefined) || resolvedParams.slug,
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: image ? [{ url: image }] : [],
+      },
     };
   } catch {
     return { title: resolvedParams.slug };
@@ -212,58 +242,80 @@ export default async function DramaDetailPage({
 
       {/* Episodes Section */}
       {detail.episodes && (
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold heading">
-              Episodes ({detail.episodes.length})
-            </h2>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {detail.episodes.map((ep, index) => {
-              // Handle cases where episode_link might be undefined or null
-              if (!ep.episode_link) return null;
-
-              const epNum = ep.episode;
-              return (
-                <Link
-                  key={`${ep.episode_link}-${index}-${epNum}`}
-                  href={`/${resolvedParams.slug}/episode/${epNum}`}
-                  className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
-                >
+        <Suspense fallback={
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold heading">Episodes</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="surface rounded-xl p-4 animate-pulse">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-lg glass-surface flex items-center justify-center">
-                      <span className="text-sm font-bold text-primary">
-                        {epNum}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-primary truncate hover:text-accent transition-colors">
-                          Episode {epNum}
-                        </p>
-                        {ep.type && (
-                          <span
-                            className={`badge ${
-                              ep.type === "SUB" ? "badge-sub" : "badge-dub"
-                            }`}
-                          >
-                            {ep.type}
-                          </span>
-                        )}
-                      </div>
-                      {ep.release_date && (
-                        <p className="text-xs faint">
-                          {formatRelativeTime(ep.release_date)}
-                        </p>
-                      )}
+                    <div className="w-10 h-10 rounded-lg bg-gray-300 dark:bg-gray-700" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4" />
+                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2" />
                     </div>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
+                </div>
+              ))}
+            </div>
+          </section>
+        }>
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold heading">
+                Episodes ({detail.episodes.length})
+              </h2>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {detail.episodes.map((ep, index) => {
+                // Handle cases where episode_link might be undefined or null
+                if (!ep.episode_link) return null;
+
+                const epNum = ep.episode;
+                return (
+                  <Link
+                    key={`${ep.episode_link}-${index}-${epNum}`}
+                    href={`/${resolvedParams.slug}/episode/${epNum}`}
+                    className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
+                    prefetch={index < 12} // Only prefetch first 12 episodes
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg glass-surface flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary">
+                          {epNum}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-primary truncate hover:text-accent transition-colors">
+                            Episode {epNum}
+                          </p>
+                          {ep.type && (
+                            <span
+                              className={`badge ${
+                                ep.type === "SUB" ? "badge-sub" : "badge-dub"
+                              }`}
+                            >
+                              {ep.type}
+                            </span>
+                          )}
+                        </div>
+                        {ep.release_date && (
+                          <p className="text-xs faint">
+                            {formatRelativeTime(ep.release_date)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        </Suspense>
       )}
 
       {/* Drama Recommendations Section */}

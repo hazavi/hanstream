@@ -1,6 +1,29 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Enable React compiler for better performance
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? {
+      exclude: ["error", "warn"],
+    } : false,
+  },
+  
+  // Performance optimizations
+  experimental: {
+    optimizePackageImports: ['@/components', '@/lib'],
+    webpackMemoryOptimizations: true,
+  },
+  
+  // Output optimization
+  swcMinify: true,
+  
+  // Optimize JavaScript bundles
+  modularizeImports: {
+    '@/components': {
+      transform: '@/components/{{member}}',
+    },
+  },
+  
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
@@ -154,13 +177,13 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    minimumCacheTTL: 3600, // Cache for 1 hour
-    deviceSizes: [640, 768, 1024, 1280, 1600],
+    minimumCacheTTL: 31536000, // Cache for 1 year (images rarely change)
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    qualities: [75, 90, 100], // Configure allowed quality values
     // Fallback for unoptimized images - disabled optimization to avoid 500 errors from external hosts
     unoptimized: true,
     formats: ['image/webp', 'image/avif'],
+    loader: 'default',
   }
 };
 
