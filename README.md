@@ -8,7 +8,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-A premium streaming platform for Korean and Chinese dramas with social features and watch parties.
+A premium streaming platform for Asian dramas, primarily Korean and Chinese, featuring watch parties for friends and family.
 
 [Visit Website](https://www.hanstream.site/) • [Report Bug](https://github.com/hazavi/hanstream/issues)
 
