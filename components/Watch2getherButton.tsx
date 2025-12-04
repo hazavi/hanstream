@@ -80,7 +80,7 @@ export function Watch2getherButton({
           className="rounded group-hover:scale-105 transition-transform"
         />
         <span className="text-sm font-medium">
-          {creating ? "Creating Room..." : "Watch Together"}
+          {creating ? "Creating Room..." : "Watch2gether"}
         </span>
       </button>
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
