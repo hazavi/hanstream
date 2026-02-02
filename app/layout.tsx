@@ -7,8 +7,6 @@ import { SitePasswordGate } from "@/components/SitePasswordGate";
 import { FloatingNav } from "@/components/FloatingNav";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { DynamicMain } from "@/components/DynamicMain";
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -77,8 +75,6 @@ export default function RootLayout({
             </AuthProvider>
           </div>
         </SitePasswordGate>
-        <SpeedInsights />
-        <Analytics />
       </body>
     </html>
   );
