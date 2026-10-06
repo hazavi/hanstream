@@ -58,15 +58,15 @@ export function FloatingNav() {
           <Link href="/" className="flex items-center flex-shrink-0">
             {/* Show logo image on mobile/tablet/iPad, text on desktop */}
             <Image
-              src="/logo.png"
+              src="/liquid-icon.svg"
               alt="HanStream"
               width={120}
               height={40}
-              className="h-8 w-auto xl:hidden"
+              className="h-10 w-10 xl:hidden"
               priority
             />
-            <span className="title-text hidden xl:block text-lg sm:text-xl md:text-xl font-bold text-gray-700 dark:text-white whitespace-nowrap">
-              HanStream
+            <span className="title-text hidden xl:flex items-center gap-2 text-lg sm:text-xl md:text-xl font-bold text-gray-700 dark:text-white whitespace-nowrap">
+              <Image src="/liquid-icon.svg" alt="" width={36} height={36} /> HanStream
             </span>
           </Link>
 
@@ -98,7 +98,7 @@ export function FloatingNav() {
                   : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              Recent Movies
+              Movies
               {isActive("/recent-movies") && (
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
               )}
@@ -120,30 +120,6 @@ export function FloatingNav() {
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
               )}
               {!isActive("/schedule") && (
-                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left" />
-              )}
-            </Link>
-            <Link
-              href="/watch2gether"
-              scroll={true}
-              className={`text-sm font-medium transition-all duration-200 relative group flex items-center gap-1.5 ${
-                isActive("/watch2gether")
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-              }`}
-            >
-              <Image
-                src="/stream.png"
-                alt=""
-                width={24}
-                height={24}
-                className="rounded"
-              />
-              Watch2gether
-              {isActive("/watch2gether") && (
-                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
-              )}
-              {!isActive("/watch2gether") && (
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left" />
               )}
             </Link>

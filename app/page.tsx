@@ -105,7 +105,7 @@ export default async function Home() {
                 href="#recent"
                 className="glass-btn !bg-neutral-900 !text-white dark:!bg-white dark:!text-neutral-900 text-sm sm:text-base px-3 sm:px-4 py-2"
               >
-                Recently Added
+                Trending Today
               </a>
               <a
                 href="#popular"
@@ -125,7 +125,7 @@ export default async function Home() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <h2 className="text-xl sm:text-2xl font-bold heading">
-                  Latest Episodes
+                  Trending Today on Simkl
                 </h2>
               </div>
               <Link
@@ -159,7 +159,7 @@ export default async function Home() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h2 className="text-xl sm:text-2xl font-bold heading">
-                Popular Dramas
+                  Trending on Simkl
               </h2>
             </div>
             <Link

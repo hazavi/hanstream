@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
 import { WatchStatus } from "@/lib/types";
 import { Portal } from "./Portal";
@@ -121,7 +120,6 @@ const WATCH_STATUSES: {
 ];
 
 export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
-  const { user } = useAuth();
   const {
     profile,
     addToWatchlist,
@@ -133,7 +131,7 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [tempRating, setTempRating] = useState(10);
 
-  if (!user || !profile) {
+  if (!profile) {
     return null;
   }
 

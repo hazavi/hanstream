@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* Liquid glass surfaces inspired by the 21st.dev component library. */
+
 /* Performance optimizations */
 html {
   /* Use GPU acceleration for smoother theme transitions */
@@ -3948,3 +3950,77 @@ a { color: inherit; }
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out forwards;
 }
+
+/* iOS style liquid glass */
+:root {
+  --background: #dfeaf5;
+  --foreground: #14243b;
+  --card: rgba(255, 255, 255, .48);
+  --card-hover: rgba(255, 255, 255, .64);
+  --border: rgba(255, 255, 255, .72);
+  --muted: #c6d6e7;
+  --muted-foreground: #52657d;
+  --primary: #2169d5;
+  --primary-hover: #1257bd;
+  --accent: #176cda;
+  --accent-hover: #0f52ae;
+  --glass: rgba(255, 255, 255, .48);
+  --radius: 22px;
+  --radius-lg: 30px;
+}
+.dark {
+  --background: #0c1728;
+  --foreground: #f5f9ff;
+  --card: rgba(32, 48, 72, .5);
+  --card-hover: rgba(49, 68, 94, .6);
+  --border: rgba(255, 255, 255, .2);
+  --muted: #2c405b;
+  --muted-foreground: #b6c7df;
+  --primary: #79b6ff;
+  --primary-hover: #a5ceff;
+  --accent: #89beff;
+  --accent-hover: #c0ddff;
+  --glass: rgba(32, 48, 72, .5);
+}
+body {
+  background: radial-gradient(circle at 10% 12%, rgba(139, 200, 255, .88), transparent 36%), radial-gradient(circle at 89% 17%, rgba(248, 189, 221, .78), transparent 32%), radial-gradient(circle at 65% 84%, rgba(174, 225, 227, .7), transparent 42%), linear-gradient(135deg, #d8eaff, #f2e8f5 60%, #c9e2ed) !important;
+  background-attachment: fixed !important;
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.dark body { background: radial-gradient(circle at 10% 12%, rgba(27, 87, 149, .5), transparent 38%), radial-gradient(circle at 89% 17%, rgba(87, 46, 119, .48), transparent 35%), radial-gradient(circle at 65% 84%, rgba(28, 97, 110, .38), transparent 42%), #0c1728 !important; background-attachment: fixed !important; }
+.glass-card, .glass-surface, .surface, .surface-alt, .glass-nav, .glass-nav-transparent, .schedule-day-card-clean {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 24px !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.7), inset 0 -1px 1px rgba(255,255,255,.12), 0 12px 36px rgba(42,71,115,.13) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+}
+.dark .glass-card, .dark .glass-surface, .dark .surface, .dark .surface-alt, .dark .glass-nav, .dark .glass-nav-transparent, .dark .schedule-day-card-clean {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.15), 0 12px 36px rgba(0,0,0,.23) !important;
+}
+.glass-btn, .main-tab, .badge, .simkl-source {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.48) !important;
+  border: 1px solid rgba(255,255,255,.76) !important;
+  color: var(--foreground) !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.9), 0 5px 15px rgba(39,81,129,.12) !important;
+  backdrop-filter: blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+}
+.dark .glass-btn, .dark .main-tab, .dark .badge, .dark .simkl-source { background: rgba(70,90,121,.38) !important; border-color: rgba(255,255,255,.22) !important; }
+.glass-btn:hover, .main-tab:hover, .simkl-source:hover { background: var(--card-hover) !important; transform: translateY(-2px); }
+.glass-btn:active { transform: scale(.97); }
+.card-hover:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(33,71,119,.22) !important; }
+.homepage-grid .glass-card { padding: 4px; }
+.homepage-grid .glass-card img { border-radius: 20px; }
+.heading { letter-spacing: -.03em; }
+.text-secondary { color: var(--muted-foreground) !important; }
+.simkl-source { margin-top: .6rem; padding: .45rem .8rem; font-size: .8rem; font-weight: 700; text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { .card-hover:hover, .glass-btn:hover, .simkl-source:hover { transform: none; } }

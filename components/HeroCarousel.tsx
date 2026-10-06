@@ -63,7 +63,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium mb-2 sm:mb-4">
                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
-                Hot Update
+                Trending on Simkl
               </div>
 
               {/* Title */}
@@ -73,7 +73,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
 
               {/* Episode Info */}
               <p className="text-[14px] md:text-[14px] text-muted-foreground mb-6">
-                Episode {currentItem.episode_number} •{" "}
                 {currentItem.subtitle_type}
               </p>
 

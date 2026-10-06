@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
 import { DramaCard } from "./DramaCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -9,7 +8,6 @@ import { PopularItem } from "@/lib/api";
 import Link from "next/link";
 
 export function ContinueWatching() {
-  const { user, loading } = useAuth();
   const { getContinueWatching, removeFromContinueWatching, profile } =
     useProfile();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -24,16 +22,6 @@ export function ContinueWatching() {
     dramaTitle: "",
     dramaSlug: "",
   });
-
-  // Don't render anything while loading authentication state
-  if (loading) {
-    return null;
-  }
-
-  // Don't render if user is not authenticated
-  if (!user) {
-    return null;
-  }
 
   // Don't render if profile is not loaded yet
   if (!profile) {
@@ -214,7 +202,7 @@ export function ContinueWatching() {
 
                   {/* Continue watching button overlay (shown on hover) */}
                   <Link
-                    href={`/${item.slug}/episode/${item.currentEpisode || 1}`}
+                    href={`/${item.slug}/episode/${item.episodeRoute || item.currentEpisode || 1}`}
                     className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200"
                   >
                     <div className="flex items-center gap-2 glass-btn px-4 py-2">

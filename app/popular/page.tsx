@@ -21,7 +21,7 @@ export default async function PopularPage({
     <div className="space-y-8">
       <div className="text-center space-y-4">
         <h1 className="text-3xl md:text-4xl font-bold heading">
-          Popular Dramas
+          Trending This Week on Simkl
         </h1>
       </div>
 

@@ -1,287 +1,49 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  fetchDrama,
-  fetchEpisode,
-  fetchSearch,
-  fetchRecent,
-  fetchPopular,
-  fetchPopularSeries,
-  clearCache,
-  formatRelativeTime,
-} from '../lib/api';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchDrama, fetchEpisode, fetchSearch, fetchRecent } from "../lib/api";
+import { getSimklDrama, getSimklEpisodes, simklGet } from "../lib/simkl";
+import { getKisskhStream } from "../lib/kisskh";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+vi.mock("../lib/simkl", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../lib/simkl")>();
+  return { ...original, getSimklDrama: vi.fn(), getSimklEpisodes: vi.fn(), simklGet: vi.fn() };
+});
+vi.mock("../lib/kisskh", () => ({ getKisskhStream: vi.fn() }));
 
-// Mock fetch globally
-global.fetch = vi.fn();
-
-describe('API Functions', () => {
+describe("Simkl and kisskh data mapping", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    clearCache();
+    process.env.SIMKL_CLIENT_ID = "test-client";
   });
 
-  describe('fetchDrama', () => {
-    it('should fetch drama details successfully', async () => {
-      const mockData = {
-        result: {
-          title: 'Test Drama',
-          image: 'https://example.com/image.jpg',
-          description: 'A test drama',
-        },
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      const result = await fetchDrama('test-drama');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BASE}/test-drama`,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Accept: 'application/json',
-          }),
-        })
-      );
-      expect(result).toEqual(mockData);
-    });
-
-    it('should throw error on failed request', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-      });
-
-      await expect(fetchDrama('non-existent')).rejects.toThrow();
-    });
-
-    it('should use cache for repeated requests', async () => {
-      const mockData = {
-        result: { title: 'Cached Drama' },
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      // First call
-      await fetchDrama('test-drama');
-      // Second call (should use cache)
-      await fetchDrama('test-drama');
-
-      // Fetch should only be called once
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-    });
+  it("maps Simkl details and season-aware episode links", async () => {
+    vi.mocked(getSimklDrama).mockResolvedValue({ title: "Test Drama", poster: "12/poster", overview: "Story", ids: { simkl: 42, slug: "test-drama" }, year: 2026 });
+    vi.mocked(getSimklEpisodes).mockResolvedValue([{ title: "Pilot", season: 1, episode: 1, aired: true }, { title: "Second season", season: 2, episode: 1, aired: true }]);
+    const result = await fetchDrama("42");
+    expect(result.result?.title).toBe("Test Drama");
+    expect(result.result?.simklUrl).toBe("https://simkl.com/tv/42/test-drama");
+    expect(result.result?.episodes?.map((episode) => episode.episode_link)).toEqual(["/42/episode/s1e1", "/42/episode/s2e1"]);
   });
 
-  describe('fetchEpisode', () => {
-    it('should fetch episode data successfully', async () => {
-      const mockData = {
-        result: {
-          title: 'Episode 1',
-          video: 'https://example.com/video.mp4',
-          episodes: [{ id: '/ep/1', type: 'SUB' }],
-        },
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      const result = await fetchEpisode('test-drama', '1');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BASE}/test-drama/episode/1`,
-        expect.any(Object)
-      );
-      expect(result).toEqual(mockData);
-    });
+  it("uses only a kisskh stream for playback", async () => {
+    vi.mocked(getSimklDrama).mockResolvedValue({ title: "Test Drama", ids: { simkl: 42 } });
+    vi.mocked(getSimklEpisodes).mockResolvedValue([{ title: "Pilot", season: 1, episode: 1, aired: true }]);
+    vi.mocked(getKisskhStream).mockResolvedValueOnce({ url: "https://vidmoly.example/embed/1", pageUrl: "https://kisskh.space/test-drama-ep-1/" }).mockResolvedValueOnce(null);
+    expect((await fetchEpisode("42", "s1e1")).result.video).toBe("https://vidmoly.example/embed/1");
+    expect((await fetchEpisode("42", "s1e1")).result.video).toBe("");
+    expect(getKisskhStream).toHaveBeenCalledWith("Test Drama", "1", false);
   });
 
-  describe('fetchSearch', () => {
-    it('should search dramas with query', async () => {
-      const mockData = {
-        results: [
-          { title: 'Test Drama', image: 'test.jpg', 'detail-link': '/test' },
-        ],
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      const result = await fetchSearch('test drama');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/search?q='),
-        expect.any(Object)
-      );
-      expect(result.results).toHaveLength(1);
-    });
-
-    it('should handle search with pagination', async () => {
-      const mockData = {
-        results: [],
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      await fetchSearch('test', 2);
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('&page=2'),
-        expect.any(Object)
-      );
-    });
+  it("maps Simkl search results to stable local routes", async () => {
+    vi.mocked(simklGet).mockResolvedValueOnce([{ title: "Drama", ids: { simkl_id: 42 } }]).mockResolvedValueOnce([{ title: "Movie", ids: { simkl_id: 88 } }]);
+    const result = await fetchSearch("drama");
+    expect(result.results.map((item) => item["detail-link"])).toEqual(["/42", "/movie-88"]);
   });
 
-  describe('fetchRecent', () => {
-    it('should fetch recent dramas', async () => {
-      const mockData = {
-        results: [
-          {
-            title: 'Recent Drama',
-            image: 'recent.jpg',
-            'episode-link': '/recent/episode/1',
-          },
-        ],
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      const result = await fetchRecent();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BASE}/recently-added`,
-        expect.any(Object)
-      );
-      expect(result.results).toHaveLength(1);
-    });
-  });
-
-  describe('fetchPopular', () => {
-    it('should fetch popular dramas', async () => {
-      const mockData = {
-        results: [
-          { title: 'Popular Drama', image: 'pop.jpg', 'detail-link': '/pop' },
-        ],
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      const result = await fetchPopular();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BASE}/popular`,
-        expect.any(Object)
-      );
-      expect(result.results).toHaveLength(1);
-    });
-  });
-
-  describe('fetchPopularSeries', () => {
-    it('should fetch top dramas', async () => {
-      const mockData = {
-        result: {
-          periods: {
-            week: [{ title: 'Top Drama', rank: 1, slug: 'top' }],
-            month: [],
-            day: [],
-          },
-        },
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      const result = await fetchPopularSeries();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BASE}/top-dramas`,
-        expect.any(Object)
-      );
-      expect(result.result.periods.week).toHaveLength(1);
-    });
-  });
-
-  describe('formatRelativeTime', () => {
-    it('should return "Just now" for very recent times', () => {
-      const now = new Date();
-      const result = formatRelativeTime(now.toISOString());
-      expect(result).toBe('Just now');
-    });
-
-    it('should format minutes correctly', () => {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      const result = formatRelativeTime(fiveMinutesAgo.toISOString());
-      expect(result).toBe('5 minutes ago');
-    });
-
-    it('should format hours correctly', () => {
-      const twoHoursAgo = new Date(Date.now() - 2 * 3600 * 1000);
-      const result = formatRelativeTime(twoHoursAgo.toISOString());
-      expect(result).toBe('2 hours ago');
-    });
-
-    it('should format days correctly', () => {
-      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 3600 * 1000);
-      const result = formatRelativeTime(threeDaysAgo.toISOString());
-      expect(result).toBe('3 days ago');
-    });
-
-    it('should format weeks correctly', () => {
-      const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 3600 * 1000);
-      const result = formatRelativeTime(twoWeeksAgo.toISOString());
-      expect(result).toBe('2 weeks ago');
-    });
-
-    it('should handle already formatted strings', () => {
-      const result = formatRelativeTime('4 minutes ago');
-      expect(result).toBe('4 minutes ago');
-    });
-
-    it('should handle invalid dates', () => {
-      const result = formatRelativeTime('invalid-date');
-      expect(result).toBe('invalid-date');
-    });
-  });
-
-  describe('Cache Management', () => {
-    it('should clear cache when clearCache is called', async () => {
-      const mockData = { result: { title: 'Test' } };
-
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockData,
-      });
-
-      // First call
-      await fetchDrama('test');
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-
-      // Clear cache
-      clearCache();
-
-      // Second call after cache clear
-      await fetchDrama('test');
-      expect(global.fetch).toHaveBeenCalledTimes(2);
-    });
+  it("loads trending TV from Simkl CDN", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ title: "Drama", ids: { simkl_id: 42 } }] }));
+    const result = await fetchRecent();
+    expect(result.results[0]["episode-link"]).toBe("/42");
+    expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain("data.simkl.in/discover/trending/tv/today_100.json");
+    vi.unstubAllGlobals();
   });
 });

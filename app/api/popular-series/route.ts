@@ -1,32 +1,11 @@
-﻿import { NextResponse } from 'next/server';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+import { NextResponse } from "next/server";
+import { fetchPopularSeries } from "@/lib/api";
 
 export async function GET() {
   try {
-    const response = await fetch(`${API_BASE_URL}/top-dramas`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'HanStream/1.0',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, max-age=300',
-      },
-    });
+    return NextResponse.json(await fetchPopularSeries());
   } catch (error) {
-    console.error('Error fetching popular series:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch popular series' },
-      { status: 500 }
-    );
+    console.error("Simkl trending failed:", error);
+    return NextResponse.json({ error: "Trending shows are temporarily unavailable" }, { status: 502 });
   }
 }

@@ -166,7 +166,7 @@ export function TopAiringSection() {
         {/* Clean header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-primary">
-            Top Airing Shows
+            Trending on Simkl
           </h2>
           <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
         </div>

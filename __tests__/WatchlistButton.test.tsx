@@ -8,15 +8,6 @@ import {
 } from "@testing-library/react";
 import { WatchlistButton } from "../components/WatchlistButton";
 
-// Mock Firebase auth using alias path to match component imports
-vi.mock("@/lib/auth", () => ({
-  useAuth: vi.fn(() => ({
-    user: { uid: "test-user-123" },
-    loading: false,
-  })),
-}));
-import { useAuth } from "@/lib/auth";
-
 // Mock Profile hook with mutable state per test
 const mockAddToWatchlist = vi.fn();
 const mockRemoveFromWatchlist = vi.fn();
@@ -131,11 +122,8 @@ describe("WatchlistButton Component", () => {
     });
   });
 
-  it("should not render for unauthenticated users", () => {
-    vi.mocked(useAuth).mockReturnValueOnce({
-      user: null,
-      loading: false,
-    } as any);
+  it("should wait for a local profile to load", () => {
+    currentProfile = null;
 
     const { container } = render(
       <WatchlistButton slug="test-drama" title="Test Drama" image="test.jpg" />

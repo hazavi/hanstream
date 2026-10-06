@@ -1,4 +1,4 @@
-import { fetchDrama, fetchPopular, DramaResponse } from "../../lib/api";
+import { fetchDrama, DramaResponse } from "../../lib/api";
 import { formatRelativeTime } from "../../lib/api";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { DescriptionSection } from "@/components/DescriptionSection";
@@ -11,18 +11,7 @@ import { Suspense } from "react";
 
 // Generate static paths for popular dramas at build time
 export async function generateStaticParams() {
-  try {
-    const data = await fetchPopular(1);
-    const slugs = data.results
-      .slice(0, 20) // Pre-generate top 20 popular dramas
-      .map((item) => ({
-        slug: item["detail-link"].split("/").filter(Boolean).pop() || "",
-      }))
-      .filter((item) => item.slug);
-    return slugs;
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({
@@ -38,9 +27,9 @@ export async function generateMetadata({
         ? data.result.title
         : undefined) || resolvedParams.slug;
     const description =
-      typeof data.result?.description === "string"
+      (typeof data.result?.description === "string"
         ? data.result.description.slice(0, 160)
-        : undefined;
+        : undefined);
     const image =
       typeof data.result?.image === "string" ? data.result.image : undefined;
 
@@ -95,9 +84,9 @@ export default async function DramaDetailPage({
 
   const detail: DramaDetail = {
     title:
-      typeof base.title === "string"
+      (typeof base.title === "string"
         ? base.title
-        : resolvedParams.slug.replace(/-/g, " "),
+        : resolvedParams.slug.replace(/-/g, " ")),
     image:
       rootImage || (typeof base.image === "string" ? base.image : undefined),
     description:
@@ -130,6 +119,7 @@ export default async function DramaDetailPage({
         <h1 className="text-3xl lg:text-4xl font-bold heading leading-tight">
           {detail.title}
         </h1>
+        {data.result?.simklUrl && <a className="simkl-source" href={data.result.simklUrl} target="_blank" rel="noopener noreferrer">Drama details from Simkl ↗</a>}
       </div>
 
       {/* Header Section */}
@@ -281,7 +271,7 @@ export default async function DramaDetailPage({
                 return (
                   <Link
                     key={`${ep.episode_link}-${index}-${epNum}`}
-                    href={`/${resolvedParams.slug}/episode/${epNum}`}
+                    href={ep.episode_link}
                     className="group block surface rounded-xl p-4 hover:surface-hover hover:shadow-md transition-all duration-200"
                     prefetch={index < 12} // Only prefetch first 12 episodes
                   >

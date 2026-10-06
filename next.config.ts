@@ -14,9 +14,6 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
   },
   
-  // Output optimization
-  swcMinify: true,
-  
   // Optimize JavaScript bundles
   modularizeImports: {
     '@/components': {

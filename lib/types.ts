@@ -30,6 +30,7 @@ export interface ContinueWatchingItem {
   title: string;
   image?: string;
   currentEpisode: number;
+  episodeRoute?: string;
   totalEpisodes?: number;
   lastWatched: string; // ISO date string
   dateAdded: string; // ISO date string

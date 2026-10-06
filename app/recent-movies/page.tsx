@@ -26,7 +26,7 @@ export default async function RecentMoviesPage({
         <div className="space-y-8">
           <div className="text-center space-y-4">
             <h1 className="text-3xl md:text-4xl font-bold heading">
-              Recent Movies
+              Trending Movies on Simkl
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               No movies available at the moment.
@@ -53,7 +53,7 @@ export default async function RecentMoviesPage({
       <div className="space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold heading">
-            Recent Movies
+            Trending Movies on Simkl
           </h1>
         </div>
 
@@ -78,7 +78,7 @@ export default async function RecentMoviesPage({
       <div className="space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold heading">
-            Recent Movies
+            Trending Movies on Simkl
           </h1>
           <p className="text-red-600 dark:text-red-400">
             Failed to load recent movies. Please try again later.

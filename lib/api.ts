@@ -1,478 +1,170 @@
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+import { getSimklDrama, getSimklEpisodes, getSimklMovie, simklGet, simklHeaders, simklId, simklLink, simklPoster, type SimklItem } from "./simkl";
+import { getKisskhStream } from "./kisskh";
 
-if (!BASE) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL is not defined in environment variables');
+export type RecentItem = { "episode-link": string; episode_number?: number; image: string; time: string; title: string; type: string };
+export type RecentMovieItem = { ep: string; id: string; img: string; time: string; title: string; type: string };
+export type PopularItem = { "detail-link": string; image: string; title: string };
+export type SearchResultItem = PopularItem;
+export type EpisodeListItem = { id?: string; title?: string; type?: string; time?: string };
+export type EpisodeResult = { title: string; type?: string; video: string; category?: { title?: string }; episodes?: EpisodeListItem[]; sourcePage?: string };
+export type DramaResponse = { result?: { title?: string; image?: string; description?: string; other_names?: string; meta?: Record<string, unknown>; episodes?: { episode: number; episode_link: string; type?: string; release_date?: string; title?: string }[]; simklUrl?: string } };
+export type EpisodeResponse = { result: EpisodeResult };
+export type RecentResponse = { results: RecentItem[] };
+export type PopularResponse = { results: PopularItem[] };
+export type SearchResponse = { results: SearchResultItem[] };
+export type RecentMoviesResponse = { result: { movies: RecentMovieItem[]; page: number; pagination: { current: number; last: number; pages: number[] } } };
+export type HotSeriesUpdateItem = { content_type: string; drama_detail_link: string; drama_slug: string; episode_detail_link: string; episode_number: number; full_title: string; id: string[]; image: string; series_title: string; subtitle_type: string };
+export type HotSeriesResponse = { error: string | null; page: string; result: { source_url: string; updates: HotSeriesUpdateItem[] }; status: number };
+export type TopDramaItem = { detail_link: string; external_link: string; image: string; rank: number; release_year: number; slug: string; title: string };
+export type TopDramasResponse = { error: string | null; page: string; result: { periods: { day: TopDramaItem[]; week: TopDramaItem[]; month: TopDramaItem[] }; source_url: string }; status: number };
+export type PopularSeriesItem = { detail_link: string; genres: string[]; id: string[]; image: string; range: "weekly" | "monthly" | "all"; rank: number; rating_percent: number; score: number; slug: string; title: string };
+
+function route(item: SimklItem, movie = false) {
+  const id = simklId(item);
+  return id ? `/${movie ? `movie-${id}` : id}` : "";
 }
 
-// Cache management
-interface CacheEntry<T> { data: T; timestamp: number; ttl: number }
-const cache = new Map<string, CacheEntry<unknown>>();
-const pendingRequests = new Map<string, Promise<unknown>>();
-
-// Cache TTL in milliseconds - Reduced for faster updates
-const CACHE_TTL = {
-  recent: 2 * 60 * 1000,     // 2 minutes for recent episodes (reduced from 5)
-  popular: 5 * 60 * 1000,    // 5 minutes for popular shows (reduced from 10)
-  drama: 10 * 60 * 1000,     // 10 minutes for drama details (reduced from 30)
-  episode: 30 * 60 * 1000,   // 30 minutes for episode data (reduced from 60)
-  search: 5 * 60 * 1000,     // 5 minutes for search results (reduced from 15)
-};
-
-function getCacheKey(endpoint: string): string {
-  return endpoint;
+function pageSlice<T>(items: T[], page: number, size = 20): T[] {
+  return items.slice((Math.max(1, page) - 1) * size, Math.max(1, page) * size);
 }
 
-function isValidCache(cacheEntry: { timestamp: number; ttl: number }): boolean {
-  return Date.now() - cacheEntry.timestamp < cacheEntry.ttl;
+async function trending(type: "tv" | "movies", period: "today" | "week" | "month" = "today"): Promise<SimklItem[]> {
+  const clientId = process.env.SIMKL_CLIENT_ID;
+  if (!clientId) throw new Error("SIMKL_CLIENT_ID is required. Add it to .env.local.");
+  const url = new URL(`https://data.simkl.in/discover/trending/${type}/${period}_100.json`);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("app-name", "hanstream");
+  url.searchParams.set("app-version", "0.1.0");
+  const response = await fetch(url, { headers: simklHeaders(), next: { revalidate: period === "today" ? 3600 : 86400 }, signal: AbortSignal.timeout(10000) });
+  if (!response.ok) throw new Error(`Simkl trending returned ${response.status}`);
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
 }
 
-async function get<T = unknown>(path: string, cacheTTL: number = 0, init?: RequestInit): Promise<T> {
-  const cacheKey = getCacheKey(path);
-  
-  // Check cache first - stale-while-revalidate pattern
-  if (cacheTTL > 0) {
-    const cached = cache.get(cacheKey) as CacheEntry<T> | undefined;
-    if (cached) {
-      const cacheAge = Date.now() - cached.timestamp;
-      const isStale = cacheAge > cached.ttl;
-      
-      // Return fresh cache immediately
-      if (!isStale) {
-        return cached.data as T;
-      }
-      
-      // If cache is stale but not too old (within 2x TTL), return it and revalidate in background
-      if (cacheAge < cached.ttl * 2) {
-        // Start background revalidation if not already pending
-        if (!pendingRequests.has(cacheKey)) {
-          const revalidatePromise = fetch(BASE + path, { 
-            ...init, 
-            headers: { 
-              ...(init?.headers || {}), 
-              'Accept': 'application/json',
-              'Cache-Control': 'no-cache' // Force fresh data
-            } 
-          }).then(async (res) => {
-            if (res.ok) {
-              const data = await res.json() as T;
-              cache.set(cacheKey, { data, timestamp: Date.now(), ttl: cacheTTL });
-              return data;
-            }
-            return cached.data;
-          }).catch(() => cached.data).finally(() => {
-            pendingRequests.delete(cacheKey);
-          });
-          
-          pendingRequests.set(cacheKey, revalidatePromise);
-        }
-        
-        // Return stale data immediately
-        return cached.data as T;
-      }
-    }
-  }
-  
-  // Check if request is already pending (deduplication)
-  if (pendingRequests.has(cacheKey)) {
-    return pendingRequests.get(cacheKey) as Promise<T>;
-  }
-  
-  // Make new request with no-cache to get fresh data
-  const requestPromise: Promise<T> = fetch(BASE + path, { 
-    ...init, 
-    headers: { 
-      ...(init?.headers || {}), 
-      'Accept': 'application/json',
-      'Cache-Control': 'no-cache' // Force fresh data from API
-    } 
-  }).then(async (res) => {
-    if (!res.ok) throw new Error(`Request failed ${res.status}`);
-    const data = await res.json() as T;
-    
-    // Store in cache if TTL specified
-    if (cacheTTL > 0) {
-      cache.set(cacheKey, { data, timestamp: Date.now(), ttl: cacheTTL });
-    }
-    
-    return data;
-  }).finally(() => {
-    // Remove from pending requests
-    pendingRequests.delete(cacheKey);
-  });
-  
-  // Store pending request
-  pendingRequests.set(cacheKey, requestPromise);
-  
-  return requestPromise;
+export async function fetchRecent(page = 1): Promise<RecentResponse> {
+  const items = await trending("tv");
+  return { results: pageSlice(items, page).filter((item) => simklId(item)).map((item) => ({
+    "episode-link": route(item), image: simklPoster(item.poster), time: item.date || "Trending today", title: item.title, type: "TV",
+  })) };
 }
 
-export interface RecentResponse { results: RecentItem[] }
-export interface RecentMoviesResponse { 
-  result: { 
-    movies: RecentMovieItem[]
-    page: number
-    pagination: {
-      current: number
-      last: number
-      next?: number
-      pages: number[]
-    }
-  } 
-}
-export interface PopularResponse { results: PopularItem[] }
-export interface SearchResponse { results: SearchResultItem[] }
-export interface DramaResponse { result?: { title?: string; image?: string; description?: string; other_names?: string; meta?: Record<string, unknown>; episodes?: { id?: string; type?: string; time?: string }[]; [k: string]: unknown } }
-export interface EpisodeListItem { id?: string; type?: string; time?: string }
-export interface EpisodeResult {
-  title: string;
-  type?: string;
-  video: string;
-  category?: { title?: string };
-  episodes?: EpisodeListItem[];
-}
-export interface EpisodeResponse { result: EpisodeResult }
-
-export interface HotSeriesUpdateItem {
-  content_type: string;
-  drama_detail_link: string;
-  drama_slug: string;
-  episode_detail_link: string;
-  episode_number: number;
-  full_title: string;
-  id: string[];
-  image: string;
-  series_title: string;
-  subtitle_type: string;
+export async function fetchPopular(page = 1): Promise<PopularResponse> {
+  const items = await trending("tv", "week");
+  return { results: pageSlice(items, page).filter((item) => simklId(item)).map((item) => ({ "detail-link": route(item), image: simklPoster(item.poster), title: item.title })) };
 }
 
-export interface HotSeriesResponse {
-  error: null | string;
-  page: string;
-  result: {
-    source_url: string;
-    updates: HotSeriesUpdateItem[];
-  };
-  status: number;
+export async function fetchRecentMovies(page = 1): Promise<RecentMoviesResponse> {
+  const items = await trending("movies", "week");
+  const movies = pageSlice(items, page).filter((item) => simklId(item)).map((item) => ({ ep: "1", id: route(item, true), img: simklPoster(item.poster), time: item.date || "Trending this week", title: item.title, type: "Movie" }));
+  return { result: { movies, page, pagination: { current: page, last: Math.ceil(items.length / 20), pages: [] } } };
 }
 
-export async function fetchRecent(page: number = 1): Promise<RecentResponse> {
-  return get<RecentResponse>(`/recently-added${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
-}
-
-export async function fetchHotSeries(): Promise<HotSeriesResponse> {
-  return get<HotSeriesResponse>('/hot-series-update', CACHE_TTL.recent);
-}
-
-export async function fetchRecentMovies(page: number = 1): Promise<RecentMoviesResponse> {
-  return get<RecentMoviesResponse>(`/recent-movies${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.recent);
-}
-
-export async function fetchPopular(page: number = 1): Promise<PopularResponse> {
-  return get<PopularResponse>(`/popular${page > 1 ? `?page=${page}` : ''}`, CACHE_TTL.popular);
+export async function fetchSearch(query: string, page = 1): Promise<SearchResponse> {
+  const text = query.trim().replace(/-/g, " ");
+  if (!text) return { results: [] };
+  const shows = await simklGet<SimklItem[]>(`/search/tv?q=${encodeURIComponent(text)}&page=${page}&limit=20`, 300);
+  const movies = await simklGet<SimklItem[]>(`/search/movie?q=${encodeURIComponent(text)}&page=${page}&limit=20`, 300);
+  return { results: [
+    ...shows.filter((item) => simklId(item)).map((item) => ({ "detail-link": route(item), image: simklPoster(item.poster), title: item.title })),
+    ...movies.filter((item) => simklId(item)).map((item) => ({ "detail-link": route(item, true), image: simklPoster(item.poster), title: item.title })),
+  ] };
 }
 
 export async function fetchDrama(slug: string): Promise<DramaResponse> {
-  return get<DramaResponse>(`/${slug}`, CACHE_TTL.drama);
+  const movie = slug.startsWith("movie-");
+  const id = movie ? slug.slice(6) : slug;
+  const item = movie ? await getSimklMovie(id) : await getSimklDrama(id);
+  const episodes = movie ? [{ episode: 1, episode_link: `/${slug}/episode/1`, title: item.title }] : (await getSimklEpisodes(id))
+    .filter((ep) => ep.type !== "special" && ep.episode && ep.aired !== false)
+    .map((ep) => ({ episode: ep.episode!, episode_link: `/${slug}/episode/s${ep.season || 1}e${ep.episode}`, release_date: ep.date || undefined, title: ep.title }));
+  return { result: {
+    title: item.title, image: simklPoster(item.poster), description: item.overview,
+    meta: { ...(item.year ? { Released: item.year } : {}), ...(item.status ? { Status: item.status } : {}), ...(item.runtime ? { Duration: `${item.runtime} min` } : {}), ...(item.genres?.length ? { Genre: item.genres.join(", ") } : {}), ...(item.country ? { Country: item.country } : {}), ...(item.ratings?.simkl?.rating ? { "Simkl rating": item.ratings.simkl.rating } : {}) },
+    episodes, simklUrl: simklLink(item, movie ? "movies" : "tv"),
+  } };
 }
 
 export async function fetchEpisode(slug: string, episode: string): Promise<EpisodeResponse> {
-  return get<EpisodeResponse>(`/${slug}/episode/${episode}`, CACHE_TTL.episode);
+  const drama = await fetchDrama(slug);
+  const title = drama.result?.title || slug;
+  const seasonMatch = /^s(\d+)e(\d+)$/i.exec(episode);
+  const number = seasonMatch ? seasonMatch[2] : episode;
+  const stream = await getKisskhStream(title, number, slug.startsWith("movie-"));
+  return { result: {
+    title: `${title} - Episode ${number}`, category: { title }, video: stream?.url || "", sourcePage: stream?.pageUrl,
+    episodes: drama.result?.episodes?.map((ep) => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date })),
+  } };
 }
 
-export async function fetchSearch(query: string, page: number = 1): Promise<SearchResponse> {
-  const q = query.trim().toLowerCase().replace(/\s+/g, '-');
-  const pageParam = page > 1 ? `&page=${page}` : '';
-  return get<SearchResponse>(`/search?q=${encodeURIComponent(q)}${pageParam}`, CACHE_TTL.search);
+export async function fetchHotSeries(): Promise<HotSeriesResponse> {
+  const items = (await trending("tv")).slice(0, 8);
+  return { error: null, page: "hot-series", status: 200, result: { source_url: "https://simkl.com/tv/best-shows/most-watched", updates: items.filter((item) => simklId(item)).map((item) => ({ content_type: "tv", drama_detail_link: route(item), drama_slug: String(simklId(item)), episode_detail_link: route(item), episode_number: 1, full_title: item.title, id: [String(simklId(item))], image: simklPoster(item.poster), series_title: item.title, subtitle_type: "Simkl trending" })) } };
 }
 
 export async function fetchPopularSeries(): Promise<TopDramasResponse> {
-  return get<TopDramasResponse>('/top-dramas', CACHE_TTL.popular);
+  const [day, week, month] = await Promise.all([trending("tv", "today"), trending("tv", "week"), trending("tv", "month")]);
+  const toRows = (items: SimklItem[]) => items.slice(0, 10).filter((item) => simklId(item)).map((item, index) => ({ detail_link: route(item), external_link: simklLink(item), image: simklPoster(item.poster), rank: index + 1, release_year: item.year || 0, slug: String(simklId(item)), title: item.title }));
+  return { error: null, page: "top-dramas", status: 200, result: { source_url: "https://simkl.com/tv/best-shows/most-watched", periods: { day: toRows(day), week: toRows(week), month: toRows(month) } } };
 }
 
-// Next.js cached versions for server components - Reduced revalidation times
-export async function fetchRecentCached(page: number = 1) {
-  const response = await fetch(`${BASE}/recently-added${page > 1 ? `?page=${page}` : ''}`, {
-    next: { 
-      revalidate: 120, // 2 minutes - ISR with time-based revalidation
-      tags: ['recent-dramas']
-    }
-    // Removed cache: 'no-store' to allow static generation with ISR
-  });
-  if (!response.ok) throw new Error(`Request failed ${response.status}`);
-  return response.json();
-}
+export type ScheduleDrama = { countdown: string; countdown_seconds: number; detail_link: string; episode_count: number; external_link: string; image: string; release_status: string; release_timestamp: number | null; slug: string; subtitle_type: string | null; title: string };
+export type ScheduleResponse = { error: null; page: string; result: { days: Record<string, { count: number; day: string; dramas: ScheduleDrama[] }>; schedule_note: string }; status: number };
 
-export async function fetchPopularCached(page: number = 1) {
-  const response = await fetch(`${BASE}/popular${page > 1 ? `?page=${page}` : ''}`, {
-    next: { 
-      revalidate: 300, // 5 minutes - ISR with time-based revalidation
-      tags: ['popular-dramas']
-    }
-    // Removed cache: 'no-store' to allow static generation with ISR
-  });
-  if (!response.ok) throw new Error(`Request failed ${response.status}`);
-  return response.json();
-}
-
-export async function fetchHotSeriesCached() {
-  const response = await fetch(`${BASE}/hot-series-update`, {
-    next: { 
-      revalidate: 120, // 2 minutes - ISR with time-based revalidation
-      tags: ['hot-series-update']
-    }
-    // Removed cache: 'no-store' to allow static generation with ISR
-  });
-  if (!response.ok) throw new Error(`Request failed ${response.status}`);
-  return response.json();
-}
-
-export async function fetchDramaCached(slug: string) {
-  const response = await fetch(`${BASE}/${slug}`, {
-    next: { 
-      revalidate: 600, // 10 minutes - ISR with time-based revalidation
-      tags: [`drama-${slug}`]
-    }
-    // Removed cache: 'no-store' to allow static generation with ISR
-  });
-  if (!response.ok) throw new Error(`Request failed ${response.status}`);
-  return response.json();
-}
-
-export async function fetchEpisodeCached(slug: string, episode: string) {
-  const response = await fetch(`${BASE}/${slug}/episode/${episode}`, {
-    next: { 
-      revalidate: 1800, // 30 minutes - ISR with time-based revalidation
-      tags: [`episode-${slug}-${episode}`]
-    }
-    // Removed cache: 'no-store' to allow static generation with ISR
-  });
-  if (!response.ok) throw new Error(`Request failed ${response.status}`);
-  return response.json();
-}
-
-export async function fetchSearchCached(query: string, page: number = 1) {
-  const q = query.trim().toLowerCase().replace(/\s+/g, '-');
-  const pageParam = page > 1 ? `&page=${page}` : '';
-  const response = await fetch(`${BASE}/search?q=${encodeURIComponent(q)}${pageParam}`, {
-    next: { 
-      revalidate: 300, // 5 minutes - ISR with time-based revalidation
-      tags: [`search-${q}`]
-    }
-    // Removed cache: 'no-store' to allow static generation with ISR
-  });
-  if (!response.ok) throw new Error(`Request failed ${response.status}`);
-  return response.json();
-}
-
-// Client-side search function (calls internal API route)
-export async function fetchSearchClient(query: string, page: number = 1) {
-  const cacheKey = `search-${query}-${page}`;
-  
-  // Check client-side cache first
-  const cached = cache.get(cacheKey) as CacheEntry<SearchResultItem[]> | undefined;
-  if (cached && isValidCache(cached)) {
-    return cached.data;
+export async function fetchSchedule(): Promise<ScheduleResponse> {
+  const clientId = process.env.SIMKL_CLIENT_ID;
+  if (!clientId) throw new Error("SIMKL_CLIENT_ID is required. Add it to .env.local.");
+  const url = new URL("https://data.simkl.in/calendar/v2/tv.json");
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("app-name", "hanstream");
+  url.searchParams.set("app-version", "0.1.0");
+  const response = await fetch(url, { headers: simklHeaders(), next: { revalidate: 18000 }, signal: AbortSignal.timeout(10000) });
+  if (!response.ok) throw new Error(`Simkl calendar returned ${response.status}`);
+  const data = await response.json() as { calendar: { simkl_id: number; date: string; episode?: { season?: number; episode?: number } }[]; metadata: Record<string, SimklItem> };
+  const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const days: ScheduleResponse["result"]["days"] = Object.fromEntries(names.map((day) => [day.toLowerCase(), { count: 0, day, dramas: [] }]));
+  const now = Date.now();
+  const end = now + 7 * 86400000;
+  for (const entry of data.calendar || []) {
+    const timestamp = Date.parse(entry.date);
+    if (timestamp < now || timestamp > end) continue;
+    const show = data.metadata?.[entry.simkl_id];
+    if (!show) continue;
+    const day = names[new Date(timestamp).getUTCDay()].toLowerCase();
+    const row: ScheduleDrama = { countdown: new Date(timestamp).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", timeZone: "UTC" }), countdown_seconds: Math.floor((timestamp - now) / 1000), detail_link: `/${entry.simkl_id}`, episode_count: entry.episode?.episode || 0, external_link: simklLink(show), image: simklPoster(show.poster), release_status: "upcoming", release_timestamp: timestamp, slug: `${entry.simkl_id}-${entry.date}`, subtitle_type: null, title: show.title };
+    days[day].dramas.push(row);
+    days[day].count++;
   }
-  
-  const q = query.trim().toLowerCase().replace(/\s+/g, '-');
-  const pageParam = page > 1 ? `&page=${page}` : '';
-  
-  // Use internal API route instead of external API directly
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-  
-  try {
-    const response = await fetch(`/api/search?q=${encodeURIComponent(q)}${pageParam}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache' // Always get fresh search results
-      },
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Request failed ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // Cache the result
-    cache.set(cacheKey, {
-      data,
-      timestamp: Date.now(),
-      ttl: CACHE_TTL.search
-    });
-    
-    return data;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
+  return { error: null, page: "schedule", result: { days, schedule_note: "Upcoming episodes from Simkl (UTC)" }, status: 200 };
 }
 
-// Cache utilities
-export function clearCache() {
-  cache.clear();
-  pendingRequests.clear();
+export const fetchRecentCached = fetchRecent;
+export const fetchPopularCached = fetchPopular;
+export const fetchHotSeriesCached = fetchHotSeries;
+export const fetchDramaCached = fetchDrama;
+export const fetchEpisodeCached = fetchEpisode;
+export const fetchSearchCached = fetchSearch;
+
+export async function fetchSearchClient(query: string, page = 1): Promise<SearchResponse> {
+  const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${page}`);
+  if (!response.ok) throw new Error(`Search failed ${response.status}`);
+  return response.json();
 }
 
-export function clearCacheByPattern(pattern: string) {
-  for (const [key] of cache) {
-    if (key.includes(pattern)) {
-      cache.delete(key);
-    }
-  }
-}
-
-// Preload common data
-export async function preloadHomeData() {
-  // Preload both recent and popular data in parallel
-  await Promise.all([
-    fetchRecent(1),
-    fetchPopular(1)
-  ]);
-}
-
-// Batch requests utility
-export async function batchRequests<T>(requests: (() => Promise<T>)[], batchSize: number = 3): Promise<T[]> {
+export function clearCache() { /* Server fetch revalidation is managed by Next.js. */ }
+export function clearCacheByPattern(_pattern: string) { /* Server fetch revalidation is managed by Next.js. */ }
+export async function preloadHomeData() { await Promise.all([fetchRecent(), fetchPopular()]); }
+export async function batchRequests<T>(requests: (() => Promise<T>)[], batchSize = 3): Promise<T[]> {
   const results: T[] = [];
-  
-  for (let i = 0; i < requests.length; i += batchSize) {
-    const batch = requests.slice(i, i + batchSize);
-    const batchResults = await Promise.all(batch.map(req => req()));
-    results.push(...batchResults);
-    
-    // Small delay between batches to prevent overwhelming the server
-    if (i + batchSize < requests.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  }
-  
+  for (let i = 0; i < requests.length; i += batchSize) results.push(...await Promise.all(requests.slice(i, i + batchSize).map((request) => request())));
   return results;
 }
-
-export type RecentItem = {
-  'episode-link': string;
-  episode_number?: number;
-  image: string;
-  time: string;
-  title: string;
-  type: string;
-};
-
-export type RecentMovieItem = {
-  ep: string;
-  id: string;
-  img: string;
-  time: string;
-  title: string;
-  type: string;
-};
-
-export type PopularItem = {
-  'detail-link': string;
-  image: string;
-  title: string;
-};
-
-export type SearchResultItem = {
-  'detail-link': string;
-  image: string;
-  title: string;
-};
-
-export type PopularSeriesItem = {
-  detail_link: string;
-  genres: string[];
-  id: string[];
-  image: string;
-  range: 'weekly' | 'monthly' | 'all';
-  rank: number;
-  rating_percent: number;
-  score: number;
-  slug: string;
-  title: string;
-};
-
-export interface PopularSeriesResponse {
-  result: {
-    lists: {
-      weekly: PopularSeriesItem[];
-      monthly: PopularSeriesItem[];
-      all: PopularSeriesItem[];
-    };
-  };
-}
-
-export type TopDramaItem = {
-  detail_link: string;
-  external_link: string;
-  image: string;
-  rank: number;
-  release_year: number;
-  slug: string;
-  title: string;
-};
-
-export interface TopDramasResponse {
-  error: null | string;
-  page: string;
-  result: {
-    periods: {
-      day: TopDramaItem[];
-      month: TopDramaItem[];
-      week: TopDramaItem[];
-    };
-    source_url: string;
-  };
-  status: number;
-}
-
-// Utility function to format relative time
-export function formatRelativeTime(timeString: string): string {
-  try {
-    // Handle various time formats from the API
-    let date: Date;
-    
-    // If it's already relative (like "4 minutes ago"), return as is
-    if (timeString.includes('ago') || timeString.includes('hours') || timeString.includes('minutes')) {
-      return timeString;
-    }
-    
-    // Try to parse ISO date or other formats
-    if (timeString.includes('T') || timeString.includes('-')) {
-      date = new Date(timeString);
-    } else {
-      // Fallback for other formats
-      date = new Date(timeString);
-    }
-    
-    // If invalid date, return original string
-    if (isNaN(date.getTime())) {
-      return timeString;
-    }
-    
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    const diffWeeks = Math.floor(diffDays / 7);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
-    
-    if (diffSeconds < 60) return 'Just now';
-    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-    if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
-    if (diffMonths < 1) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`; // Show weeks instead of 0 months
-    if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
-    return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
-  } catch {
-    return timeString;
-  }
+export function formatRelativeTime(value: string): string {
+  if (!value || /ago|trending/i.test(value)) return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+  if (days < 1) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+  return date.toLocaleDateString();
 }

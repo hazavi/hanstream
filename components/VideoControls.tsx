@@ -17,11 +17,8 @@ export function VideoControls({
     (ep) => ep.id.split("/").filter(Boolean).pop() === currentEpisode
   );
 
-  // Fix navigation logic - episodes are in descending order (newest first)
-  // So prev episode has HIGHER index, next episode has LOWER index
-  const nextEpisode = currentEpIndex > 0 ? episodes[currentEpIndex - 1] : null;
-  const prevEpisode =
-    currentEpIndex < episodes.length - 1 ? episodes[currentEpIndex + 1] : null;
+  const prevEpisode = currentEpIndex > 0 ? episodes[currentEpIndex - 1] : null;
+  const nextEpisode = currentEpIndex >= 0 && currentEpIndex < episodes.length - 1 ? episodes[currentEpIndex + 1] : null;
 
   const prevEpNum = prevEpisode?.id.split("/").filter(Boolean).pop();
   const nextEpNum = nextEpisode?.id.split("/").filter(Boolean).pop();

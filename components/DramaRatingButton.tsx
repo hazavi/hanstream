@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/profile";
 import { Portal } from "./Portal";
 import Image from "next/image";
@@ -17,12 +16,11 @@ export function DramaRatingButton({
   title,
   image,
 }: DramaRatingButtonProps) {
-  const { user } = useAuth();
   const { profile, rateItem } = useProfile();
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [tempRating, setTempRating] = useState(10);
 
-  if (!user || !profile) {
+  if (!profile) {
     return null;
   }
 

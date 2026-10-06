@@ -23,7 +23,7 @@ interface ScheduleDramaCardProps {
 
 export function ScheduleDramaCard({ drama }: ScheduleDramaCardProps) {
   const fallbackImage =
-    "https://kissasian.dk/wp-content/themes/dramastream/assets/images/noimg165px.png";
+    "https://simkl.in/poster_no_pic_c.png";
 
   return (
     <Link

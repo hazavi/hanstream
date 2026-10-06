@@ -130,7 +130,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
             <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1 sm:gap-2">
               <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg bg-black/70 text-white backdrop-blur-sm">
-                {episodeNum ? `EP ${episodeNum}` : "Movie"}
+                {episodeNum ? `EP ${episodeNum}` : d.type === "Movie" ? "Movie" : "Show"}
               </span>
               <span
                 className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg ${

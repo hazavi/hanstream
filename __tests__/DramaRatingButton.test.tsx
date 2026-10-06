@@ -8,15 +8,6 @@ import {
 } from "@testing-library/react";
 import { DramaRatingButton } from "../components/DramaRatingButton";
 
-// Mock Firebase auth (use project alias to match component imports)
-vi.mock("@/lib/auth", () => ({
-  useAuth: vi.fn(() => ({
-    user: { uid: "test-user-123" },
-    loading: false,
-  })),
-}));
-import { useAuth } from "@/lib/auth";
-
 // Mock profile hook with finished watchlist item (use project alias)
 const mockRateItem = vi.fn();
 let currentProfile: any = {
@@ -110,11 +101,8 @@ describe("DramaRatingButton Component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("should not render for unauthenticated users", () => {
-    vi.mocked(useAuth).mockReturnValueOnce({
-      user: null,
-      loading: false,
-    } as any);
+  it("should wait for a local profile to load", () => {
+    currentProfile = null;
     const { container } = render(
       <DramaRatingButton slug="test-drama" title="Test Drama" />
     );

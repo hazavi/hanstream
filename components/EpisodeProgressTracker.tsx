@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useAuth } from "@/lib/auth";
+import { useEffect, useRef } from "react";
 import { useProfile } from "@/lib/profile";
 
 interface EpisodeProgressTrackerProps {
@@ -19,19 +18,20 @@ export function EpisodeProgressTracker({
   image,
   totalEpisodes,
 }: EpisodeProgressTrackerProps) {
-  const { user } = useAuth();
   const { profile, addToContinueWatching, updateContinueWatchingProgress } =
     useProfile();
+  const recordedRoute = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user || !profile) {
+    if (!profile || recordedRoute.current === `${slug}/${episode}`) {
       return;
     }
 
-    const episodeNum = parseInt(episode, 10);
+    const episodeNum = Number(/^s\d+e(\d+)$/i.exec(episode)?.[1] || episode);
     if (isNaN(episodeNum)) {
       return;
     }
+    recordedRoute.current = `${slug}/${episode}`;
 
     const updateProgress = async () => {
       try {
@@ -45,7 +45,7 @@ export function EpisodeProgressTracker({
 
         if (existingItem) {
           // Always update progress and last watched time, even if same episode
-          await updateContinueWatchingProgress(slug, episodeNum, totalEpisodes);
+          await updateContinueWatchingProgress(slug, episodeNum, totalEpisodes, episode);
         } else {
           // Add to continue watching if not already there
           await addToContinueWatching({
@@ -53,6 +53,7 @@ export function EpisodeProgressTracker({
             title,
             image,
             currentEpisode: episodeNum,
+            episodeRoute: episode,
             totalEpisodes,
             lastWatched: new Date().toISOString(),
           });
@@ -67,7 +68,6 @@ export function EpisodeProgressTracker({
 
     return () => clearTimeout(timer);
   }, [
-    user,
     profile,
     slug,
     episode,

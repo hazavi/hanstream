@@ -2,7 +2,6 @@ import {
   fetchEpisode,
   EpisodeResult,
   fetchDrama,
-  fetchPopular,
 } from "../../../../lib/api";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -10,8 +9,6 @@ import { EpisodesNavigation } from "./EpisodesNavigation";
 import { EpisodeProgressTracker } from "@/components/EpisodeProgressTracker";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { VideoControls } from "@/components/VideoControls";
-import { VideoPlayer } from "@/components/VideoPlayer";
-import { Watch2getherButton } from "@/components/Watch2getherButton";
 import { Suspense } from "react";
 
 // Next.js 15 PageProps constraint requires params to be Promise<any> | undefined
@@ -23,36 +20,7 @@ interface EpisodePageProps {
 
 // Generate static paths for popular drama episodes at build time
 export async function generateStaticParams() {
-  try {
-    const data = await fetchPopular(1);
-    const paths: EpisodeRouteParams[] = [];
-
-    // Get first 10 popular dramas
-    const popularDramas = data.results.slice(0, 10);
-
-    for (const drama of popularDramas) {
-      const slug = drama["detail-link"].split("/").filter(Boolean).pop();
-      if (!slug) continue;
-
-      try {
-        // Fetch drama to get episode count
-        const dramaData = await fetchDrama(slug);
-        const episodeCount = dramaData.result?.episodes?.length || 0;
-
-        // Generate paths for first 3 episodes of each popular drama
-        for (let i = 1; i <= Math.min(3, episodeCount); i++) {
-          paths.push({ slug, episode: String(i) });
-        }
-      } catch {
-        // Skip if drama fetch fails
-        continue;
-      }
-    }
-
-    return paths;
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({
@@ -175,26 +143,25 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
             }
           >
             <div className="relative video-container aspect-video">
-              <VideoPlayer
-                src={ep.video}
-                title={ep.title}
-                currentEpisode={episode}
-              />
+              {ep.video ? (
+                <iframe
+                  src={ep.video}
+                  title={`${dramaTitle} episode ${episode}`}
+                  className="h-full w-full rounded-2xl"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-2xl glass-card p-6 text-center text-secondary">No kisskh.space stream is available for this episode.</div>
+              )}
             </div>
           </Suspense>
+          {ep.sourcePage && <a href={ep.sourcePage} target="_blank" rel="noopener noreferrer" className="simkl-source">Stream source: kisskh.space ↗</a>}
 
           {/* Video Controls and Watch Together */}
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             {/* Watch Together Button */}
-            <Suspense fallback={null}>
-              <Watch2getherButton
-                slug={slug}
-                episode={episode}
-                dramaTitle={dramaTitle}
-                videoUrl={ep.video}
-              />
-            </Suspense>
-
             {/* Video Controls */}
             {Array.isArray(ep.episodes) && ep.episodes.length > 0 && (
               <Suspense
