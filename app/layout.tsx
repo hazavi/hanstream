@@ -1,9 +1,21 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/lib/auth";
 import { ProfileProvider } from "@/lib/profile";
+import { SitePasswordGate } from "@/components/SitePasswordGate";
 import { FloatingNav } from "@/components/FloatingNav";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { DynamicMain } from "@/components/DynamicMain";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "HanStream | Asian Drama Streaming",
@@ -40,9 +52,10 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="antialiased min-h-screen transition-colors duration-300 text-primary overflow-x-hidden"
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen transition-colors duration-300 bg-neutral-100 dark:bg-neutral-900 text-primary overflow-x-hidden`}
       >
           <div className="flex flex-col min-h-screen relative overflow-x-hidden">
+            <AuthProvider>
               <ProfileProvider>
                 <FloatingNav />
                 <ScrollToTop />
@@ -57,6 +70,7 @@ export default function RootLayout({
                   </div>
                 </footer>
               </ProfileProvider>
+            </AuthProvider>
           </div>
       </body>
     </html>
