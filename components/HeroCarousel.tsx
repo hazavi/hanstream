@@ -53,7 +53,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const currentItem = items[currentIndex];
 
   return (
-    <div className="relative h-48 sm:h-56 md:h-64 lg:h-70 overflow-hidden group bg-transparent">
+    <div className="relative h-48 sm:h-56 md:h-64 lg:h-70 overflow-hidden group soft-hero">
       {/* Layout for better proportions */}
       <div className="flex h-full">
         {/* Left side - Content (takes more width) */}
@@ -61,8 +61,8 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           <div className="px-4 sm:px-6 lg:px-12 xl:px-20 py-4 sm:py-6 lg:py-8">
             <div className="max-w-xl lg:max-w-2xl">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium mb-2 sm:mb-4">
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
+              <div className="soft-kicker inline-flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium mb-2 sm:mb-4">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[var(--primary)]" />
                 Trending on Simkl
               </div>
 
@@ -128,11 +128,11 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
         <>
           <button
             onClick={goToPrevious}
-            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/70 hover:cursor-pointer hover:bg-black/90 backdrop-blur-sm flex items-center justify-center transition-all"
+            className="soft-carousel-arrow absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full hover:cursor-pointer flex items-center justify-center transition-all"
             aria-label="Previous slide"
           >
             <svg
-              className="w-5 h-5 text-white"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -147,11 +147,11 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           </button>
           <button
             onClick={goToNext}
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/70 hover:cursor-pointer hover:bg-black/90 backdrop-blur-sm flex items-center justify-center transition-all"
+            className="soft-carousel-arrow absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full hover:cursor-pointer flex items-center justify-center transition-all"
             aria-label="Next slide"
           >
             <svg
-              className="w-5 h-5 text-white"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

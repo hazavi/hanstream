@@ -64,7 +64,7 @@ async function HotSeriesHero() {
 
 export function HeroSection() {
   return (
-    <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 mb-20">
+    <section className="mx-auto max-w-7xl mb-10">
       <Suspense fallback={<HeroSkeleton />}>
         <HotSeriesHero />
       </Suspense>

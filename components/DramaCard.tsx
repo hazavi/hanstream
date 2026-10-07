@@ -126,20 +126,14 @@ export function DramaCard({ item, variant }: DramaCardProps) {
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
               priority={false}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1 sm:gap-2">
-              <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg bg-black/70 text-white backdrop-blur-sm">
+              <span className="soft-media-badge px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg">
                 {episodeNum ? `EP ${episodeNum}` : d.type === "Movie" ? "Movie" : "Show"}
               </span>
               <span
-                className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg ${
-                  d.type === "SUB"
-                    ? "bg-blue-500 text-white"
-                    : d.type === "DUB"
-                    ? "bg-green-500 text-white"
-                    : "bg-purple-500 text-white"
-                }`}
+                className="soft-media-badge px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg"
               >
                 {d.type}
               </span>
@@ -164,7 +158,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
           <div className="p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-2">
             <h3
-              className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+              className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-[var(--primary)] transition-colors"
               title={d.title}
               style={{
                 whiteSpace: "nowrap",
@@ -175,7 +169,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
               {d.title}
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[var(--primary)]"></div>
               <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
                 {formatRelativeTime(d.time)}
               </p>
@@ -200,7 +194,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
             sizes="(max-width:640px) 33vw, (max-width:768px) 25vw, (max-width:1200px) 20vw, 16vw"
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -223,7 +217,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
         <div className="p-2 sm:p-3 md:p-4">
           <h3
-            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-[var(--primary)] transition-colors"
             title={p.title}
             style={{
               whiteSpace: "nowrap",

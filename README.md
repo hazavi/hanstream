@@ -15,7 +15,7 @@ Watchlist, ratings, and progress are stored in this browser's local storage. The
 
 ## Design
 
-The iOS style liquid glass theme uses translucent surfaces, blur, and soft highlights, inspired by [21st.dev's liquid glass collection](https://21st.dev/community/components/explore/liquid-glass-components). The play mark in `public/liquid-icon.svg` is original.
+The minimal soft UI theme uses warm neutral surfaces, muted sage accents, and gentle shadows. The homepage action component adapts the restrained treatment of [21st.dev's Minimal Button](https://21st.dev/@radiumcoders/components/minimal-button); the brand icon tile adapts the shape language of [21st.dev's Featured icons](https://21st.dev/community/components/untitledui/featured-icons). The play glyph and SVG favicon are original to HanStream.
 
 ## Develop
 
