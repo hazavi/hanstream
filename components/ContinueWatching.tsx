@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useProfile } from "@/lib/profile";
 import { DramaCard } from "./DramaCard";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { PopularItem } from "@/lib/api";
+import type { PopularItem } from "@/lib/api";
 import Link from "next/link";
 
 export function ContinueWatching() {

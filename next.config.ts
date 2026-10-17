@@ -1,26 +1,29 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep the running development server from overwriting production build output.
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
+  outputFileTracingIncludes: { '/*': ['./data/playback-catalog.json', './data/drama-metadata.json'] },
   // Enable React compiler for better performance
   compiler: {
     removeConsole: process.env.NODE_ENV === "production" ? {
       exclude: ["error", "warn"],
     } : false,
   },
-  
+
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['@/components', '@/lib'],
     webpackMemoryOptimizations: true,
   },
-  
+
   // Optimize JavaScript bundles
   modularizeImports: {
     '@/components': {
       transform: '@/components/{{member}}',
     },
   },
-  
+
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
@@ -31,11 +34,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'i.axcdn.top',
-      },    
+      },
       {
         protocol: 'https',
         hostname: 'i0.wp.com',
-      },  
+      },
       {
         protocol: 'https',
         hostname: 'i1.wp.com',
@@ -43,7 +46,7 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'i2.wp.com',
-      }, 
+      },
       {
         protocol: 'https',
         hostname: 'i3.wp.com',
@@ -55,15 +58,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '*.wp.com',
-      },  
+      },
       {
         protocol: 'https',
         hostname: 'kissasian.dk',
       },
-      {
-        protocol: 'https',
-        hostname: 'i.mydramalist.com',
-      },      
       {
         protocol: 'https',
         hostname: 'images.asianctv.co',
@@ -89,10 +88,6 @@ const nextConfig: NextConfig = {
         hostname: 'images.asianctv.co',
       },
       // Common drama image hosting domains
-      {
-        protocol: 'https',
-        hostname: '*.mydramalist.com',
-      },
       {
         protocol: 'https',
         hostname: '*.viki.io',

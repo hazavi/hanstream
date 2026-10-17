@@ -1,28 +1,40 @@
 # HanStream
 
-A Next.js app for discovering dramas and tracking what you watch.
-
-## Data sources
-
-- [Simkl](https://simkl.com/) supplies trending lists, search, details, episode lists, and the airing calendar. Create a Simkl app and put its client ID in `.env.local` using [.env.example](.env.example). Some Simkl apps require `SIMKL_ACCESS_TOKEN` on every request; store that token only in the server environment.
-- [kisskh.space](https://kisskh.space/) supplies episode player embeds. The site has no documented API. When its page markup changes or no matching embed exists, playback is shown as unavailable.
-
-Simkl IDs are used in local URLs, and drama pages link to their Simkl records.
-
-## Personal library
-
-Watchlist, ratings, and progress are stored in this browser's local storage. They do not sync across devices. Firebase, account sign-in, site password access, and Firebase watch parties have been removed.
-
-## Design
-
-The minimal soft UI theme uses warm neutral surfaces, muted sage accents, and gentle shadows. The homepage action component adapts the restrained treatment of [21st.dev's Minimal Button](https://21st.dev/@radiumcoders/components/minimal-button); the brand icon tile adapts the shape language of [21st.dev's Featured icons](https://21st.dev/community/components/untitledui/featured-icons). The play glyph and SVG favicon are original to HanStream.
+An Asian drama app with episode playback, a browser-local watchlist, ratings, and viewing progress. The interface uses a dark glass theme with blue accents and supports light mode.
 
 ## Develop
 
 ```bash
 npm install
-cp .env.example .env.local
+# Copy .env.example to .env.local and set the four private source origins.
 npm run dev
 ```
 
-Fill in `SIMKL_CLIENT_ID` before starting the app. If Simkl returns `user_token_required`, also configure `SIMKL_ACCESS_TOKEN` or use a client ID that permits public catalog reads.
+Source configuration lives in the ignored .env.local file. Set STREAM_SOURCE_URL, METADATA_SOURCE_URL, EDITORIAL_SOURCE_URL, and DETAILS_SOURCE_URL to HTTPS origins. No API keys are required. Remote readers use public HTML, and the app's own routes expose only the data needed for browsing and playback. Metadata and playback catalogs are included in the repository, with cached refreshes and saved data used when a page is unavailable.
+
+The source readers are marked server-only. Never prefix these variables with NEXT_PUBLIC_ or add them to next.config.env. Refresh scripts load the same local environment automatically. On deployment, set the variables in the hosting service's private server environment.
+
+Environment variables keep source configuration out of the client bundle. The browser still receives the final player URL and displayed images and metadata because it needs them to render the app.
+
+The homepage includes latest episodes, popular dramas, reviews, weekly trends, premieres, and finales. Cards open internal drama pages. Source labels and outbound navigation are omitted from the interface; playback servers use numbered controls.
+
+## Refresh catalog data
+
+```bash
+npm run sync:metadata
+npm run sync:playback
+```
+
+The first command refreshes drama metadata. The second refreshes the episode index. Both keep previous valid data when a refresh fails. Run these before building to package a refreshed catalog. The server also refreshes public index pages periodically and looks up missing drama details when needed.
+
+Weekly lists use published dates and Monday to Sunday in Europe/Copenhagen. No finale is inferred from an episode count. Title matching includes the release year so different remakes are kept separate.
+
+## Validate and build
+
+```bash
+npm test -- --run
+npm run build
+npm start
+```
+
+Personal watch data stays in the browser's local storage. Readable drama routes include the title and release year, and existing numeric routes remain supported.

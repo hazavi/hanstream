@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { RecentItem, PopularItem } from "../lib/api";
-import { formatRelativeTime } from "../lib/api";
+import { formatRelativeTime } from "../lib/format";
 
 type DramaCardProps =
   | { item: RecentItem; variant: "recent" }
@@ -105,14 +105,9 @@ function DramaImage({
 export function DramaCard({ item, variant }: DramaCardProps) {
   if (variant === "recent") {
     const d = item as RecentItem;
-    const slug = d["episode-link"].split("/").filter(Boolean)[0];
     const episodeNum = d.episode_number;
 
-    // For movies (no episode number), use the direct episode link
-    // For TV shows, construct the episode URL
-    const href = episodeNum
-      ? `/${slug}/episode/${episodeNum}`
-      : d["episode-link"];
+    const href = d["episode-link"];
 
     return (
       <Link href={href} className="group block animate-slide-up">
@@ -126,14 +121,20 @@ export function DramaCard({ item, variant }: DramaCardProps) {
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
               priority={false}
             />
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1 sm:gap-2">
-              <span className="soft-media-badge px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg">
+              <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg bg-black/70 text-white backdrop-blur-sm">
                 {episodeNum ? `EP ${episodeNum}` : d.type === "Movie" ? "Movie" : "Show"}
               </span>
               <span
-                className="soft-media-badge px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg"
+                className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg ${
+                  d.type === "SUB"
+                    ? "bg-blue-500 text-white"
+                    : d.type === "DUB"
+                    ? "bg-green-500 text-white"
+                    : "bg-purple-500 text-white"
+                }`}
               >
                 {d.type}
               </span>
@@ -158,7 +159,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
           <div className="p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-2">
             <h3
-              className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-[var(--primary)] transition-colors"
+              className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
               title={d.title}
               style={{
                 whiteSpace: "nowrap",
@@ -169,7 +170,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
               {d.title}
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[var(--primary)]"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></div>
               <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
                 {formatRelativeTime(d.time)}
               </p>
@@ -181,9 +182,8 @@ export function DramaCard({ item, variant }: DramaCardProps) {
   }
 
   const p: PopularItem = item;
-  const slug = p["detail-link"].replace(/^\//, "");
   return (
-    <Link href={`/${slug}`} className="group block animate-slide-up">
+    <Link href={p["detail-link"]} className="group block animate-slide-up">
       <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
         <div className="relative aspect-[4/5] overflow-hidden">
           <DramaImage
@@ -194,7 +194,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
             sizes="(max-width:640px) 33vw, (max-width:768px) 25vw, (max-width:1200px) 20vw, 16vw"
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -217,7 +217,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
         <div className="p-2 sm:p-3 md:p-4">
           <h3
-            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-[var(--primary)] transition-colors"
+            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
             title={p.title}
             style={{
               whiteSpace: "nowrap",

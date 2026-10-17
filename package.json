@@ -9,12 +9,15 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "sync:playback": "node scripts/sync-playback.mjs",
+    "sync:metadata": "node scripts/sync-metadata.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "@videojs/http-streaming": "^3.17.2",
+    "cheerio": "^1.2.0",
     "next": "^15.5.7",
     "react": "^19.1.2",
     "react-dom": "^19.1.2",

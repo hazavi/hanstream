@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useCallback, memo } from "react";
 import Link from "next/link";
-import { formatRelativeTime } from "../../../../lib/api";
+import { formatRelativeTime, formatEpisodeLabel } from "../../../../lib/format";
 
 interface Episode {
   id: string;
@@ -67,7 +67,7 @@ const EpisodeItem = memo(function EpisodeItem({
                 active ? "text-blue-600 dark:text-accent" : "text-primary"
               }`}
             >
-              {epNum}
+              {epNum?.replace(/^s\d+e/i, "")}
             </span>
           </div>
 
@@ -77,7 +77,7 @@ const EpisodeItem = memo(function EpisodeItem({
                 active ? "text-blue-600 dark:text-accent" : "text-primary"
               }`}
             >
-              Episode {epNum}
+              {formatEpisodeLabel(epNum || "")}
             </span>
             {e.time && (
               <span className="text-[9px] text-secondary truncate">

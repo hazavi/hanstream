@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SearchBar } from "../components/SearchBar";
 
 // Mock internal search client used for suggestions
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api-client", () => ({
   fetchSearchClient: vi.fn(async () => ({ results: [] })),
 }));
 

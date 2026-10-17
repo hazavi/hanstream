@@ -10,6 +10,8 @@ import { EpisodeProgressTracker } from "@/components/EpisodeProgressTracker";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { VideoControls } from "@/components/VideoControls";
 import { Suspense } from "react";
+import { EpisodePlayer } from "@/components/EpisodePlayer";
+import { formatEpisodeLabel } from "@/lib/format";
 
 // Next.js 15 PageProps constraint requires params to be Promise<any> | undefined
 // So we make params always a Promise to satisfy the constraint
@@ -33,9 +35,7 @@ export async function generateMetadata({
       fetchDrama(slug),
     ]);
     const title = episodeData.result?.title || `${slug} episode ${episode}`;
-    const description = `Watch ${
-      dramaData.result?.title || slug
-    } Episode ${episode}`;
+    const description = `Watch ${dramaData.result?.title || slug}, ${formatEpisodeLabel(episode)}`;
     const image = dramaData.result?.image;
 
     return {
@@ -54,6 +54,7 @@ export async function generateMetadata({
 
 export default async function EpisodePage({ params }: EpisodePageProps) {
   const { slug, episode } = await params;
+  const episodeLabel = formatEpisodeLabel(episode);
 
   // Fetch both episode and drama data in parallel
   const [episodeData, dramaData] = await Promise.all([
@@ -104,7 +105,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
             label: dramaTitle,
             href: `/${slug}`,
           },
-          { label: `Episode ${episode}`, isActive: true },
+          { label: episodeLabel, isActive: true },
         ]}
       />
 
@@ -112,7 +113,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl lg:text-3xl font-bold heading leading-tight">
-            {dramaTitle} - Episode {episode}
+            {dramaTitle} - {episodeLabel}
           </h1>
           {ep.type && (
             <span
@@ -142,23 +143,8 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
               </div>
             }
           >
-            <div className="relative video-container aspect-video">
-              {ep.video ? (
-                <iframe
-                  src={ep.video}
-                  title={`${dramaTitle} episode ${episode}`}
-                  className="h-full w-full rounded-2xl"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center rounded-2xl glass-card p-6 text-center text-secondary">No kisskh.space stream is available for this episode.</div>
-              )}
-            </div>
+            <EpisodePlayer key={`${slug}-${episode}`} video={ep.video} servers={ep.servers} title={`${dramaTitle}, ${episodeLabel}`} />
           </Suspense>
-          {ep.sourcePage && <a href={ep.sourcePage} target="_blank" rel="noopener noreferrer" className="simkl-source">Stream source: kisskh.space ↗</a>}
-
           {/* Video Controls and Watch Together */}
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             {/* Watch Together Button */}

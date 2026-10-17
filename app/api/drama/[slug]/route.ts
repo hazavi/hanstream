@@ -5,7 +5,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   try {
     return NextResponse.json(await fetchDrama((await params).slug));
   } catch (error) {
-    console.error("Simkl drama lookup failed:", error);
+    console.error("Drama metadata lookup failed:", error);
     return NextResponse.json({ error: "Drama unavailable" }, { status: 502 });
   }
 }

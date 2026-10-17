@@ -13,11 +13,6 @@ vi.mock("next/link", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
-// Mock formatRelativeTime
-vi.mock("../lib/api", () => ({
-  formatRelativeTime: (time: string) => time,
-}));
-
 describe("EpisodesNavigation Component", () => {
   const mockEpisodes = [
     { id: "/drama/episode/1", type: "SUB", time: "1 day ago" },

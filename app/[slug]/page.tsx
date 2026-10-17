@@ -118,8 +118,7 @@ export default async function DramaDetailPage({
       <div>
         <h1 className="text-3xl lg:text-4xl font-bold heading leading-tight">
           {detail.title}
-        </h1>
-        {data.result?.simklUrl && <a className="simkl-source" href={data.result.simklUrl} target="_blank" rel="noopener noreferrer">Drama details from Simkl ↗</a>}
+        </h1>        {data.result?.detailsUnavailable && <p className="text-sm text-secondary mt-3">Additional drama details are temporarily unavailable.</p>}
       </div>
 
       {/* Header Section */}

@@ -7,9 +7,7 @@ interface Drama {
   countdown: string;
   countdown_seconds: number;
   detail_link: string;
-  episode_count: number;
-  external_link: string;
-  image: string;
+  episode_count: number;  image: string;
   release_status: string;
   release_timestamp: number | null;
   slug: string;
@@ -23,7 +21,7 @@ interface ScheduleDramaCardProps {
 
 export function ScheduleDramaCard({ drama }: ScheduleDramaCardProps) {
   const fallbackImage =
-    "https://simkl.in/poster_no_pic_c.png";
+    "/file.svg";
 
   return (
     <Link

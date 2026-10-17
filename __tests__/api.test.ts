@@ -1,49 +1,92 @@
+// @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchDrama, fetchEpisode, fetchSearch, fetchRecent } from "../lib/api";
-import { getSimklDrama, getSimklEpisodes, simklGet } from "../lib/simkl";
-import { getKisskhStream } from "../lib/kisskh";
+import { fetchDrama, fetchEpisode, fetchSearch, fetchRecent, fetchPopularSeries } from "../lib/api";
+import { findDramaDetails, getDetailEpisodes } from "../lib/details";
+import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "../lib/playback";
+import { enrichArtwork, getMetadataList, searchMetadata, findMetadata } from "../lib/metadata";
 
-vi.mock("../lib/simkl", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../lib/simkl")>();
-  return { ...original, getSimklDrama: vi.fn(), getSimklEpisodes: vi.fn(), simklGet: vi.fn() };
-});
-vi.mock("../lib/kisskh", () => ({ getKisskhStream: vi.fn() }));
+vi.mock("../lib/details", () => ({ findDramaDetails: vi.fn(), getDramaDetails: vi.fn(), getDetailEpisodes: vi.fn() }));
+vi.mock("../lib/playback", () => ({ getPlaybackCatalog: vi.fn(), getPlaybackEpisodes: vi.fn(), getPlaybackStream: vi.fn() }));
+vi.mock("../lib/metadata", () => ({ findMetadata: vi.fn(), enrichArtwork: vi.fn(), getMetadataList: vi.fn(), searchMetadata: vi.fn(), getHomepage: vi.fn() }));
 
-describe("Simkl and kisskh data mapping", () => {
+const title = { sourceName: "Fixture catalog", title: "Fixture Drama", year: 2026, image: "/file.svg", url: "https://details.example/tv/42/fixture-drama", movie: false, country: "Korea (KR)", meta: { Released: 2026 } };
+
+describe("HTML source data mapping", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    process.env.SIMKL_CLIENT_ID = "test-client";
+    vi.resetAllMocks();
+    vi.mocked(findMetadata).mockResolvedValue(null);
+    vi.mocked(enrichArtwork).mockImplementation(async items => items);
+    vi.mocked(findDramaDetails).mockResolvedValue(title);
+    vi.mocked(getDetailEpisodes).mockResolvedValue([]);
+    vi.mocked(getPlaybackEpisodes).mockResolvedValue([]);
+    vi.mocked(getPlaybackStream).mockResolvedValue(null);
   });
 
-  it("maps Simkl details and season-aware episode links", async () => {
-    vi.mocked(getSimklDrama).mockResolvedValue({ title: "Test Drama", poster: "12/poster", overview: "Story", ids: { simkl: 42, slug: "test-drama" }, year: 2026 });
-    vi.mocked(getSimklEpisodes).mockResolvedValue([{ title: "Pilot", season: 1, episode: 1, aired: true }, { title: "Second season", season: 2, episode: 1, aired: true }]);
-    const result = await fetchDrama("42");
-    expect(result.result?.title).toBe("Test Drama");
-    expect(result.result?.simklUrl).toBe("https://simkl.com/tv/42/test-drama");
-    expect(result.result?.episodes?.map((episode) => episode.episode_link)).toEqual(["/42/episode/s1e1", "/42/episode/s2e1"]);
+  it("keeps season-aware links from the detail source", async () => {
+    vi.mocked(getDetailEpisodes).mockResolvedValue([{ title: "Pilot", season: 1, episode: 1 }, { title: "Season two", season: 2, episode: 1 }]);
+    const result = await fetchDrama("drama-fixture-drama--2026");
+    expect(result.result?.episodes?.map(ep => ep.episode_link)).toEqual(["/drama-fixture-drama--2026/episode/s1e1", "/drama-fixture-drama--2026/episode/s2e1"]);
+    expect(result.result).not.toHaveProperty("sourceUrl");
   });
 
-  it("uses only a kisskh stream for playback", async () => {
-    vi.mocked(getSimklDrama).mockResolvedValue({ title: "Test Drama", ids: { simkl: 42 } });
-    vi.mocked(getSimklEpisodes).mockResolvedValue([{ title: "Pilot", season: 1, episode: 1, aired: true }]);
-    vi.mocked(getKisskhStream).mockResolvedValueOnce({ url: "https://vidmoly.example/embed/1", pageUrl: "https://kisskh.space/test-drama-ep-1/" }).mockResolvedValueOnce(null);
-    expect((await fetchEpisode("42", "s1e1")).result.video).toBe("https://vidmoly.example/embed/1");
-    expect((await fetchEpisode("42", "s1e1")).result.video).toBe("");
-    expect(getKisskhStream).toHaveBeenCalledWith("Test Drama", "1", false);
+  it("keeps verified playback entries when the detail source is blocked", async () => {
+    vi.mocked(findDramaDetails).mockRejectedValue(new Error("Blocked"));
+    vi.mocked(getPlaybackEpisodes).mockResolvedValue([{ ...title, url: "https://stream.example/embed/fixture-drama-2026-ep-2.html", episode: 2 }]);
+    const result = await fetchDrama("drama-fixture-drama--2026");
+    expect(result.result?.detailsUnavailable).toBe(true);
+    expect(result.result?.description).toBeUndefined();
+    expect(result.result?.title).toBe("Fixture Drama");
+    expect(result.result?.episodes?.[0].episode).toBe(2);
   });
 
-  it("maps Simkl search results to stable local routes", async () => {
-    vi.mocked(simklGet).mockResolvedValueOnce([{ title: "Drama", ids: { simkl_id: 42 } }]).mockResolvedValueOnce([{ title: "Movie", ids: { simkl_id: 88 } }]);
-    const result = await fetchSearch("drama");
-    expect(result.results.map((item) => item["detail-link"])).toEqual(["/42", "/movie-88"]);
+  it("loads alternative drama details without requesting a blocked primary source", async () => {
+    vi.mocked(findMetadata).mockResolvedValue({ ...title, sourceName: "Metadata", url: "https://metadata.example/Fixture_Drama", overview: "Published drama facts." });
+    const result = await fetchDrama("drama-fixture-drama--2026");
+    expect(result.result).not.toHaveProperty("metadataSource");
+    expect(result.result?.description).toBe("Published drama facts.");
+    expect(result.result?.detailsUnavailable).toBe(false);
+    expect(findDramaDetails).not.toHaveBeenCalled();
+    expect(getDetailEpisodes).not.toHaveBeenCalled();
   });
 
-  it("loads trending TV from Simkl CDN", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ title: "Drama", ids: { simkl_id: 42 } }] }));
+  it("passes season and year to the playback source and retains alternative servers", async () => {
+    vi.mocked(getPlaybackStream).mockResolvedValue({ url: "https://player-one.example/embed/1", pageUrl: "https://stream.example/embed/fixture.html", servers: [{ name: "Primary Player", url: "https://player-one.example/embed/1" }] });
+    const result = await fetchEpisode("drama-fixture-drama--2026", "s2e1");
+    expect(getPlaybackStream).toHaveBeenCalledWith("Fixture Drama", "1", false, 2026, 2);
+    expect(result.result.servers).toHaveLength(1);
+    expect(result.result).not.toHaveProperty("sourcePage");
+    expect(result.result.servers?.[0].name).toBe("Server 1");
+  });
+
+  it("does not offer an invented stream when the provider fails", async () => {
+    vi.mocked(getPlaybackStream).mockRejectedValue(new Error("Unavailable"));
+    expect((await fetchEpisode("drama-fixture-drama--2026", "s1e1")).result.video).toBe("");
+  });
+
+  it("rejects malformed episodes before contacting a source", async () => {
+    await expect(fetchEpisode("drama-fixture-drama--2026", "../../etc/passwd")).rejects.toThrow("Invalid episode");
+    expect(getPlaybackStream).not.toHaveBeenCalled();
+  });
+
+  it("uses an Asian catalog for search even when metadata search is unavailable", async () => {
+    vi.mocked(searchMetadata).mockRejectedValue(new Error("Blocked"));
+    vi.mocked(getPlaybackCatalog).mockResolvedValue([{ ...title, episode: 1 }, { ...title, episode: 2 }]);
+    expect((await fetchSearch("Fixture Drama")).results).toEqual([{ title: "Fixture Drama", image: "/file.svg", "detail-link": "/drama-fixture-drama--2026" }]);
+  });
+
+  it("uses actual latest episode numbers instead of pretending every row is episode one", async () => {
+    vi.mocked(getPlaybackCatalog).mockResolvedValue([{ ...title, episode: 14 }, { ...title, movie: true }]);
     const result = await fetchRecent();
-    expect(result.results[0]["episode-link"]).toBe("/42");
-    expect(vi.mocked(fetch).mock.calls[0][0].toString()).toContain("data.simkl.in/discover/trending/tv/today_100.json");
-    vi.unstubAllGlobals();
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]["episode-link"]).toBe("/drama-fixture-drama--2026/episode/s1e14");
+  });
+
+  it("keeps each ranking category independent when one source page fails", async () => {
+    vi.mocked(getMetadataList).mockImplementation(async kind => { if (kind === "upcoming") throw new Error("Blocked"); return [title]; });
+    const result = await fetchPopularSeries();
+    expect(result.result.lists.airing).toHaveLength(1);
+    expect(result.result.lists.popular).toHaveLength(1);
+    expect(result.result.lists.upcoming).toEqual([]);
+    expect(result.result.errors.upcoming).toContain("temporarily unavailable");
   });
 });

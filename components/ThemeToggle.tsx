@@ -15,7 +15,7 @@ export function ThemeToggle() {
   // Initialize
   useEffect(() => {
     const stored = (typeof window !== 'undefined' && localStorage.getItem('hanstream-theme')) as 'light' | 'dark' | null;
-    const initial: 'light' | 'dark' = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const initial: 'light' | 'dark' = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark');
     setTheme(initial);
     apply(initial);
     setMounted(true);

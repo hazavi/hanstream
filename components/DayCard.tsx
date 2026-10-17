@@ -7,9 +7,7 @@ interface Drama {
   countdown: string;
   countdown_seconds: number;
   detail_link: string;
-  episode_count: number;
-  external_link: string;
-  image: string;
+  episode_count: number;  image: string;
   release_status: string;
   release_timestamp: number | null;
   slug: string;

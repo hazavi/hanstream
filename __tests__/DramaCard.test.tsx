@@ -17,7 +17,7 @@ vi.mock("next/link", () => ({
 }));
 
 // Mock formatRelativeTime
-vi.mock("../lib/api", () => ({
+vi.mock("../lib/format", () => ({
   formatRelativeTime: (date: string) => "2 hours ago",
 }));
 

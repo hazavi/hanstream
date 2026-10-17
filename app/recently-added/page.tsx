@@ -2,7 +2,7 @@ import { fetchRecent, RecentItem } from "../../lib/api";
 import { DramaCard } from "../../components/DramaCard";
 import { Pagination } from "../../components/Pagination";
 
-export const revalidate = 3600; // Simkl trending updates hourly
+export const revalidate = 600;
 
 interface RecentResponse {
   results: RecentItem[];
@@ -20,7 +20,7 @@ export default async function RecentlyAddedPage({
     <div className="space-y-8">
       <div className="text-center space-y-4">
         <h1 className="text-3xl md:text-4xl font-bold heading">
-          Trending Today on Simkl
+          Latest Episodes
         </h1>
       </div>
 

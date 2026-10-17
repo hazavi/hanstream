@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { fetchSearchClient, SearchResultItem } from "@/lib/api";
+import { fetchSearchClient } from "@/lib/api-client";
+import type { SearchResultItem } from "@/lib/api-types";
 import Image from "next/image";
 
 export function SearchBar() {

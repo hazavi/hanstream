@@ -117,7 +117,7 @@ export function MobileMenu() {
             className="block py-2 text-secondary hover:text-primary transition-colors"
             onClick={closeMenu}
           >
-            Trending Today
+            Latest Episodes
           </Link>
           <Link
             href="/recent-movies"
