@@ -38,3 +38,7 @@ npm start
 ```
 
 Personal watch data stays in the browser's local storage. Readable drama routes include the title and release year, and existing numeric routes remain supported.
+
+## GitHub Pages
+
+Use the [deployment guide](docs/deployment.md) for the Pages frontend and separate private backend. The included workflow publishes only the static frontend. Set the repository variable `API_BASE_URL` after deploying the backend.

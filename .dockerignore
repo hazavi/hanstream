@@ -1,0 +1,17 @@
+node_modules
+.next
+.next-dev
+.pages-build
+out
+.git
+.aws
+.ssh
+.codex
+.agents
+.vercel
+.openai
+.env*
+*.pem
+coverage
+*.log
+*.tsbuildinfo

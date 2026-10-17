@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: process.env.BACKEND_STANDALONE === '1' ? 'standalone' : undefined,
   // Keep the running development server from overwriting production build output.
   distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
   outputFileTracingIncludes: { '/*': ['./data/playback-catalog.json', './data/drama-metadata.json'] },
