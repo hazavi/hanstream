@@ -11,6 +11,14 @@ const metadataDetail = () => parseMetadataDetail(detailHtml, "https://metadata.e
 const snapshot = () => ({ version: 2, fetchedAt: "2026-10-17T12:00:00Z", sources: [], titles: [metadataDetail()], airingUrls: [metadataDetail().url], editorial: { titles: [item], trending: [item], popular: [item], reviews: [{ ...item, date: "2026-10-14T21:00:24-07:00" }] } });
 
 describe("alternative HTML metadata", () => {
+  it("builds the catalog from live HTML with no previous snapshot", async () => {
+    const index = '<div class="mw-category"><a href="/Between_Steps">Between Steps</a></div>';
+    const read = vi.fn(async (address: string) => address.includes('dramaeditorial.com') ? editorialHtml : address.endsWith('/Between_Steps') ? detailHtml : index);
+    const data = await collectMetadata(read, { limit: 1 });
+    expect(data.titles[0]).toMatchObject({ title: "Between Steps", startDate: "2026-10-05", endDate: "2026-11-10" });
+    expect(data.editorial.reviews[0].title).toBe("Between Steps");
+    expect(read).toHaveBeenCalledTimes(6);
+  });
   it("parses published metadata fields, aliases, country, and published dates", () => {
     expect(metadataDetail()).toMatchObject({ year: 2026, startDate: "2026-10-05", endDate: "2026-11-10", meta: { Episodes: "12", Country: "South Korea" } });
     expect(matchMetadata([metadataDetail()], "Love Doctor", 2026)?.title).toBe("Between Steps");

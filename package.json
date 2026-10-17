@@ -10,8 +10,6 @@
     "lint": "eslint",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "sync:playback": "node scripts/sync-playback.mjs",
-    "sync:metadata": "node scripts/sync-metadata.mjs",
     "build:pages": "node scripts/build-pages.mjs",
     "preview:pages": "node scripts/preview-pages.mjs",
     "build:backend": "node scripts/build-backend.mjs"

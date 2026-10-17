@@ -1,9 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { readHtml } from "./html";
+import { createRuntimeCache } from "./runtime-cache";
 import { catalogRoute, normalizeTitle, type CatalogTitle } from "./catalog";
 import { collectMetadata, homepageSections, lookupMetadata, matchMetadata, rankingLists } from "./metadata-source.mjs";
 
@@ -14,21 +13,10 @@ export type MetadataTitle = CatalogTitle & { sourceName: string; indexOnly?: boo
 type Editorial = { titles: MetadataTitle[]; trending: MetadataTitle[]; popular: MetadataTitle[]; reviews: MetadataTitle[] };
 export type MetadataSnapshot = { version: 2; fetchedAt: string; titles: MetadataTitle[]; airingUrls: string[]; editorial: Editorial; sources: string[] };
 
-const savedMetadata = cache(async (): Promise<MetadataSnapshot> => {
-  const saved = JSON.parse(await readFile(path.join(process.cwd(), "data/drama-metadata.json"), "utf8"));
-  if (saved.version !== 2 || !Array.isArray(saved.titles) || !saved.editorial?.titles?.length) throw new Error("Invalid drama metadata catalog");
-  return saved;
-});
+const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous =>
+  collectMetadata(readHtml, { previous, limit: 60 }) as Promise<MetadataSnapshot>, 21_600_000);
 
-export const getMetadata = cache(async (): Promise<MetadataSnapshot> => {
-  const saved = await savedMetadata();
-  // A newly synced deployment snapshot must not reuse an older deployment's cache.
-  return unstable_cache(async (): Promise<MetadataSnapshot> => {
-    if (Date.now() - Date.parse(saved.fetchedAt) < 6 * 60 * 60 * 1000) return saved;
-    try { return await collectMetadata(readHtml, { previous: saved, limit: 0 }) as MetadataSnapshot; }
-    catch { return saved; }
-  }, ["public-drama-metadata-v3", saved.fetchedAt], { revalidate: 21600 })();
-});
+export const getMetadata = cache(liveMetadata);
 export const getHomepage = cache(async (): Promise<Record<HomeSection, CatalogTitle[]>> => {
   const sections = homepageSections(await getMetadata()) as Record<HomeSection, MetadataTitle[]>;
   return Object.fromEntries(Object.entries(sections).map(([section, items]) => [section, items.map(item => ({

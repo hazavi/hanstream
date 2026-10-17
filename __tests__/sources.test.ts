@@ -1,20 +1,25 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parsePlaybackCatalog, parsePlaybackPage, getPlaybackStream } from "../lib/playback";
+import { parsePlaybackCatalog, parsePlaybackPage, getPlaybackCatalog, getPlaybackStream } from "../lib/playback";
 import { parseDetailPage, parseDetailEpisodes, isAsianCountry, findDramaDetails } from "../lib/details";
 import { readHtml, sourceUrl } from "../lib/html";
 import { catalogRoute, parseCatalogRoute } from "../lib/catalog";
 
-vi.mock("node:fs/promises", async importOriginal => {
-  const actual = await importOriginal<typeof import("node:fs/promises")>();
-  const readFile = vi.fn().mockRejectedValue(new Error("No index in test"));
-  return { ...actual, readFile, default: { ...actual, readFile } };
-});
+// Keep parser tests isolated; runtime cache behavior is covered separately.
+vi.mock("../lib/runtime-cache", () => ({ createRuntimeCache: (load: () => Promise<unknown>) => load }));
 afterEach(() => vi.unstubAllGlobals());
 const htmlResponse = (html: string) => new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 const catalog = '<a class="post-title-link" href="https://stream.example/embed/fixture-2026-ep-2.html">Fixture (2026) Ep 2</a><a class="post-title-link" href="https://stream.example/embed/fixture-2025-ep-2.html">Fixture (2025) Ep 2</a><a class="post-title-link" href="https://stream.example/embed/fixture-2026-ep-20.html">Fixture (2026) Ep 20</a>';
 
 describe("Playback public HTML", () => {
+  it("loads older episodes from discovered public pagination without a data file", async () => {
+    const latest = '<a class="post-title-link" href="/embed/new.html">New Show (2026) Ep 3</a><a class="page-numbers" href="/list/2.html">2</a><a class="page-numbers" href="https://unlisted.example/list/999.html">999</a>';
+    const mocked = vi.fn(async (address: string) => htmlResponse(address.endsWith('/list/2.html') ? '<a href="/embed/older.html">Older Show (2025) Ep 2</a>' : address.endsWith('/list/1.html') ? '<a href="/embed/oldest.html">Oldest Show (2024) Ep 1</a>' : latest));
+    vi.stubGlobal("fetch", mocked);
+    const items = await getPlaybackCatalog();
+    expect(items.map(item => item.title)).toEqual(["New Show", "Older Show", "Oldest Show"]);
+    expect(mocked.mock.calls.map(([address]) => address).sort()).toEqual(["https://stream.example/", "https://stream.example/list/1.html", "https://stream.example/list/2.html"].sort());
+  });
   it("reads episode suffixes, movies, years, and HTML entities", () => {
     const items = parsePlaybackCatalog(catalog + '<a href="/embed/the-moon.html">The Moon (2023) Full Korean Movie</a><a href="/embed/heart.html">A Parasite’s Heart (2026) Episode 23</a>');
     expect(items[0]).toMatchObject({ title: "Fixture", year: 2026, episode: 2 });
@@ -97,6 +102,13 @@ describe("Source URL and routing boundaries", () => {
   it("rejects JSON responses and 200-status challenge pages", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response('{}', { headers: { "Content-Type": "application/json" } })).mockResolvedValueOnce(htmlResponse('<title>Just a moment...</title>')));
     await expect(readHtml("https://details.example/tv/42/fixture")).rejects.toThrow("temporarily unavailable");
+    await expect(readHtml("https://metadata.example/")).rejects.toThrow("temporarily unavailable");
+  });
+
+  it("accepts published HTML containing a challenge script, but rejects an interstitial form", async () => {
+    const content = '<title>Drama News</title><main>Published catalog</main><script src="/cdn-cgi/challenge-platform/script.js"></script>';
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(htmlResponse(content)).mockResolvedValueOnce(htmlResponse('<form id="challenge-form">Please wait</form>')));
+    expect(await readHtml("https://metadata.example/")).toBe(content);
     await expect(readHtml("https://metadata.example/")).rejects.toThrow("temporarily unavailable");
   });
 });

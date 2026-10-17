@@ -43,7 +43,9 @@ export async function readHtml(value: string, revalidate = 3600): Promise<string
     }
     if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html")) throw new SourceUnavailable(source);
     const html = await response.text();
-    if (html.length > 5_000_000 || /<title>\s*(?:Just a moment|Access denied|Attention Required)/i.test(html) || /cf-chl-|challenge-platform/.test(html)) throw new SourceUnavailable(source);
+    // Content pages may include a challenge script alongside their published HTML.
+    // Reject actual interstitial pages, without rejecting that accessible content.
+    if (html.length > 5_000_000 || /<title>\s*(?:Just a moment|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) throw new SourceUnavailable(source);
     return html;
   }
   throw new SourceUnavailable(source);

@@ -18,6 +18,7 @@
 /.next-dev/
 /out/
 /.pages-build/
+/data/
 
 # production
 /build

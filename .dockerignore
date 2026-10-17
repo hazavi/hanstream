@@ -3,6 +3,7 @@ node_modules
 .next-dev
 .pages-build
 out
+data
 .git
 .aws
 .ssh

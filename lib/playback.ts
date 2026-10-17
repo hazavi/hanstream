@@ -1,9 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { load } from "cheerio";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { cleanText, httpsUrl, readHtml, sourceUrl } from "./html";
+import { createRuntimeCache } from "./runtime-cache";
 import { normalizeTitle, type CatalogTitle } from "./catalog";
 import { getSourceConfig } from "./server-config.mjs";
 
@@ -47,20 +46,47 @@ export function parsePlaybackPage(html: string, pageUrl: string): PlaybackStream
   return { url, pageUrl, servers };
 }
 
-export const getPlaybackCatalog = cache(async (): Promise<PlaybackTitle[]> => {
-  let indexed: PlaybackTitle[] = [];
-  try {
-    const data = JSON.parse(await readFile(path.join(process.cwd(), "data/playback-catalog.json"), "utf8"));
-    if (Array.isArray(data.entries)) indexed = data.entries.map((entry: { text: string; url: string }) => typeof entry.text === "string" && typeof entry.url === "string" ? parsePlaybackTitle(entry.text, entry.url) : null).filter((item: PlaybackTitle | null): item is PlaybackTitle => Boolean(item));
-  } catch { /* The full index is optional; the latest page still works. */ }
-  try {
-    const latest = parsePlaybackCatalog(await readHtml(BASE, 600));
-    const latestUrls = new Set(latest.map(item => item.url));
-    return [...latest, ...indexed.filter(item => !latestUrls.has(item.url))];
-  } catch (error) {
-    if (indexed.length) return indexed;
-    throw error;
-  }
+const latestCatalog = createRuntimeCache(async () => {
+  const html = await readHtml(BASE, 300);
+  const items = parsePlaybackCatalog(html);
+  if (!items.length) throw new Error("Playback catalog is temporarily unavailable.");
+  return { html, items };
+}, 300_000);
+
+const fullCatalog = createRuntimeCache(async (): Promise<PlaybackTitle[]> => {
+  const { html, items } = await latestCatalog();
+  const $ = load(html);
+  const numbers = $(".page-numbers[href]").map((_, element) => {
+    const address = sourceUrl($(element).attr("href"), BASE);
+    return address ? Number(/^\/list\/(\d+)\.html$/.exec(new URL(address).pathname)?.[1]) || 0 : 0;
+  }).get();
+  const last = Math.max(0, ...numbers);
+  if (last > 5000) throw new Error("Unrecognized playback catalog pagination.");
+  const pages: PlaybackTitle[][] = [];
+  let next = 0;
+  let failed = false;
+  // Read public pagination with two workers, keeping the source's newest-first order.
+  const workers = await Promise.allSettled([0, 1].map(async () => {
+    while (next < last && !failed) {
+      const index = next++;
+      try {
+        pages[index] = parsePlaybackCatalog(await readHtml(`${BASE}/list/${last - index}.html`, 900));
+        if (!pages[index].length) throw new Error("Playback catalog page is temporarily unavailable.");
+      } catch (error) { failed = true; throw error; }
+      if (next < last) await new Promise(resolve => setTimeout(resolve, 250));
+    }
+  }));
+  const error = workers.find(worker => worker.status === "rejected");
+  if (error?.status === "rejected") throw error.reason;
+  return [...new Map([...items, ...pages.flat()].map(item => [item.url, item])).values()];
+}, 900_000);
+
+export const getPlaybackCatalog = cache(async (latestOnly = false): Promise<PlaybackTitle[]> => {
+  if (!latestOnly) return fullCatalog();
+  const { items } = await latestCatalog();
+  // A long-running backend warms older episodes without delaying the homepage.
+  void fullCatalog().catch(() => {});
+  return items;
 });
 
 export async function getPlaybackEpisodes(title: string, year?: number, movie = false): Promise<PlaybackTitle[]> {

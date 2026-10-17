@@ -23,7 +23,7 @@ docker build -t hanstream-backend .
 docker run --rm --env-file .env.local -p 3000:3000 hanstream-backend
 ```
 
-Environment files are excluded from the Docker build context. The image uses non-secret build origins; runtime variables supply the real configuration. Keep the backend deployment private where your host supports it, and expose its HTTPS service. Refresh the saved catalog with `npm run sync:playback` and `npm run sync:metadata` before rebuilding when needed.
+Environment files and the `data/` directory are excluded from the Docker build context. The image uses non-secret build origins; runtime variables supply the real configuration. Keep the backend source and environment private, and expose its HTTPS service. No catalog files or sync commands are required. The backend loads live HTML and keeps its catalogs in process memory. Allow the backend to stay running: older episodes are indexed in the background, and the first search or older episode request may wait for that index. A cold start depends on the sources being available.
 
 ## 2. Configure GitHub
 
@@ -49,7 +49,7 @@ npm run preview:pages
 
 Open `http://localhost:4173/hanstream/`. For the local frontend, include `http://localhost:4173` in the backend's `FRONTEND_ORIGINS` and restart the backend after changing it.
 
-Drama and episode URLs use `/drama/?id=...` and `/watch/?id=...&episode=...`, allowing refreshes and direct visits on static hosting. Watchlists and progress stay in the browser. Stream addresses must reach the browser to play; private environment variables keep source configuration out of the static build, but cannot conceal a requested player's address from browser developer tools. A public source repository also exposes its tracked source and catalog files, which are not part of the Pages artifact.
+Drama and episode URLs use `/drama/?id=...` and `/watch/?id=...&episode=...`, allowing refreshes and direct visits on static hosting. Watchlists and progress stay in the browser. Stream addresses must reach the browser to play; private environment variables keep source configuration out of the static build, but cannot conceal a requested player's address from browser developer tools. No catalog files are tracked or packaged. Files committed in older Git revisions remain in that history until it is explicitly rewritten.
 
 Build the regular server app with `npm run build`, or the container-ready standalone output with `npm run build:backend`.
 

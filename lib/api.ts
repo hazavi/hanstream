@@ -18,7 +18,7 @@ function pageSlice<T>(items: T[], page: number, size = 20): T[] {
 const popularRow = (item: CatalogTitle) => ({ "detail-link": catalogRoute(item), image: item.image, title: item.title });
 
 export async function fetchRecent(page = 1): Promise<RecentResponse> {
-  const items = (await getPlaybackCatalog()).filter(item => !item.movie && item.episode);
+  const items = (await getPlaybackCatalog(page === 1)).filter(item => !item.movie && item.episode);
   return { results: (await enrichArtwork(pageSlice(items, page))).map(item => ({
     "episode-link": `${catalogRoute(item)}/episode/s1e${item.episode}`, episode_number: item.episode,
     image: item.image, time: "Available now", title: item.title, type: "Drama",
