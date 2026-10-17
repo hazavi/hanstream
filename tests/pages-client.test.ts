@@ -15,9 +15,12 @@ it("maps search suggestions to static detail routes", async () => {
   expect((await fetchSearchClient("a show")).results[0]["detail-link"]).toBe("/drama/?id=drama-a-show--2026");
 });
 it("shows a readable failure for a missing configuration or unavailable service", async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
   await expect(readBackend("/api/home")).rejects.toThrow("not been configured");
+  expect(fetch).not.toHaveBeenCalled();
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://backend.example");
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+  fetch.mockResolvedValue({ ok: false });
   await expect(readBackend("/api/home")).rejects.toThrow("Please try again");
 });

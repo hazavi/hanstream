@@ -35,7 +35,7 @@ The build job needs `pages: read` for `actions/configure-pages`; the deployment 
 
 With the current repository name, the frontend will be at `https://hazavi.github.io/hanstream/`. The workflow gets the base path from GitHub, so repository Pages and a custom domain use the correct asset paths.
 
-The workflow deliberately fails with a clear error until `API_BASE_URL` is set. Do not add source origins or credentials as public build variables.
+The frontend can be published before `API_BASE_URL` is set. The build prints a notice, and browsing pages show a connection message until the backend is configured. The device-local library remains available. After setting `API_BASE_URL`, start a new **Deploy GitHub Pages** run to rebuild the frontend with that address and enable live listings and playback. An invalid non-empty URL still fails validation. Do not add source origins or credentials as public build variables.
 
 ## Local verification
 

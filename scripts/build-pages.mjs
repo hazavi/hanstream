@@ -1,16 +1,13 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { getPagesConfig } from "./pages-config.mjs";
 
 const root = process.cwd();
 const stage = path.join(root, ".pages-build");
 const output = path.join(root, "out");
-const api = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
-if (!api) throw new Error("Set NEXT_PUBLIC_API_BASE_URL to your deployed backend URL before building Pages.");
-const url = new URL(api);
-if (url.username || url.password || url.search || url.hash || url.pathname !== "/" || !(url.protocol === "https:" || !process.env.GITHUB_ACTIONS && url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))) throw new Error("The backend URL must be an HTTPS origin (localhost HTTP is allowed for local preview).");
-const basePath = (process.env.PAGES_BASE_PATH || "").replace(/\/$/, "");
-if (basePath && !/^\/[a-zA-Z0-9._-]+$/.test(basePath)) throw new Error("PAGES_BASE_PATH must be empty or one repository path, such as /hanstream.");
+const { api, basePath } = getPagesConfig();
+if (!api) console.warn("Backend URL is not set. Publishing the frontend with a connection notice; set the repository variable API_BASE_URL and rebuild to enable live listings and playback.");
 for (const target of [stage, output]) {
   if (path.dirname(path.resolve(target)) !== path.resolve(root)) throw new Error("Build directory is outside the workspace.");
   await rm(target, { recursive: true, force: true });

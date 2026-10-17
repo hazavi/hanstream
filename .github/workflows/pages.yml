@@ -31,6 +31,7 @@ jobs:
       - name: Export frontend
         run: npm run build:pages
         env:
+          # Optional during setup; an empty value publishes a connection notice.
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
           PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
       - name: Verify public artifact

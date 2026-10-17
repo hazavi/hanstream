@@ -3,7 +3,7 @@ import { pagesRoute } from "./pages-routes";
 
 export async function readBackend<T>(path: string, signal?: AbortSignal): Promise<T> {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!base) throw new Error("The site connection has not been configured.");
+  if (!base) throw new Error("The site connection has not been configured. Drama listings and playback will be available once it is connected.");
   const response = await fetch(`${base.replace(/\/$/, "")}${path}`, { signal, credentials: "omit" });
   if (!response.ok) throw new Error("Unable to load this page. Please try again.");
   return response.json();
