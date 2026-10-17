@@ -31,6 +31,8 @@ In the repository's **Settings → Secrets and variables → Actions → Variabl
 
 In **Settings → Pages**, select **GitHub Actions** as the build source. Push these changes to `master` or `main`, or run **Deploy GitHub Pages** manually from Actions. The workflow runs tests, exports only the frontend, checks its contents, and deploys the Pages artifact.
 
+The build job needs `pages: read` for `actions/configure-pages`; the deployment job separately has `pages: write` and `id-token: write`. If configuration reports `Get Pages site failed: Not Found`, check that the workflow includes the build permission and that the Pages build source is GitHub Actions. Do not add `enablement: true` with the default workflow token: that option requires a separate token with permission to manage Pages settings.
+
 With the current repository name, the frontend will be at `https://hazavi.github.io/hanstream/`. The workflow gets the base path from GitHub, so repository Pages and a custom domain use the correct asset paths.
 
 The workflow deliberately fails with a clear error until `API_BASE_URL` is set. Do not add source origins or credentials as public build variables.
