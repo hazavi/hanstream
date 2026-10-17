@@ -4,6 +4,18 @@ The frontend is exported to `out/`. Live metadata and playback are read by a sep
 
 ## 1. Deploy the backend
 
+### Render Free
+
+Push `render.yaml` and the deployment scripts to GitHub, then open [Deploy the backend on Render](https://render.com/deploy?repo=https://github.com/hazavi/hanstream). Sign in and connect the `hazavi/hanstream` repository if prompted. The Blueprint defines a **Free** Docker web service in Frankfurt; confirm the Free plan before creating it. It creates no database or paid disk.
+
+Render prompts for `STREAM_SOURCE_URL`, `METADATA_SOURCE_URL`, `EDITORIAL_SOURCE_URL`, and `DETAILS_SOURCE_URL`. Copy their values from your local `.env.local` into Render's private environment fields. Their values are not stored in `render.yaml`. The Blueprint sets `FRONTEND_ORIGINS=https://hazavi.github.io` and uses `/api/health` for readiness. A 503 health response means the required source configuration is missing or invalid.
+
+When Render reports the service is live, copy its public HTTPS origin from the service dashboard. From this checkout, run `npm run connect:backend --` followed by that URL. The command checks health, CORS access from GitHub Pages, and actual homepage content before changing GitHub. It then saves `API_BASE_URL` as a repository variable and starts a new **Deploy GitHub Pages** workflow on the default branch, using your existing Git credential manager sign-in. No Render API token is required for this command. The frontend remains on GitHub Pages.
+
+Render's Free services sleep after 15 minutes without traffic and may take about a minute to wake. The backend also reloads its in-memory catalogs after a restart. See [Render's free service limits](https://render.com/docs/free).
+
+### Other Docker hosts
+
 Build the included `Dockerfile` on a host that supports Node containers and public HTTPS. The service listens on `PORT` (default 3000), and `/api/health` is its health check.
 
 Set these private environment variables on that service, using the values from your local `.env.local`:

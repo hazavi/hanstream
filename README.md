@@ -38,4 +38,8 @@ Personal watch data stays in the browser's local storage. Readable drama routes 
 
 ## GitHub Pages
 
+[Deploy the backend on Render](https://render.com/deploy?repo=https://github.com/hazavi/hanstream)
+
+The included `render.yaml` selects a Free Docker service. Set the four private source origins when Render prompts for them. After the service is live, run `npm run connect:backend --` followed by its public HTTPS URL to verify content, save GitHub's `API_BASE_URL`, and start the Pages workflow using your existing Git sign-in.
+
 Use the [deployment guide](docs/deployment.md) for the Pages frontend and separate private backend. The included workflow publishes only the static frontend. Set the repository variable `API_BASE_URL` after deploying the backend.

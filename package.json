@@ -12,6 +12,7 @@
     "test:ui": "vitest --ui",
     "build:pages": "node scripts/build-pages.mjs",
     "preview:pages": "node scripts/preview-pages.mjs",
+    "connect:backend": "node scripts/connect-backend.mjs",
     "build:backend": "node scripts/build-backend.mjs"
   },
   "dependencies": {
