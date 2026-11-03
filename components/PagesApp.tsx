@@ -6,21 +6,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { readBackend } from "@/lib/pages-client";
 import { catalogRoute, type CatalogTitle } from "@/lib/catalog";
-import type { DramaResponse, EpisodeResult, HotSeriesUpdateItem, PopularItem, RecentItem, ScheduleResponse, SearchResponse, TopDramasResponse } from "@/lib/api-types";
-import { HeroCarousel } from "./HeroCarousel";
+import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, ScheduleResponse, SearchResponse, TopDramasResponse } from "@/lib/api-types";
+import { DramaDetails } from "./DramaDetails";
 import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
-import { WatchlistButton } from "./WatchlistButton";
-import { DramaRatingButton } from "./DramaRatingButton";
-import { DescriptionSection } from "./DescriptionSection";
 import { EpisodePlayer } from "./EpisodePlayer";
 import { EpisodeProgressTracker } from "./EpisodeProgressTracker";
 import { VideoControls } from "./VideoControls";
 import { DayCard } from "./DayCard";
 
 type Section = "reviews" | "trending" | "starting" | "ending";
-type HomeData = { home: Record<Section, CatalogTitle[]>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"]; hero: HotSeriesUpdateItem[] };
+type HomeData = { home: Record<Section, CatalogTitle[]>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"] };
 type CatalogData = { items: (RecentItem | PopularItem)[]; page: number; hasNext: boolean };
 type WatchData = { result: EpisodeResult; drama: DramaResponse["result"] };
 type View = "home" | "popular" | "recently-added" | "recent-movies" | "search" | "schedule" | "drama" | "watch";
@@ -32,16 +29,13 @@ function Cards({ items }: { items: (RecentItem | PopularItem)[] }) {
 function Home({ data }: { data: HomeData }) {
   return <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
     <div className="flex-1 min-w-0 space-y-8 sm:space-y-12 animate-fade-in">
-      {data.hero.length > 0 && <HeroCarousel items={data.hero} />}<ContinueWatching />
+      <ContinueWatching />
       {([{ title: "Latest Episodes", href: "/recently-added", items: data.recent }, { title: "Popular Dramas", href: "/popular", items: data.popular }]).map(section => <section key={section.href} className="space-y-4 sm:space-y-6"><div className="flex items-center justify-between"><h2 className="text-xl sm:text-2xl font-bold heading">{section.title}</h2><Link href={section.href} className="glass-btn text-sm">View all</Link></div><Cards items={section.items} /></section>)}
       {(Object.keys(labels) as Section[]).map(section => <section key={section} className="space-y-4 sm:space-y-6"><h2 className="text-xl sm:text-2xl font-bold heading">{labels[section]}</h2>
         {data.home[section].length ? <div className="homepage-grid">{data.home[section].map(item => <article key={`${catalogRoute(item)}-${item.date}`} className="glass-card rounded-xl sm:rounded-2xl overflow-hidden card-hover"><Link href={catalogRoute(item)} className="block group"><div className="aspect-[4/5] relative surface overflow-hidden"><Image src={item.image} alt={item.title} fill sizes="(max-width:640px) 44vw, (max-width:1024px) 23vw, 15vw" className="object-cover group-hover:scale-105 transition-transform duration-500" /></div><div className="p-3 space-y-1"><h3 className="text-sm font-semibold text-primary line-clamp-2">{item.title}</h3>{item.note && <p className="text-xs text-secondary line-clamp-2">{item.note}</p>}{section === "reviews" && item.date && <p className="text-xs text-secondary">{new Date(item.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/Copenhagen" })}</p>}</div></Link></article>)}</div> : <p className="source-empty">No published entries are listed for this week.</p>}
       </section>)}
     </div><div className="w-full lg:w-80 xl:w-96 shrink-0"><TopAiringSection result={data.rankings} /></div>
   </div>;
-}
-function Detail({ detail, slug }: { detail: NonNullable<DramaResponse["result"]>; slug: string }) {
-  return <div className="space-y-8 animate-fade-in"><h1 className="text-3xl sm:text-4xl heading">{detail.title}</h1><div className="flex flex-col md:flex-row gap-6"><div className="w-full md:w-60 shrink-0 space-y-4">{detail.image && <Image src={detail.image} alt={detail.title || "Drama poster"} width={300} height={400} className="w-full rounded-2xl aspect-[3/4] object-cover" />}<WatchlistButton slug={slug} title={detail.title || "Drama"} image={detail.image} /><DramaRatingButton slug={slug} title={detail.title || "Drama"} image={detail.image} /></div><div className="flex-1 space-y-4">{detail.other_names && <p className="glass-card p-4 text-sm text-secondary">{detail.other_names}</p>}{detail.meta && <dl className="glass-card p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">{Object.entries(detail.meta).map(([key, value]) => <div key={key}><dt className="text-xs text-secondary capitalize">{key.replaceAll("_", " ")}</dt><dd className="text-sm">{String(value)}</dd></div>)}</dl>}{detail.description && <DescriptionSection description={detail.description} />}</div></div><section className="space-y-4"><h2 className="text-2xl heading">Episodes ({detail.episodes?.length || 0})</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{detail.episodes?.map(ep => <Link key={ep.episode_link} href={ep.episode_link} className="surface rounded-xl p-4 hover:surface-hover">Episode {ep.episode}</Link>)}</div>{!detail.episodes?.length && <p className="source-empty">No episodes are available yet.</p>}</section></div>;
 }
 function Watch({ data, slug, episode }: { data: WatchData; slug: string; episode: string }) {
   const episodes = data.result.episodes?.filter((ep): ep is typeof ep & { id: string } => Boolean(ep.id)) || [];
@@ -69,7 +63,7 @@ export default function PagesApp({ view }: { view: View }) {
   if (state.route !== route || !state.data && !state.error) return <div role="status" className="space-y-4"><p className="text-secondary">Loading dramas...</p><div className="homepage-grid">{Array.from({ length: 6 }, (_, index) => <div key={index} className="aspect-[4/5] surface rounded-2xl animate-pulse" />)}</div></div>;
   if (state.error) return <div role="alert" className="glass-card p-6 space-y-4"><p>{state.error}</p><button className="glass-btn" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
   if (view === "home") return <Home data={state.data as HomeData} />;
-  if (view === "drama") { const detail = (state.data as DramaResponse).result; return detail ? <Detail detail={detail} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>; }
+  if (view === "drama") { const detail = (state.data as DramaResponse).result; return detail ? <DramaDetails detail={detail} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>; }
   if (view === "watch") return <Watch data={state.data as WatchData} slug={slug} episode={episode} />;
   if (view === "schedule") { const data = state.data as ScheduleResponse; return <div className="space-y-6"><h1 className="heading text-3xl">Weekly Schedule</h1><p className="text-secondary">{data.result.schedule_note}</p><div className="grid md:grid-cols-2 gap-5">{Object.entries(data.result.days).map(([day, schedule]) => <DayCard key={day} day={day} schedule={schedule} />)}</div></div>; }
   const items = view === "search" ? (state.data as SearchResponse).results : (state.data as CatalogData).items;

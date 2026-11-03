@@ -40,7 +40,6 @@ export function DescriptionSection({ description }: DescriptionSectionProps) {
         className={`prose prose-neutral dark:prose-invert max-w-none text-secondary leading-relaxed text-sm ${
           !isExpanded ? "line-clamp-8" : ""
         }`}
-        dangerouslySetInnerHTML={{ __html: description }}
         style={
           !isExpanded
             ? {
@@ -52,7 +51,7 @@ export function DescriptionSection({ description }: DescriptionSectionProps) {
               }
             : {}
         }
-      />
+      >{description}</div>
       {showReadMore && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}

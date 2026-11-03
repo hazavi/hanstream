@@ -39,14 +39,28 @@ describe("HTML source data mapping", () => {
     expect(result.result?.episodes?.[0].episode).toBe(2);
   });
 
-  it("loads alternative drama details without requesting a blocked primary source", async () => {
+  it("uses fallback facts when the primary detail source is unavailable", async () => {
+    vi.mocked(findDramaDetails).mockRejectedValue(new Error("Unavailable"));
     vi.mocked(findMetadata).mockResolvedValue({ ...title, sourceName: "Metadata", url: "https://metadata.example/Fixture_Drama", overview: "Published drama facts." });
     const result = await fetchDrama("drama-fixture-drama--2026");
     expect(result.result).not.toHaveProperty("metadataSource");
     expect(result.result?.description).toBe("Published drama facts.");
-    expect(result.result?.detailsUnavailable).toBe(false);
-    expect(findDramaDetails).not.toHaveBeenCalled();
+    expect(result.result?.detailsUnavailable).toBe(true);
+    expect(findDramaDetails).toHaveBeenCalled();
     expect(getDetailEpisodes).not.toHaveBeenCalled();
+  });
+
+  it("prefers full primary details and retains alternate artwork and episode metadata", async () => {
+    vi.mocked(findDramaDetails).mockResolvedValue({ ...title, overview: "The complete summary.", image: "https://primary.example/poster.webp", tags: ["marriage"], genres: ["Romance"], trailer: { embedUrl: "https://www.youtube-nocookie.com/embed/abcdefghijk" } });
+    vi.mocked(findMetadata).mockResolvedValue({ ...title, image: "https://fallback.example/poster.jpg", overview: "Fallback facts." });
+    vi.mocked(getDetailEpisodes).mockResolvedValue([{ season: 1, episode: 1, title: "A new start", image: "https://primary.example/still.webp" }, { season: 1, episode: 2, title: "The finale", date: "2099-01-01", finale: true }]);
+    vi.mocked(getPlaybackEpisodes).mockResolvedValue([{ ...title, episode: 1 }]);
+    const detail = (await fetchDrama("drama-fixture-drama--2026")).result;
+    expect(detail).toMatchObject({ description: "The complete summary.", tags: ["marriage"], poster_fallbacks: ["https://fallback.example/poster.jpg"], detailsUnavailable: false });
+    expect(detail?.episodes).toHaveLength(2);
+    expect(detail?.episodes?.[0]).toMatchObject({ title: "A new start", available: true, image: "https://primary.example/still.webp" });
+    expect(detail?.episodes?.[1]).toMatchObject({ title: "The finale", available: false, finale: true });
+    expect((await fetchEpisode("drama-fixture-drama--2026", "s1e1")).result.episodes).toHaveLength(1);
   });
 
   it("passes season and year to the playback source and retains alternative servers", async () => {
@@ -56,6 +70,13 @@ describe("HTML source data mapping", () => {
     expect(result.result.servers).toHaveLength(1);
     expect(result.result).not.toHaveProperty("sourcePage");
     expect(result.result.servers?.[0].name).toBe("Server 1");
+  });
+
+  it("checks a later season against its own playback title", async () => {
+    vi.mocked(getDetailEpisodes).mockResolvedValue([{ season: 1, episode: 1 }, { season: 2, episode: 1 }]);
+    vi.mocked(getPlaybackEpisodes).mockImplementation(async name => name.endsWith('Season 2') ? [{ ...title, title: name, episode: 1 }] : []);
+    const result = await fetchDrama('drama-fixture-drama--2026');
+    expect(result.result?.episodes?.map(ep => [ep.season, ep.available])).toEqual([[1, false], [2, true]]);
   });
 
   it("does not offer an invented stream when the provider fails", async () => {

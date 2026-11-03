@@ -32,6 +32,11 @@ describe("alternative HTML metadata", () => {
     expect(parseMetadataDetail(detailHtml.replace('src="/images/between.jpg"', ''), metadataDetail().url)?.image).toBe('/file.svg');
   });
 
+  it("keeps the published story synopsis when primary details are unavailable", () => {
+    const html = detailHtml.replace('<h2>Synopsis</h2>', '<h2><span id="Synopsis">Synopsis</span></h2><p>Two old friends start over.<sup class="reference">[1]</sup></p><h2>Cast</h2><p>Unrelated cast notes</p>');
+    expect(parseMetadataDetail(html, metadataDetail().url)?.overview).toBe('Two old friends start over.');
+  });
+
   it("uses exact HTML search redirects and refuses a different remake year", async () => {
     const read = vi.fn().mockResolvedValue(detailHtml);
     expect((await lookupMetadata("Between Steps", 2026, false, read))?.url).toBe(metadataDetail().url);

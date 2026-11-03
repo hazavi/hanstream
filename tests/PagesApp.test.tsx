@@ -5,22 +5,41 @@ import { readBackend } from "../lib/pages-client";
 
 const location = vi.hoisted(() => ({ query: "" }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(location.query) }));
-vi.mock("next/link", () => ({ default: ({ children, href, ...props }: React.ComponentProps<"a">) => <a href={href} {...props}>{children}</a> }));
-vi.mock("next/image", () => ({ default: ({ fill: _fill, ...props }: React.ComponentProps<"img"> & { fill?: boolean }) => <img {...props} /> }));
+vi.mock("next/link", () => ({ default: ({ children, href, prefetch: _prefetch, ...props }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a href={href} {...props}>{children}</a> }));
+vi.mock("next/image", () => ({ default: ({ fill: _fill, priority: _priority, ...props }: React.ComponentProps<"img"> & { fill?: boolean; priority?: boolean }) => <img {...props} /> }));
 vi.mock("../lib/pages-client", () => ({ readBackend: vi.fn() }));
 vi.mock("../components/ContinueWatching", () => ({ ContinueWatching: () => null }));
 vi.mock("../components/WatchlistButton", () => ({ WatchlistButton: () => null }));
 vi.mock("../components/DramaRatingButton", () => ({ DramaRatingButton: () => null }));
 vi.mock("../components/EpisodeProgressTracker", () => ({ EpisodeProgressTracker: () => null }));
+vi.mock("../components/HeroCarousel", () => ({ HeroCarousel: () => <div data-testid="homepage-carousel" /> }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); location.query = ""; });
 
 it("loads all homepage sections and the sidebar without homepage tabs", async () => {
-  vi.mocked(readBackend).mockResolvedValue({ home: { reviews: [], trending: [], starting: [], ending: [] }, recent: [], popular: [], hero: [], rankings: { lists: { airing: [], upcoming: [], popular: [] }, errors: {} } });
+  vi.mocked(readBackend).mockResolvedValue({ home: { reviews: [], trending: [], starting: [], ending: [] }, recent: [], popular: [], hero: [{ full_title: "Previously featured" }], rankings: { lists: { airing: [], upcoming: [], popular: [] }, errors: {} } });
   render(<PagesApp view="home" />);
   expect(await screen.findByRole("heading", { name: "Latest Reviews" })).toBeInTheDocument();
   for (const name of ["Trending This Week", "Shows Starting This Week", "Shows Ending This Week", "Airing Shows", "Upcoming Shows", "Most Popular Shows"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
   expect(screen.queryByRole("tablist")).toBeNull();
+  expect(screen.queryByTestId("homepage-carousel")).toBeNull();
   expect(readBackend).toHaveBeenCalledWith("/api/home", expect.any(AbortSignal));
+});
+it("shows rich details, falls back from a broken poster, and loads the trailer on request", async () => {
+  location.query = "id=drama-test--2026";
+  vi.mocked(readBackend).mockResolvedValue({ result: { title: "Test Drama", other_names: "Original title", image: "https://primary.example/poster.webp", poster_fallbacks: ["https://fallback.example/poster.jpg"], description: "A complete drama summary.", genres: ["Romance"], tags: ["marriage"], meta: { Country: "Korea", "Age Rating": "TV-14" }, trailer: { embedUrl: "https://www.youtube-nocookie.com/embed/abcdefghijk", thumbnail: "https://pictures.example/trailer.webp" }, episodes: [{ season: 1, episode: 1, title: "A new start", image: "https://pictures.example/episode.webp", available: true, episode_link: "/drama-test--2026/episode/s1e1" }, { season: 2, episode: 1, title: "A new season", available: false, release_date: "2099-01-01", episode_link: "/drama-test--2026/episode/s2e1" }] } });
+  const { container } = render(<PagesApp view="drama" />);
+  expect(await screen.findByText("A complete drama summary.")).toBeInTheDocument();
+  expect(screen.getByText("marriage")).toBeInTheDocument();
+  expect(screen.getByText("TV-14")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Episode 1: A new start" })).toHaveAttribute("href", "/drama-test--2026/episode/s1e1");
+  expect(screen.getByAltText("A new start")).toHaveAttribute("src", "https://pictures.example/episode.webp");
+  expect(screen.queryByRole("link", { name: /A new season/ })).toBeNull();
+  expect(screen.getByText("Upcoming")).toBeInTheDocument();
+  fireEvent.error(screen.getByAltText("Test Drama poster"));
+  expect(screen.getByAltText("Test Drama poster")).toHaveAttribute("src", "https://fallback.example/poster.jpg");
+  expect(container.querySelector("iframe")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Play official trailer" }));
+  expect(container.querySelector("iframe")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/abcdefghijk?autoplay=1&rel=0");
 });
 it("loads a directly opened detail query and displays its available episodes", async () => {
   location.query = "id=drama-test--2026";

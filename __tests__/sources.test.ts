@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parsePlaybackCatalog, parsePlaybackPage, getPlaybackCatalog, getPlaybackStream } from "../lib/playback";
-import { parseDetailPage, parseDetailEpisodes, isAsianCountry, findDramaDetails } from "../lib/details";
+import { parseDetailPage, parseDetailEpisodes, parseTrailerUrl, isAsianCountry, findDramaDetails } from "../lib/details";
 import { readHtml, sourceUrl } from "../lib/html";
 import { catalogRoute, parseCatalogRoute } from "../lib/catalog";
 
@@ -76,10 +76,22 @@ describe("Details public HTML", () => {
     expect(mocked.mock.calls[3][0]).toBe("https://details.example/tv/1810575/moving");
   });
 
-  it("deduplicates episode links and excludes specials, future episodes, and another series", () => {
+  it("deduplicates episodes, keeps future listings, and excludes specials and another series", () => {
     const row = (path: string, date = "") => `<div data-date="${date}"><a href="${path}"></a><span class="SimklTVEpisodesEpTitle">Pilot</span></div>`;
     const html = `<div id="tvShowInfoBlock">${row('/tv/42/fixture/season-1/episode-1/')}${row('/tv/42/fixture/season-1/episode-1/')}${row('/tv/42/fixture/season-2/episode-1/')}${row('/tv/42/fixture/season-0/episode-1/')}${row('/tv/42/fixture/season-1/episode-2/', '2099-01-01')}${row('/tv/43/another/season-1/episode-1/')}</div>`;
-    expect(parseDetailEpisodes(html, "https://details.example/tv/42/fixture/episodes/")).toEqual([{ title: "Pilot", season: 1, episode: 1, date: undefined }, { title: "Pilot", season: 2, episode: 1, date: undefined }]);
+    expect(parseDetailEpisodes(html, "https://details.example/tv/42/fixture/episodes/")).toEqual([{ title: "Pilot", season: 1, episode: 1 }, { title: "Pilot", season: 1, episode: 2, date: "2099-01-01" }, { title: "Pilot", season: 2, episode: 1 }]);
+  });
+
+  it("reads tags, ratings, age rating, original title and a lazy trailer thumbnail", () => {
+    const html = detail + '<script type="application/ld+json">{"@type":"TVSeries","numberOfSeasons":1,"contentRating":"TV-14","aggregateRating":{"ratingValue":7.2,"ratingCount":14}}</script><table class="SimklTVAboutTabsDetails"><tr><td>Tags:</td><td><a>long-time couple</a><a>marriage</a><a>... 1 more</a></td></tr></table><img src="https://i.ytimg.com/vi_webp/abcdefghijk/maxresdefault.webp">';
+    expect(parseDetailPage(html, "https://details.example/tv/1810575/moving")).toMatchObject({ tags: ["long-time couple", "marriage"], meta: { Seasons: 1, Rating: 7.2, "Rating votes": 14, "Age Rating": "TV-14" }, trailer: { embedUrl: "https://www.youtube-nocookie.com/embed/abcdefghijk" } });
+    expect(parseTrailerUrl("https://youtube.com.evil.example/watch?v=abcdefghijk")).toBeUndefined();
+    expect(parseTrailerUrl("javascript:alert(1)")).toBeUndefined();
+  });
+
+  it("reads episode stills, titles and finale labels from linked or click-driven cards", () => {
+    const html = '<div><a href="/tv/42/fixture/season-1/episode-1/"><img data-src="https://pictures.example/one.webp"><span class="SimklTVEpisodesEpTitle">A new start</span></a></div><div><div data-href="/tv/42/fixture/season-1/episode-2/" style="background-image:url(https://pictures.example/two.webp)"><span class="SimklTVEpisodesEpTitle">Coming home</span><span>Series Finale</span></div></div>';
+    expect(parseDetailEpisodes(html, "https://details.example/tv/42/fixture/episodes/")).toEqual([{ season: 1, episode: 1, title: "A new start", image: "https://pictures.example/one.webp" }, { season: 1, episode: 2, title: "Coming home", image: "https://pictures.example/two.webp", finale: true }]);
   });
 });
 

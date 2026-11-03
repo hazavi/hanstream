@@ -18,6 +18,8 @@ Environment variables keep source configuration out of the client bundle. The br
 
 The homepage includes latest episodes, popular dramas, reviews, weekly trends, premieres, and finales. Cards open internal drama pages. Source labels and outbound navigation are omitted from the interface; playback servers use numbered controls.
 
+Drama pages share the same layout on the backend and GitHub Pages. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and season-grouped episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Upcoming episodes remain visible without a playback link. Missing or blocked detail pages use available fallback metadata and verified playback entries.
+
 ## Runtime catalog data
 
 The backend reads current HTML pages after startup. Latest episodes load from the current catalog page; older episodes are indexed in the background from public pagination with two workers. The first search or older episode request may wait for that index to finish. Metadata is loaded from public indexes and detail pages, with missing drama details looked up on demand.

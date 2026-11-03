@@ -52,21 +52,23 @@ export async function fetchSearch(query: string, page = 1): Promise<SearchRespon
 export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => {
   const identity = parseCatalogRoute(slug);
   let item: DetailRecord | null = null;
+  let alternative: Awaited<ReturnType<typeof findMetadata>> = null;
   let detailsUnavailable = false;
-  let fromMetadata = false;
+  let primary: DetailRecord | null = null;
   const legacy = /^(movie-)?(\d+)$/.exec(slug);
   if (!identity && !legacy) throw new Error("Invalid drama identifier");
   if (legacy) {
     item = await getDramaDetails(`${getSourceConfig().detailsOrigin}/${legacy[1] ? "movies" : "tv"}/${legacy[2]}/`);
+    primary = item;
   } else if (identity) {
-    const alternative = await findMetadata(identity.title, identity.year, identity.movie);
-    if (alternative) {
-      item = { ...alternative, meta: alternative.meta || {} };
-      fromMetadata = true;
-    }
-    try { if (!item) item = await findDramaDetails(identity.title, identity.year, identity.movie); }
-    catch { detailsUnavailable = true; }
-    if (!item) detailsUnavailable = true;
+    const [details, fallback] = await Promise.allSettled([
+      findDramaDetails(identity.title, identity.year, identity.movie),
+      findMetadata(identity.title, identity.year, identity.movie),
+    ]);
+    primary = details.status === "fulfilled" ? details.value : null;
+    alternative = fallback.status === "fulfilled" ? fallback.value : null;
+    item = primary ? { ...primary, meta: { ...alternative?.meta, ...primary.meta }, overview: primary.overview || alternative?.overview } : alternative ? { ...alternative, meta: alternative.meta || {} } : null;
+    detailsUnavailable = !primary;
   }
   const movie = item?.movie ?? identity?.movie ?? false;
   const year = item?.year ?? identity?.year;
@@ -78,25 +80,35 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
     if (!item && available.length) title = available[0].title;
   } catch { /* Details can still render if playback catalog is unavailable. */ }
   let episodes: NonNullable<NonNullable<DramaResponse["result"]>["episodes"]> = [];
-  if (item && !movie && !fromMetadata) {
-    try { episodes = (await getDetailEpisodes(item)).map(ep => ({ episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date })); }
+  if (primary && !movie) {
+    try { episodes = (await getDetailEpisodes(primary)).map(ep => ({ season: ep.season, episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date, image: ep.image, finale: ep.finale, available: false })); }
     catch { /* Verified available playback entries can supply navigation. */ }
   }
+  const availableSeasons = new Map([[1, available]]);
+  const laterSeasons = [...new Set(episodes.map(ep => ep.season || 1))].filter(season => season > 1);
+  await Promise.all(laterSeasons.map(async season => {
+    try { availableSeasons.set(season, await getPlaybackEpisodes(`${title} Season ${season}`, year, movie)); }
+    catch { /* Preserve published season details if a playback index is unavailable. */ }
+  }));
   const existing = new Set(episodes.map(ep => ep.episode_link));
-  for (const entry of available) {
+  for (const [season, entries] of availableSeasons) for (const entry of entries) {
     if (!movie && !entry.episode) continue;
     const episode = entry.episode || 1;
-    const episode_link = `/${slug}/episode/${movie ? "1" : `s1e${episode}`}`;
-    if (!existing.has(episode_link)) { episodes.push({ episode, episode_link }); existing.add(episode_link); }
+    const episode_link = `/${slug}/episode/${movie ? "1" : `s${season}e${episode}`}`;
+    const published = episodes.find(ep => ep.episode_link === episode_link);
+    if (published) published.available = true;
+    else if (!existing.has(episode_link)) { episodes.push({ season, episode, episode_link, available: true }); existing.add(episode_link); }
   }
   episodes.sort((a, b) => {
     const season = (value: string) => Number(value.match(/\/s(\d+)e/)?.[1] || 1);
     return season(a.episode_link) - season(b.episode_link) || a.episode - b.episode;
   });
   const [artwork] = await enrichArtwork([{ title, year, movie, url: item?.url || "", image: item?.image || "/file.svg" }]);
+  const [fallbackArtwork] = await enrichArtwork([{ title, year, movie, url: "", image: alternative?.image || "/file.svg" }]).catch(() => []);
+  const posters = [...new Set([alternative?.image, fallbackArtwork?.image].filter((image): image is string => Boolean(image && image !== "/file.svg" && image !== artwork.image)))];
   return { result: { title, image: artwork.image, description: item?.overview, other_names: item?.otherNames,
     meta: item?.meta || (year ? { Released: year } : {}), episodes,
-    detailsUnavailable,
+    tags: primary?.tags, genres: primary?.genres, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
   } };
 });
 
@@ -113,7 +125,7 @@ export async function fetchEpisode(slug: string, episode: string): Promise<Episo
     catch { /* Show the episode's unavailable state without crashing navigation. */ }
   }
   return { result: { title: `${title} - Episode ${match[2]}`, category: { title }, video: stream?.url || "", servers: stream?.servers.map((server, index) => ({ name: `Server ${index + 1}`, url: server.url })),
-    episodes: drama.result?.episodes?.map(ep => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date })),
+    episodes: drama.result?.episodes?.filter(ep => ep.available !== false).map(ep => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date })),
   } };
 }
 

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ContinueWatching } from "@/components/ContinueWatching";
 import { DramaCard } from "@/components/DramaCard";
 import { TopAiringSection } from "@/components/TopAiringSection";
-import { HeroSection } from "@/components/HeroSection";
 import { catalogRoute, type CatalogTitle } from "@/lib/catalog";
 import { fetchPopular, fetchPopularSeries, fetchRecent } from "@/lib/api";
 import { getHomepage, HOME_LABELS, type HomeSection } from "@/lib/metadata";
@@ -53,7 +52,6 @@ export default async function Home() {
   const sections = ["reviews", "trending", "starting", "ending"] as const;
   return <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
     <div className="flex-1 animate-fade-in min-w-0 space-y-8 sm:space-y-12">
-      <HeroSection />
       <Suspense fallback={null}><ContinueWatching /></Suspense>
       <section id="recent" className="space-y-4 sm:space-y-6 scroll-mt-24">
         <div className="flex items-center justify-between"><h2 className="text-xl sm:text-2xl font-bold heading">Latest Episodes</h2><Link href="/recently-added" className="glass-btn group !px-3 sm:!px-4 !py-2 text-sm sm:text-base">View all <span aria-hidden="true" className="group-hover:translate-x-1 transition-transform">›</span></Link></div>

@@ -42,7 +42,10 @@ export async function findMetadata(title: string, year?: number, movie = false):
 }
 
 export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise<T[]> {
-  const snapshot = await getMetadata();
+  if (items.every(item => item.image && item.image !== "/file.svg")) return items;
+  let snapshot: MetadataSnapshot;
+  try { snapshot = await getMetadata(); }
+  catch { return items; }
   const catalog = [...snapshot.titles, ...snapshot.editorial.titles.map(item => {
     const detail = matchMetadata(snapshot.titles, item.title) as MetadataTitle | undefined;
     return { ...item, year: detail?.year };
