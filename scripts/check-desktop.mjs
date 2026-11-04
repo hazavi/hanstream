@@ -4,14 +4,19 @@ import { chromium } from '@playwright/test';
 const address = process.env.DESKTOP_DEBUG_URL || 'http://127.0.0.1:9223';
 const started = Date.now();
 let browser;
-while (!browser && Date.now() - started < 60_000) {
-  try { browser = await chromium.connectOverCDP(address, { timeout: 3000 }); }
-  catch { await new Promise(resolve => setTimeout(resolve, 1000)); }
+let lastError = '';
+while (!browser && Date.now() - started < 90_000) {
+  try {
+    const targets = await (await fetch(new URL('/json/list', address), { signal: AbortSignal.timeout(2000) })).json();
+    if (!targets.some(target => target.type === 'page' && target.url.startsWith('https://tauri.localhost'))) throw new Error('Waiting for app document');
+    browser = await chromium.connectOverCDP(address, { timeout: 5000 });
+  } catch (error) { lastError = error.message; await new Promise(resolve => setTimeout(resolve, 1000)); }
 }
-assert.ok(browser, 'Desktop WebView2 debugging endpoint did not start');
+assert.ok(browser, `Desktop WebView2 was not ready: ${lastError}`);
 try {
   const context = browser.contexts()[0];
-  const page = context.pages().find(page => page.url().startsWith('https://tauri.localhost')) || await context.waitForEvent('page', { timeout: 15_000 });
+  const page = context.pages()[0] || await context.waitForEvent('page', { timeout: 15_000 });
+  await page.waitForURL('https://tauri.localhost/**', { timeout: 30_000 });
   assert.equal(new URL(page.url()).origin, 'https://tauri.localhost');
   let runtimeErrors = 0; page.on('pageerror', () => runtimeErrors++);
   await page.goto('https://tauri.localhost/profile/', { waitUntil: 'domcontentloaded' });

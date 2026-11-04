@@ -2,9 +2,9 @@ name: Windows desktop
 on:
   push:
     branches: [master, main]
-    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', '.github/workflows/desktop.yml']
+    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', '.github/workflows/desktop.yml']
+    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
   workflow_dispatch:
     inputs:
       signed:
@@ -90,12 +90,18 @@ jobs:
         shell: pwsh
         run: |
           $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9223 --remote-debugging-address=127.0.0.1'
+          $env:WEBVIEW2_USER_DATA_FOLDER=Join-Path $env:RUNNER_TEMP 'hanstream-webview-test'
           $log = Join-Path $env:RUNNER_TEMP 'hanstream-app.log'
           $errorLog = Join-Path $env:RUNNER_TEMP 'hanstream-app-error.log'
           $app = Start-Process -FilePath './src-tauri/target/release/hanstream.exe' -WindowStyle Hidden -PassThru -RedirectStandardOutput $log -RedirectStandardError $errorLog
           try {
             node scripts/check-desktop.mjs
-            if ($LASTEXITCODE -ne 0) { Get-Content $log,$errorLog -ErrorAction SilentlyContinue; throw 'Desktop smoke test failed.' }
+            if ($LASTEXITCODE -ne 0) {
+              $app.Refresh()
+              $app | Select-Object Id,HasExited,ExitCode,MainWindowTitle | ConvertTo-Json
+              Get-Content $log,$errorLog -ErrorAction SilentlyContinue
+              throw 'Desktop smoke test failed.'
+            }
           }
           finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }
       - uses: actions/upload-artifact@v4
