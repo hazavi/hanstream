@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from "vitest";
-import { createRuntimeCache } from "../lib/runtime-cache";
+import { createRuntimeCache, createKeyedCache } from "../lib/runtime-cache";
 
 afterEach(() => { vi.useRealTimers(); });
 
@@ -35,4 +35,16 @@ it("refreshes expired live data in the background and retains it during an outag
 it("reports cold-start failures instead of returning bundled fallback data", async () => {
   const read = createRuntimeCache(async () => { throw new Error("offline"); }, 1000);
   await expect(read()).rejects.toThrow("offline");
+});
+it("shares concurrent per-title reads, expires misses quickly, and bounds retained titles", async () => {
+  vi.useFakeTimers();
+  const load = vi.fn(async (key: string) => key === 'missing' ? null : key);
+  const read = createKeyedCache(load, 60_000, 2);
+  expect(await Promise.all([read('first'),read('first')])).toEqual(['first','first']);
+  expect(load).toHaveBeenCalledTimes(1);
+  await read('missing'); await read('missing');
+  expect(load).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(30_001);
+  await read('missing'); expect(load).toHaveBeenCalledTimes(3);
+  await read('third'); await read('first'); expect(load).toHaveBeenCalledTimes(5);
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { Artwork } from "./Artwork";
 import Link from "next/link";
 import type { DramaDetail, DramaEpisode, DramaTrailer } from "@/lib/api-types";
 import { Breadcrumb } from "./Breadcrumb";
@@ -9,11 +9,6 @@ import { DescriptionSection } from "./DescriptionSection";
 import { WatchlistButton } from "./WatchlistButton";
 import { DramaRatingButton } from "./DramaRatingButton";
 
-function Artwork({ sources, alt, poster = false }: { sources: (string | undefined)[]; alt: string; poster?: boolean }) {
-  const candidates = [...new Set(sources.filter((src): src is string => Boolean(src && src !== "/file.svg")))];
-  const [attempt, setAttempt] = useState(0);
-  return candidates[attempt] ? <Image src={candidates[attempt]} alt={alt} fill sizes={poster ? "(max-width: 640px) 65vw, 300px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"} className="object-cover" priority={poster} onError={() => setAttempt(value => value + 1)} /> : <div role="img" aria-label={alt} className="absolute inset-0 surface flex flex-col items-center justify-center gap-2 p-4 text-secondary"><span aria-hidden="true" className="text-3xl font-semibold opacity-40">{alt.split(/\s+/).slice(0, 2).map(word => word[0]).join("")}</span><span className="text-xs">Artwork unavailable</span></div>;
-}
 
 function Trailer({ trailer }: { trailer: DramaTrailer }) {
   const [playing, setPlaying] = useState(false);

@@ -29,7 +29,7 @@ export function VideoControls({
       {prevEpisode && (
         <Link
           href={`/${slug}/episode/${prevEpNum}`}
-          className="flex items-center gap-1 px-3 py-2 hover:bg-black/10 rounded-md transition-all duration-200 text-sm font-medium text-gray-300 hover:text-white"
+          className="glass-btn flex items-center gap-1 !px-3 !py-2 text-sm"
         >
           <svg
             className="w-3 h-3"
@@ -48,7 +48,7 @@ export function VideoControls({
       {nextEpisode && (
         <Link
           href={`/${slug}/episode/${nextEpNum}`}
-          className="flex items-center gap-1 px-3 py-2 hover:bg-black/10 rounded-md transition-all duration-200 text-sm font-medium text-gray-300 hover:text-white"
+          className="glass-btn flex items-center gap-1 !px-3 !py-2 text-sm"
         >
           Next
           <svg

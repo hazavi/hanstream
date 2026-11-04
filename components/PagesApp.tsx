@@ -11,9 +11,7 @@ import { DramaDetails } from "./DramaDetails";
 import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
-import { EpisodePlayer } from "./EpisodePlayer";
-import { EpisodeProgressTracker } from "./EpisodeProgressTracker";
-import { VideoControls } from "./VideoControls";
+import { WatchPage } from "./WatchPage";
 import { DayCard } from "./DayCard";
 
 type Section = "reviews" | "trending" | "starting" | "ending";
@@ -36,10 +34,6 @@ function Home({ data }: { data: HomeData }) {
       </section>)}
     </div><div className="w-full lg:w-80 xl:w-96 shrink-0"><TopAiringSection result={data.rankings} /></div>
   </div>;
-}
-function Watch({ data, slug, episode }: { data: WatchData; slug: string; episode: string }) {
-  const episodes = data.result.episodes?.filter((ep): ep is typeof ep & { id: string } => Boolean(ep.id)) || [];
-  return <div className="space-y-5"><Link href={`/${slug}`} className="text-sm text-secondary">Back to {data.drama?.title || "drama"}</Link><h1 className="text-xl sm:text-2xl heading">{data.result.title}</h1><EpisodePlayer key={`${slug}/${episode}`} video={data.result.video} servers={data.result.servers} title={data.result.title} /><VideoControls episodes={episodes} currentEpisode={episode} slug={slug} /><EpisodeProgressTracker slug={slug} episode={episode} title={data.drama?.title || data.result.title} image={data.drama?.image} totalEpisodes={episodes.length} /><section className="glass-card p-4"><h2 className="heading text-xl mb-4">Episodes</h2><div className="flex flex-wrap gap-2">{episodes.map(ep => <Link key={ep.id} href={`/${slug}/episode/${ep.id}`} aria-current={ep.id === episode ? "page" : undefined} className={`glass-btn text-sm ${ep.id === episode ? "ring-2 ring-blue-500" : ""}`}>{ep.title || ep.id}</Link>)}</div></section></div>;
 }
 export default function PagesApp({ view }: { view: View }) {
   const query = useSearchParams();
@@ -64,7 +58,7 @@ export default function PagesApp({ view }: { view: View }) {
   if (state.error) return <div role="alert" className="glass-card p-6 space-y-4"><p>{state.error}</p><button className="glass-btn" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
   if (view === "home") return <Home data={state.data as HomeData} />;
   if (view === "drama") { const detail = (state.data as DramaResponse).result; return detail ? <DramaDetails detail={detail} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>; }
-  if (view === "watch") return <Watch data={state.data as WatchData} slug={slug} episode={episode} />;
+  if (view === "watch") { const data = state.data as WatchData; return <WatchPage result={data.result} drama={data.drama} slug={slug} episode={episode} />; }
   if (view === "schedule") { const data = state.data as ScheduleResponse; return <div className="space-y-6"><h1 className="heading text-3xl">Weekly Schedule</h1><p className="text-secondary">{data.result.schedule_note}</p><div className="grid md:grid-cols-2 gap-5">{Object.entries(data.result.days).map(([day, schedule]) => <DayCard key={day} day={day} schedule={schedule} />)}</div></div>; }
   const items = view === "search" ? (state.data as SearchResponse).results : (state.data as CatalogData).items;
   const hasNext = view === "search" ? items.length >= 20 : (state.data as CatalogData).hasNext;

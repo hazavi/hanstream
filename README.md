@@ -6,11 +6,11 @@ An Asian drama app with episode playback, a browser-local watchlist, ratings, an
 
 ```bash
 npm install
-# Copy .env.example to .env.local and set the four private source origins.
+# Copy .env.example to .env.local and set the private source origins.
 npm run dev
 ```
 
-Source configuration lives in the ignored .env.local file. Set STREAM_SOURCE_URL, METADATA_SOURCE_URL, EDITORIAL_SOURCE_URL, and DETAILS_SOURCE_URL to HTTPS origins. No API keys are required. Remote readers use public HTML, and the app's own routes expose only the data needed for browsing and playback. Catalogs are fetched at runtime and cached inside the backend process. No metadata or playback data files are included in the repository or deployment image.
+Source configuration lives in the ignored .env.local file. Set STREAM_SOURCE_URL, METADATA_SOURCE_URL, EDITORIAL_SOURCE_URL, and DETAILS_SOURCE_URL to HTTPS origins. CATALOG_SOURCE_URL enables the additional public show and episode guide reader; MEDIA_SOURCE_URL enables official trailer discovery from public search HTML. These two settings are already configured in this checkout's ignored local environment and must also be copied to the backend host before deploying this update. No API keys are required. The app's own routes expose only the data needed for browsing and playback. Catalogs are fetched at runtime and cached inside the backend process. No metadata or playback data files are included in the repository or deployment image.
 
 The source readers are marked server-only. Never prefix these variables with NEXT_PUBLIC_ or add them to next.config.env. On deployment, set the variables in the hosting service's private server environment.
 
@@ -22,7 +22,9 @@ Drama pages share the same layout on the backend and GitHub Pages. The primary d
 
 ## Runtime catalog data
 
-The backend reads current HTML pages after startup. Latest episodes load from the current catalog page; older episodes are indexed in the background from public pagination with two workers. The first search or older episode request may wait for that index to finish. Metadata is loaded from public indexes and detail pages, with missing drama details looked up on demand.
+The backend reads current HTML pages after startup. Drama details use title-specific searches and public episode guides, without waiting for the homepage catalog or archive index. Standard episode routes are accepted only after their page title confirms the requested title, year and episode. Nonstandard routes can trigger a background index with two workers; the player waits at most 1.5 seconds for that index in a request. The latest homepage does not start an archive crawl. Archived catalog and broad playback-search requests can still require a full index.
+
+The watch page uses a responsive player and episode sidebar with pictures, descriptions, season selection, exact-number or title search, sorting, and list/grid views. Large episode lists mount at most 50 cards per range. Successful browser data requests are reused for 30 seconds, and concurrent backend lookups for the same title share one request.
 
 The process keeps live results in memory and refreshes them periodically. If a refresh fails, it keeps the data already fetched by that process. A cold backend needs the source pages to be available. Restarting clears these in-memory catalogs. The ignored `data/` directory is excluded from Docker builds.
 

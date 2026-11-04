@@ -20,7 +20,7 @@ const popularRow = (item: CatalogTitle) => ({ "detail-link": catalogRoute(item),
 export async function fetchRecent(page = 1): Promise<RecentResponse> {
   const items = (await getPlaybackCatalog(page === 1)).filter(item => !item.movie && item.episode);
   return { results: (await enrichArtwork(pageSlice(items, page))).map(item => ({
-    "episode-link": `${catalogRoute(item)}/episode/s1e${item.episode}`, episode_number: item.episode,
+    "episode-link": `${catalogRoute(item)}/episode/s${Number(/\bseason\s+(\d+)$/i.exec(item.title)?.[1]) || 1}e${item.episode}`, episode_number: item.episode,
     image: item.image, time: "Available now", title: item.title, type: "Drama",
   })) };
 }
@@ -81,11 +81,12 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   } catch { /* Details can still render if playback catalog is unavailable. */ }
   let episodes: NonNullable<NonNullable<DramaResponse["result"]>["episodes"]> = [];
   if (primary && !movie) {
-    try { episodes = (await getDetailEpisodes(primary)).map(ep => ({ season: ep.season, episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date, image: ep.image, finale: ep.finale, available: false })); }
+    try { episodes = (await getDetailEpisodes(primary)).map(ep => ({ season: ep.season, episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date, image: ep.image, description: ep.overview, finale: ep.finale, available: ep.date && ep.date > new Date().toISOString().slice(0, 10) ? false : undefined })); }
     catch { /* Verified available playback entries can supply navigation. */ }
   }
-  const availableSeasons = new Map([[1, available]]);
-  const laterSeasons = [...new Set(episodes.map(ep => ep.season || 1))].filter(season => season > 1);
+  const embeddedSeason = Number(/\bseason\s+(\d+)$/i.exec(title)?.[1]) || 1;
+  const availableSeasons = new Map([[embeddedSeason, available]]);
+  const laterSeasons = [...new Set(episodes.map(ep => ep.season || 1))].filter(season => season !== embeddedSeason);
   await Promise.all(laterSeasons.map(async season => {
     try { availableSeasons.set(season, await getPlaybackEpisodes(`${title} Season ${season}`, year, movie)); }
     catch { /* Preserve published season details if a playback index is unavailable. */ }
@@ -104,11 +105,11 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
     return season(a.episode_link) - season(b.episode_link) || a.episode - b.episode;
   });
   const [artwork] = await enrichArtwork([{ title, year, movie, url: item?.url || "", image: item?.image || "/file.svg" }]);
-  const [fallbackArtwork] = await enrichArtwork([{ title, year, movie, url: "", image: alternative?.image || "/file.svg" }]).catch(() => []);
-  const posters = [...new Set([alternative?.image, fallbackArtwork?.image].filter((image): image is string => Boolean(image && image !== "/file.svg" && image !== artwork.image)))];
+  const posters = [...new Set([alternative?.image].filter((image): image is string => Boolean(image && image !== "/file.svg" && image !== artwork.image)))];
+  const genres = primary?.genres?.length ? primary.genres : String(item?.meta.Genre || '').split(/[,;]/).map(value => value.trim()).filter(Boolean);
   return { result: { title, image: artwork.image, description: item?.overview, other_names: item?.otherNames,
     meta: item?.meta || (year ? { Released: year } : {}), episodes,
-    tags: primary?.tags, genres: primary?.genres, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
+    tags: primary?.tags?.length ? primary.tags : genres, genres, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
   } };
 });
 
@@ -119,13 +120,15 @@ export async function fetchEpisode(slug: string, episode: string): Promise<Episo
   const title = drama.result?.title || slug;
   const movie = parseCatalogRoute(slug)?.movie || slug.startsWith("movie-");
   const year = Number(drama.result?.meta?.Released) || undefined;
+  const embeddedSeason = Number(/\bseason\s+(\d+)$/i.exec(title)?.[1]);
+  const season = Number(match[1] || 1) === 1 && embeddedSeason ? embeddedSeason : Number(match[1] || 1);
   let stream: Awaited<ReturnType<typeof getPlaybackStream>> = null;
   if (!movie || (Number(match[2]) === 1 && Number(match[1] || 1) === 1)) {
-    try { stream = await getPlaybackStream(title, match[2], movie, year, Number(match[1] || 1)); }
+    try { stream = await getPlaybackStream(title, match[2], movie, year, season); }
     catch { /* Show the episode's unavailable state without crashing navigation. */ }
   }
-  return { result: { title: `${title} - Episode ${match[2]}`, category: { title }, video: stream?.url || "", servers: stream?.servers.map((server, index) => ({ name: `Server ${index + 1}`, url: server.url })),
-    episodes: drama.result?.episodes?.filter(ep => ep.available !== false).map(ep => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date })),
+  return { result: { title: `${title} - Episode ${match[2]}`, current_episode: movie ? '1' : `s${season}e${match[2]}`, category: { title }, video: stream?.url || "", servers: stream?.servers.map((server, index) => ({ name: `Server ${index + 1}`, url: server.url })),
+    episodes: drama.result?.episodes?.map(ep => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date, season: ep.season, episode: ep.episode, image: ep.image, description: ep.description, available: ep.available })),
   } };
 }
 

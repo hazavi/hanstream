@@ -6,8 +6,8 @@ import { readHtml, sourceUrl } from "../lib/html";
 import { catalogRoute, parseCatalogRoute } from "../lib/catalog";
 
 // Keep parser tests isolated; runtime cache behavior is covered separately.
-vi.mock("../lib/runtime-cache", () => ({ createRuntimeCache: (load: () => Promise<unknown>) => load }));
-afterEach(() => vi.unstubAllGlobals());
+vi.mock("../lib/runtime-cache", async importOriginal => ({ ...await importOriginal<typeof import('../lib/runtime-cache')>(), createRuntimeCache: (load: () => Promise<unknown>) => load }));
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 const htmlResponse = (html: string) => new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 const catalog = '<a class="post-title-link" href="https://stream.example/embed/fixture-2026-ep-2.html">Fixture (2026) Ep 2</a><a class="post-title-link" href="https://stream.example/embed/fixture-2025-ep-2.html">Fixture (2025) Ep 2</a><a class="post-title-link" href="https://stream.example/embed/fixture-2026-ep-20.html">Fixture (2026) Ep 20</a>';
 
@@ -44,7 +44,14 @@ describe("Playback public HTML", () => {
     const mocked = vi.fn().mockResolvedValue(htmlResponse(catalog));
     vi.stubGlobal("fetch", mocked);
     expect(await getPlaybackStream("Fixture", "2", false, 2026, 2)).toBeNull();
-    expect(mocked).toHaveBeenCalledTimes(1);
+    expect(mocked.mock.calls.map(([address]) => address).filter(address => address.includes('/embed/'))).toEqual(['https://stream.example/embed/fixture-season-2-2026-ep-2.html']);
+  });
+
+  it("resolves an older episode directly only after validating its actual page identity", async () => {
+    const mocked = vi.fn().mockResolvedValueOnce(htmlResponse(catalog)).mockResolvedValueOnce(htmlResponse('<title>Watch Older Show (2024) Ep 7</title><iframe id="embedvideo" data-src="https://player.example/older-7"></iframe>'));
+    vi.stubGlobal('fetch', mocked);
+    expect((await getPlaybackStream('Older Show','7',false,2024))?.url).toBe('https://player.example/older-7');
+    expect(mocked.mock.calls.map(([url])=>url)).toEqual(['https://stream.example/','https://stream.example/embed/older-show-2024-ep-7.html']);
   });
 
   it("returns unavailable for a preparing player or unsafe player URL", () => {
@@ -122,5 +129,16 @@ describe("Source URL and routing boundaries", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(htmlResponse(content)).mockResolvedValueOnce(htmlResponse('<form id="challenge-form">Please wait</form>')));
     expect(await readHtml("https://metadata.example/")).toBe(content);
     await expect(readHtml("https://metadata.example/")).rejects.toThrow("temporarily unavailable");
+  });
+  it("recovers from one transient server failure without retrying an access denial", async () => {
+    vi.stubEnv('CATALOG_SOURCE_URL', 'https://retry.example');
+    const request = vi.fn().mockResolvedValueOnce(new Response('Temporary failure',{status:503})).mockResolvedValueOnce(htmlResponse('<title>Published page</title>'));
+    vi.stubGlobal('fetch',request);
+    expect(await readHtml('https://retry.example/shows/42/fixture')).toContain('Published page');
+    expect(request).toHaveBeenCalledTimes(2);
+    request.mockResolvedValueOnce(new Response('Access denied',{status:403}));
+    await expect(readHtml('https://retry.example/denied')).rejects.toThrow('temporarily unavailable');
+    await expect(readHtml('https://retry.example/another')).rejects.toThrow('temporarily unavailable');
+    expect(request).toHaveBeenCalledTimes(3);
   });
 });

@@ -21,26 +21,43 @@ export class SourceUnavailable extends Error {
   constructor(public source: string) { super(`${source} is temporarily unavailable. Please try again later.`); }
 }
 
+const unavailableUntil = new Map<string, number>();
+
 // Only public HTML pages from the configured sources may be requested.
-export async function readHtml(value: string, revalidate = 3600): Promise<string> {
+export async function readHtml(value: string, revalidate = 3600, timeout = 8000): Promise<string> {
   let url = new URL(value);
   const allowedOrigins = new Set(getSourceConfig().allowedOrigins);
   const source = "Catalog";
+  let retried = false;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (url.protocol !== "https:" || !allowedOrigins.has(url.origin) || url.username || url.password || url.port) throw new Error("Invalid source URL");
+    if ((unavailableUntil.get(url.origin) || 0) > Date.now()) throw new SourceUnavailable(source);
     let response: Response;
     try {
       response = await fetch(url.href, {
         headers: { Accept: "text/html", "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
-        next: { revalidate }, redirect: "manual", signal: AbortSignal.timeout(12000),
+        next: { revalidate }, redirect: "manual", signal: AbortSignal.timeout(timeout),
       });
-    } catch { throw new SourceUnavailable(source); }
+    } catch (error) {
+      if (!retried && !(error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name))) {
+        retried = true;
+        await new Promise(resolve => setTimeout(resolve, 150));
+        continue;
+      }
+      throw new SourceUnavailable(source);
+    }
+    if ([500, 502, 503, 504].includes(response.status) && !retried) {
+      retried = true;
+      await new Promise(resolve => setTimeout(resolve, 150));
+      continue;
+    }
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = httpsUrl(response.headers.get("location") || undefined, url.href);
       if (!location || !allowedOrigins.has(new URL(location).origin) || !isSourceRedirect(url, new URL(location))) throw new SourceUnavailable(source);
       url = new URL(location);
       continue;
     }
+    if ([403, 429].includes(response.status)) unavailableUntil.set(url.origin, Date.now() + 60_000);
     if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html")) throw new SourceUnavailable(source);
     const html = await response.text();
     // Content pages may include a challenge script alongside their published HTML.

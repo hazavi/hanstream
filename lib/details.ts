@@ -6,10 +6,11 @@ import { cleanText, httpsUrl, readHtml, sourceUrl, structuredItems, SourceUnavai
 import { normalizeTitle, type CatalogTitle } from "./catalog";
 import { getSourceConfig } from "./server-config.mjs";
 import type { DramaTrailer } from "./api-types";
+import { findCatalogDetails } from "./catalog-details";
 
 const BASE = getSourceConfig().detailsOrigin;
-export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; meta: Record<string, string | number>; episodesUrl?: string; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer };
-export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean };
+export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer };
+export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean; overview?: string };
 
 function imageUrl(value: string | undefined, base: string): string | undefined {
   const address = httpsUrl(value, base);
@@ -160,6 +161,12 @@ const getPublicCatalog = cache(async (movie: boolean): Promise<CatalogTitle[]> =
 });
 
 export async function findDramaDetails(title: string, year?: number, movie = false): Promise<DetailRecord | null> {
+  if (!movie && getSourceConfig().catalogOrigin) {
+    try {
+      const record = await findCatalogDetails(title, year);
+      if (record && (record.country ? isAsianCountry(record.country) : /Korean|Japanese|Chinese|Mandarin|Cantonese|Thai|Vietnamese|Tagalog|Filipino|Malay|Indonesian|Hindi|Tamil|Telugu/i.test(String(record.meta.Language || "")))) return record;
+    } catch { /* Other configured readers can still supply a matching title. */ }
+  }
   let candidates: CatalogTitle[] = [];
   try { candidates = parseDetailSearch(await readHtml(`${BASE}/search/?type=${movie ? "movies" : "tv"}&q=${encodeURIComponent(title)}`, 3600)); }
   catch { /* The server-rendered public catalog can still be accessible. */ }
@@ -179,5 +186,6 @@ export async function getDramaDetails(url: string): Promise<DetailRecord> {
 }
 
 export async function getDetailEpisodes(item: DetailRecord): Promise<DetailEpisode[]> {
+  if (item.episodes) return item.episodes;
   return item.episodesUrl ? parseDetailEpisodes(await readHtml(item.episodesUrl, 3600), item.episodesUrl) : [];
 }

@@ -53,6 +53,8 @@ const latestCatalog = createRuntimeCache(async () => {
   return { html, items };
 }, 300_000);
 
+let indexedItems: PlaybackTitle[] = [];
+
 const fullCatalog = createRuntimeCache(async (): Promise<PlaybackTitle[]> => {
   const { html, items } = await latestCatalog();
   const $ = load(html);
@@ -63,6 +65,7 @@ const fullCatalog = createRuntimeCache(async (): Promise<PlaybackTitle[]> => {
   const last = Math.max(0, ...numbers);
   if (last > 5000) throw new Error("Unrecognized playback catalog pagination.");
   const pages: PlaybackTitle[][] = [];
+  const discovered = new Map(items.map(item => [item.url, item]));
   let next = 0;
   let failed = false;
   // Read public pagination with two workers, keeping the source's newest-first order.
@@ -72,6 +75,8 @@ const fullCatalog = createRuntimeCache(async (): Promise<PlaybackTitle[]> => {
       try {
         pages[index] = parsePlaybackCatalog(await readHtml(`${BASE}/list/${last - index}.html`, 900));
         if (!pages[index].length) throw new Error("Playback catalog page is temporarily unavailable.");
+        pages[index].forEach(item => discovered.set(item.url, item));
+        indexedItems = [...discovered.values()];
       } catch (error) { failed = true; throw error; }
       if (next < last) await new Promise(resolve => setTimeout(resolve, 250));
     }
@@ -84,25 +89,44 @@ const fullCatalog = createRuntimeCache(async (): Promise<PlaybackTitle[]> => {
 export const getPlaybackCatalog = cache(async (latestOnly = false): Promise<PlaybackTitle[]> => {
   if (!latestOnly) return fullCatalog();
   const { items } = await latestCatalog();
-  // A long-running backend warms older episodes without delaying the homepage.
-  void fullCatalog().catch(() => {});
   return items;
 });
 
 export async function getPlaybackEpisodes(title: string, year?: number, movie = false): Promise<PlaybackTitle[]> {
   const wanted = normalizeTitle(title);
-  return (await getPlaybackCatalog()).filter(item => normalizeTitle(item.title) === wanted && Boolean(item.movie) === movie && (!year || item.year === year)).sort((a, b) => (a.episode || 1) - (b.episode || 1));
+  const latest = await getPlaybackCatalog(true);
+  return [...new Map([...latest, ...indexedItems].map(item => [item.url, item])).values()].filter(item => normalizeTitle(item.title) === wanted && Boolean(item.movie) === movie && (!year || item.year === year)).sort((a, b) => (a.episode || 1) - (b.episode || 1));
 }
 
 export async function getPlaybackStream(title: string, episode: string, movie = false, year?: number, season = 1): Promise<PlaybackStream | null> {
   if (!/^\d+(?:\.\d+)?$/.test(episode) || !Number.isInteger(season) || season < 1) return null;
   // A later season must match that season's title. Never silently play season one.
-  const titles = season > 1 ? [`${title} Season ${season}`] : [title];
+  const embeddedSeason = Number(/\bseason\s+(\d+)$/i.exec(title)?.[1]);
+  if (embeddedSeason && season > 1 && embeddedSeason !== season) return null;
+  const titles = season > 1 && !embeddedSeason ? [`${title} Season ${season}`] : [title];
   for (const candidate of titles) {
     const entries = await getPlaybackEpisodes(candidate, year, movie);
     const page = entries.find(item => movie || item.episode === Number(episode));
-    if (!page) continue;
-    return parsePlaybackPage(await readHtml(page.url, 900), page.url);
+    if (page) return parsePlaybackPage(await readHtml(page.url, 900), page.url);
+    // Published episode routes follow the title/year pattern. A candidate is
+    // accepted only after its real page title confirms title, year and episode.
+    if (!movie && year) {
+      const address = `${BASE}/embed/${normalizeTitle(candidate).replace(/ /g, "-")}-${year}-ep-${episode}.html`;
+      try {
+        const html = await readHtml(address, 900);
+        const identity = parsePlaybackTitle(cleanText(load(html)("title").text()).replace(/^Watch\s+/i, ""), address);
+        if (identity && normalizeTitle(identity.title) === normalizeTitle(candidate) && identity.year === year && identity.episode === Number(episode)) {
+          const stream = parsePlaybackPage(html, address);
+          if (stream) return stream;
+        }
+      } catch { /* An unverified route is never offered as a stream. */ }
+    }
+    // Older nonstandard routes can be discovered in the background. Bound this
+    // request's wait so an archive crawl cannot hold the player for minutes.
+    const missing = Symbol("index-pending");
+    const result = await Promise.race([fullCatalog().catch(() => []), new Promise<typeof missing>(resolve => { const timer = setTimeout(() => resolve(missing), 1500); timer.unref?.(); })]);
+    const found = result !== missing ? result.find(item => normalizeTitle(item.title) === normalizeTitle(candidate) && Boolean(item.movie) === movie && (!year || item.year === year) && (movie || item.episode === Number(episode))) : undefined;
+    if (found) return parsePlaybackPage(await readHtml(found.url, 900), found.url);
   }
   return null;
 }

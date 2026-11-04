@@ -13,8 +13,11 @@ export type MetadataTitle = CatalogTitle & { sourceName: string; indexOnly?: boo
 type Editorial = { titles: MetadataTitle[]; trending: MetadataTitle[]; popular: MetadataTitle[]; reviews: MetadataTitle[] };
 export type MetadataSnapshot = { version: 2; fetchedAt: string; titles: MetadataTitle[]; airingUrls: string[]; editorial: Editorial; sources: string[] };
 
-const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous =>
-  collectMetadata(readHtml, { previous, limit: 60 }) as Promise<MetadataSnapshot>, 21_600_000);
+const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
+  const first = await collectMetadata(readHtml, { previous, limit: 12 }) as MetadataSnapshot;
+  void collectMetadata(readHtml, { previous: first, limit: 60 }).then((next: MetadataSnapshot) => liveMetadata.prime(next)).catch(() => {});
+  return first;
+}, 21_600_000);
 
 export const getMetadata = cache(liveMetadata);
 export const getHomepage = cache(async (): Promise<Record<HomeSection, CatalogTitle[]>> => {
@@ -33,18 +36,18 @@ export async function getMetadataList(kind: Ranking, page = 1): Promise<Metadata
 const lookup = unstable_cache(async (title: string, year?: number, movie = false): Promise<MetadataTitle | null> => {
   try { return await lookupMetadata(title, year, movie, readHtml) as MetadataTitle | null; }
   catch { return null; }
-}, ["metadata-title-v2"], { revalidate: 21600 });
+}, ["metadata-title-v3"], { revalidate: 21600 });
 
 export async function findMetadata(title: string, year?: number, movie = false): Promise<MetadataTitle | null> {
-  const saved = await getMetadata();
-  const item = matchMetadata(saved.titles, title, year, movie) as MetadataTitle | undefined;
+  const saved = liveMetadata.peek?.();
+  const item = saved ? matchMetadata(saved.titles, title, year, movie) as MetadataTitle | undefined : undefined;
   return item && !item.indexOnly ? item : await lookup(title, year, movie) || item || null;
 }
 
 export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise<T[]> {
   if (items.every(item => item.image && item.image !== "/file.svg")) return items;
   let snapshot: MetadataSnapshot;
-  try { snapshot = await getMetadata(); }
+  try { snapshot = liveMetadata.peek?.() || await getMetadata(); }
   catch { return items; }
   const catalog = [...snapshot.titles, ...snapshot.editorial.titles.map(item => {
     const detail = matchMetadata(snapshot.titles, item.title) as MetadataTitle | undefined;

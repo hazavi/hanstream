@@ -60,7 +60,8 @@ describe("HTML source data mapping", () => {
     expect(detail?.episodes).toHaveLength(2);
     expect(detail?.episodes?.[0]).toMatchObject({ title: "A new start", available: true, image: "https://primary.example/still.webp" });
     expect(detail?.episodes?.[1]).toMatchObject({ title: "The finale", available: false, finale: true });
-    expect((await fetchEpisode("drama-fixture-drama--2026", "s1e1")).result.episodes).toHaveLength(1);
+    expect((await fetchEpisode("drama-fixture-drama--2026", "s1e1")).result.episodes).toHaveLength(2);
+    expect((await fetchEpisode("drama-fixture-drama--2026", "s1e1")).result.episodes?.[1].available).toBe(false);
   });
 
   it("passes season and year to the playback source and retains alternative servers", async () => {
@@ -76,7 +77,7 @@ describe("HTML source data mapping", () => {
     vi.mocked(getDetailEpisodes).mockResolvedValue([{ season: 1, episode: 1 }, { season: 2, episode: 1 }]);
     vi.mocked(getPlaybackEpisodes).mockImplementation(async name => name.endsWith('Season 2') ? [{ ...title, title: name, episode: 1 }] : []);
     const result = await fetchDrama('drama-fixture-drama--2026');
-    expect(result.result?.episodes?.map(ep => [ep.season, ep.available])).toEqual([[1, false], [2, true]]);
+    expect(result.result?.episodes?.map(ep => [ep.season, ep.available])).toEqual([[1, undefined], [2, true]]);
   });
 
   it("does not offer an invented stream when the provider fails", async () => {

@@ -13,7 +13,7 @@ vi.mock("../components/WatchlistButton", () => ({ WatchlistButton: () => null })
 vi.mock("../components/DramaRatingButton", () => ({ DramaRatingButton: () => null }));
 vi.mock("../components/EpisodeProgressTracker", () => ({ EpisodeProgressTracker: () => null }));
 vi.mock("../components/HeroCarousel", () => ({ HeroCarousel: () => <div data-testid="homepage-carousel" /> }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); location.query = ""; });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); location.query = ""; });
 
 it("loads all homepage sections and the sidebar without homepage tabs", async () => {
   vi.mocked(readBackend).mockResolvedValue({ home: { reviews: [], trending: [], starting: [], ending: [] }, recent: [], popular: [], hero: [{ full_title: "Previously featured" }], rankings: { lists: { airing: [], upcoming: [], popular: [] }, errors: {} } });
@@ -56,4 +56,14 @@ it("lets a failed page load be retried", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   expect(await screen.findByRole("heading", { name: "Popular Dramas" })).toBeInTheDocument();
   expect(readBackend).toHaveBeenCalledTimes(2);
+});
+it("retries an unavailable watch episode without dropping the episode list", async () => {
+  location.query = 'id=drama-test--2026&episode=s1e1';
+  const result = { title: 'Test Drama - Episode 1', video: '', episodes: [{ id: 's1e1', title: 'A fresh start', description: 'The episode story.' }] };
+  vi.mocked(readBackend).mockResolvedValue({ result, drama: { title: 'Test Drama' } });
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ ok:true, json:async()=>({result:{...result,video:'https://player.example/episode-one'}}) }));
+  render(<PagesApp view="watch"/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Retry episode'}));
+  expect(await screen.findByTitle('Test Drama - Episode 1')).toHaveAttribute('src','https://player.example/episode-one');
+  expect(screen.getByRole('link',{name:'Episode 1: A fresh start'})).toHaveAttribute('aria-current','page');
 });
