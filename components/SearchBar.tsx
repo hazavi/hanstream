@@ -37,12 +37,12 @@ export function SearchBar() {
     document.addEventListener("mousedown", close); window.addEventListener("keydown", shortcut);
     return () => { document.removeEventListener("mousedown", close); window.removeEventListener("keydown", shortcut); };
   }, []);
-  const search = () => { if (query.trim()) { router.push("/search?q=" + encodeURIComponent(query.trim())); setOpen(false); setQuery(''); } };
-  const choose = (item: SearchResultItem) => { router.push(item["detail-link"]); setOpen(false); setQuery(""); };
+  const search = () => { if (query.trim()) { router.push("/search?q=" + encodeURIComponent(query.trim())); setOpen(false); setQuery(''); input.current?.blur(); } };
+  const choose = (item: SearchResultItem) => { router.push(item["detail-link"]); setOpen(false); setQuery(""); input.current?.blur(); };
   return <div ref={container} className="relative">
     <form className="search-bar" onSubmit={event => { event.preventDefault(); search(); }}><div className="relative flex items-center">
-      <input ref={input} type="text" role="combobox" aria-label="Search dramas" aria-autocomplete="list" aria-controls={listId} aria-expanded={open} aria-busy={loading} aria-activedescendant={selected >= 0 ? listId + '-' + selected : undefined} placeholder="Search dramas..." className="search-input w-full pr-28" autoComplete="off" value={query} onChange={event => { setQuery(event.target.value); setSelected(-1); }} onKeyDown={event => {
-        if (event.key === "Escape") { setOpen(false); setSelected(-1); }
+      <input ref={input} type="text" role="combobox" maxLength={160} aria-label="Search dramas" aria-autocomplete="list" aria-controls={listId} aria-expanded={open} aria-busy={loading} aria-activedescendant={selected >= 0 ? listId + '-' + selected : undefined} placeholder="Search dramas..." className="search-input w-full pr-28" autoComplete="off" value={query} onChange={event => { setQuery(event.target.value); setSelected(-1); }} onKeyDown={event => {
+        if (event.key === "Escape") { setOpen(false); setSelected(-1); input.current?.blur(); }
         if (open && event.key === "ArrowDown") { event.preventDefault(); setSelected(value => Math.min(suggestions.length - 1, value + 1)); }
         if (open && event.key === "ArrowUp") { event.preventDefault(); setSelected(value => Math.max(-1, value - 1)); }
         if (open && event.key === "Enter" && selected >= 0 && suggestions[selected]) { event.preventDefault(); choose(suggestions[selected]); }

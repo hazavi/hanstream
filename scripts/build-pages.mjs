@@ -41,6 +41,7 @@ export default function SiteImage({ src, ...props }: ImageProps) {
 }
 `);
 await cp(path.join(root, "app/globals.css"), path.join(stage, "app/globals.css"));
+await cp(path.join(root, "app/outline.css"), path.join(stage, "app/outline.css"));
 const layout = adapt(await readFile(path.join(root, "app/layout.tsx"), "utf8"))
   .replace('icon: "/favicon.ico"', `icon: ${JSON.stringify(`${basePath}/favicon.ico`)}`)
   .replace('metadataBase: new URL("https://hanstream.site"),', "");

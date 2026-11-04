@@ -1,35 +1,29 @@
 "use client";
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play, Info, Users, Film } from 'lucide-react';
 import { Artwork } from './Artwork';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SlideTabs, type SlideTabItem } from '@/components/ui/slide-tabs';
 import type { DramaCast, DramaTrailer } from '@/lib/api-types';
 import { MEDIA_SANDBOX } from '@/lib/embed';
 
 const pageSize = 6;
+const basicTabs: readonly SlideTabItem[] = [
+  { value: 'info', label: 'Show info', icon: <Info size={15} aria-hidden="true"/> },
+  { value: 'cast', label: 'Cast', icon: <Users size={15} aria-hidden="true"/> },
+];
+const trailerTabs: readonly SlideTabItem[] = [...basicTabs, { value: 'trailer', label: 'Trailer', icon: <Film size={15} aria-hidden="true"/> }];
 export function DramaMedia({ cast, trailer, facts = [] }: { cast: DramaCast[]; trailer?: DramaTrailer; facts?: [string, unknown][] }) {
+  const tabsId = useId();
   const hasTrailer = Boolean(trailer && /^https:\/\/www\.youtube-nocookie\.com\/embed\/[\w-]{11}$/.test(trailer.embedUrl));
   const [tab, setTab] = useState('info');
   const [page, setPage] = useState(0);
   const [playing, setPlaying] = useState(false);
   const last = Math.max(0, Math.ceil(cast.length / pageSize) - 1);
   const current = Math.min(page, last);
-  const tabs = hasTrailer ? ['info', 'cast', 'trailer'] : ['info', 'cast'];
-  const labels: Record<string,string> = {info:'Show info',cast:'Cast',trailer:'Trailer'};
-  const icons = {info:Info,cast:Users,trailer:Film};
-  return <section className="drama-media" aria-label="Drama information"><Tabs value={tab} onValueChange={value=>{setTab(value);setPlaying(false);}}>
-    <TabsList className="drama-media-tabs h-auto justify-start" aria-label="Drama media">
-      {tabs.map(name => <TabsTrigger key={name} value={name} onClick={() => { setTab(name); setPlaying(false); }} onKeyDown={event => {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-        event.preventDefault();
-        const index = tabs.indexOf(name);
-        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-        setTab(tabs[next]); setPlaying(false);
-        event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
-      }}>{(() => { const Icon=icons[name as keyof typeof icons]; return <><Icon size={16} aria-hidden="true"/>{labels[name]}</>; })()}</TabsTrigger>)}
-    </TabsList>
-    <TabsContent value={tab} className="drama-media-panel">
+  return <section className="drama-media" aria-label="Drama information">
+    <SlideTabs id={tabsId} items={hasTrailer ? trailerTabs : basicTabs} value={tab} onValueChange={value=>{setTab(value);setPlaying(false);}} label="Drama media"/>
+    <div role="tabpanel" id={`${tabsId}-panel-${tab}`} aria-labelledby={`${tabsId}-tab-${tab}`} tabIndex={0} className="drama-media-panel">
       {tab === 'info' ? <section aria-label="Show info"><h2 className="sr-only">Show info</h2><dl className="show-info-grid">{facts.map(([key,value])=><div key={key}><dt className="text-xs text-secondary mb-1.5">{key.replaceAll('_',' ')}</dt><dd className="text-sm text-primary font-medium break-words">{String(value)}</dd></div>)}</dl>{!facts.length && <p className="text-sm text-secondary">Show information is not available yet.</p>}</section> : tab === 'cast' ? <>
         <h2 className="sr-only">Cast</h2>
         <div className="grid grid-cols-2 gap-x-5 gap-y-4">{cast.slice(current * pageSize, (current + 1) * pageSize).map(person => <article key={person.name + person.character} className="flex gap-3 items-center min-w-0">
@@ -47,6 +41,6 @@ export function DramaMedia({ cast, trailer, facts = [] }: { cast: DramaCast[]; t
           <span className="absolute inset-0 flex items-center justify-center"><span className="rounded-full bg-white/95 text-black p-4 shadow-lg group-hover:scale-105 transition-transform"><Play size={26} fill="currentColor" aria-hidden="true"/></span></span>
         </button>}
       </div>}
-    </TabsContent>
-  </Tabs></section>;
+    </div>
+  </section>;
 }

@@ -1,5 +1,6 @@
 // @ts-ignore -- Next.js handles global CSS imports at build time.
 import "./globals.css";
+import "./outline.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ProfileProvider } from "@/lib/profile";
@@ -45,9 +46,9 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen transition-colors duration-300 bg-neutral-100 dark:bg-neutral-900 text-primary overflow-x-hidden`}
+        className={`site-shell ${geistSans.variable} ${geistMono.variable} antialiased min-h-screen text-primary`}
       >
-          <div className="flex flex-col min-h-screen relative overflow-x-hidden">
+          <div className="flex flex-col min-h-screen relative">
               <ProfileProvider>
                 <FloatingNav />
                 <ScrollToTop />

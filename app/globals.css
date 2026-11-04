@@ -20,14 +20,9 @@
 @media (min-width: 1100px) { .detail-layout { grid-template-columns: 240px minmax(0,1fr); gap: 2rem; } }
 .detail-media-row { width: 100%; min-width: 0; }
 .drama-media { padding: 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
-.drama-media-tabs { display: flex; justify-content: flex-start; width: fit-content; max-width: 100%; gap: .25rem; padding: .3rem; border: 1px solid var(--border); border-radius: 10px; background: var(--background); overflow-x: auto; }
-.drama-media-tabs button { display: inline-flex; flex-shrink: 0; align-items: center; gap: .5rem; padding: .65rem .9rem; border: 1px solid transparent; border-radius: 7px; font-size: .85rem; font-weight: 600; color: var(--muted-foreground); cursor: pointer; transition: color .15s, background-color .15s; }
-.drama-media-tabs button:hover { color: var(--foreground); }
-.drama-media-tabs button[aria-selected="true"] { color: #fff; background: #172c50; box-shadow: 0 2px 6px #0002; }
 .drama-media-panel { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .show-info-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.5rem 2rem; }
 @media(min-width:640px) { .show-info-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
-.drama-media-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 .drama-media button:disabled { opacity: .3; cursor: default; }
 .stream-server-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; padding: .65rem .75rem; border: 1px solid var(--border); background: var(--card); border-radius: 10px; }
 .stream-server-label { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted-foreground); font-size: .72rem; margin-right: .35rem; }
@@ -2886,9 +2881,9 @@ a { color: inherit; }
 }
 
 .dark .glass-card {
-  background: rgba(0, 0, 0, 0.356) !important;
-  border-color: rgba(255,255,255,0.06) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: none;
 }
 .badge {
   display:inline-flex;

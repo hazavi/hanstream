@@ -3,6 +3,7 @@ import { Artwork } from "./Artwork";
 import Link from "next/link";
 import type { RecentItem, PopularItem } from "../lib/api";
 import { formatRelativeTime } from "../lib/format";
+import { CirclePlay, Info } from 'lucide-react';
 
 type DramaCardProps =
   | { item: RecentItem; variant: "recent" }
@@ -23,17 +24,11 @@ export function DramaCard({ item, variant }: DramaCardProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1 sm:gap-2">
-              <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg bg-black/70 text-white backdrop-blur-sm">
+              <span className="drama-type-badge px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold">
                 {episodeNum ? `EP ${episodeNum}` : d.type === "Movie" ? "Movie" : "Show"}
               </span>
               <span
-                className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-md sm:rounded-lg ${
-                  d.type === "SUB"
-                    ? "bg-blue-500 text-white"
-                    : d.type === "DUB"
-                    ? "bg-green-500 text-white"
-                    : "bg-purple-500 text-white"
-                }`}
+                className="drama-type-badge px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-semibold"
               >
                 {d.type}
               </span>
@@ -41,17 +36,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
             <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <CirclePlay className="w-3 h-3 sm:w-4 sm:h-4 text-white" aria-hidden="true"/>
               </div>
             </div>
           </div>
@@ -90,19 +75,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <svg
-                className="w-3 h-3 sm:w-4 sm:h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <Info className="w-3 h-3 sm:w-4 sm:h-4 text-white" aria-hidden="true"/>
             </div>
           </div>
         </div>

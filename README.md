@@ -1,6 +1,6 @@
 # HanStream
 
-An Asian drama app with episode playback, a browser-local watchlist, ratings, and viewing progress. The interface uses a dark glass theme with blue accents and supports light mode.
+An Asian drama app with episode playback, a browser-local watchlist, ratings, and viewing progress. The interface uses outlined navigation, sliding selectors, and flat panels in light and dark mode.
 
 ## Develop
 
@@ -22,7 +22,9 @@ Environment variables keep source configuration out of the client bundle. The br
 
 The homepage includes latest episodes, popular dramas, reviews, weekly trends, premieres, and finales. Cards open internal drama pages. Source labels and outbound navigation are omitted from the interface; playback servers use numbered controls.
 
-Drama pages share the same layout on the backend and GitHub Pages. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Show info, cast, and trailer share left-aligned tabs inside a bordered panel below the poster and summary, with Show info selected first; cast pages show six people, and actor portraits load only for the current page using the existing catalogs. The trailer tab is omitted when no trailer is available. Upcoming episodes remain visible without a playback link and keep their full episode number. Released episodes without a published still use the show poster. Missing or blocked detail pages use available fallback metadata and verified playback entries.
+Drama pages share the same layout on the backend and GitHub Pages. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Show info, cast, and trailer share left-aligned outline tabs inside a bordered panel below the poster and summary, with Show info selected first; cast pages show six people, and actor portraits load only for the current page using the existing catalogs. The trailer tab is omitted when no trailer is available. Upcoming episodes remain visible without a playback link and keep their full episode number. Released episodes without a published still use the show poster. Missing or blocked detail pages use available fallback metadata and verified playback entries.
+
+The shared `components/ui/slide-tabs.tsx` component accepts typed items, a selected value, a change handler, and navigation or panel mode. It supplies route links for the header and keyboard-controlled panel buttons for drama details. The cursor returns to the selected item after hover and remeasures after resizing or font loading. Framer Motion's animation features load after hydration and respect reduced-motion settings. `components/ui/demo.tsx` includes the supplied selector demo. Shared application styles stay in `app/globals.css`; the outline theme and responsive navigation rules are in `app/outline.css`. Real drama artwork remains in use; this interface needs no stock images.
 
 ## Runtime catalog data
 
