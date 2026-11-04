@@ -1,12 +1,13 @@
-export type RecentItem = { "episode-link": string; episode_number?: number; image: string; time: string; title: string; type: string };
+export type RecentItem = { "episode-link": string; episode_number?: number; image: string; poster_fallbacks?: string[]; time: string; title: string; type: string };
 export type RecentMovieItem = { ep: string; id: string; img: string; time: string; title: string; type: string };
-export type PopularItem = { "detail-link": string; image: string; title: string };
+export type PopularItem = { "detail-link": string; image: string; poster_fallbacks?: string[]; title: string };
 export type SearchResultItem = PopularItem;
 export type EpisodeListItem = { id?: string; title?: string; type?: string; time?: string; image?: string; description?: string; season?: number; episode?: number; available?: boolean };
 export type EpisodeResult = { title: string; type?: string; video: string; current_episode?: string; category?: { title?: string }; episodes?: EpisodeListItem[]; servers?: { name: string; url: string }[] };
 export type DramaTrailer = { embedUrl: string; thumbnail?: string; title?: string };
 export type DramaEpisode = { episode: number; season?: number; episode_link: string; type?: string; release_date?: string; title?: string; image?: string; description?: string; finale?: boolean; available?: boolean };
-export type DramaDetail = { title?: string; image?: string; poster_fallbacks?: string[]; description?: string; other_names?: string; meta?: Record<string, unknown>; tags?: string[]; genres?: string[]; trailer?: DramaTrailer; episodes?: DramaEpisode[]; detailsUnavailable?: boolean };
+export type DramaCast = { name: string; character?: string; image?: string };
+export type DramaDetail = { title?: string; image?: string; poster_fallbacks?: string[]; description?: string; other_names?: string; meta?: Record<string, unknown>; tags?: string[]; genres?: string[]; cast?: DramaCast[]; trailer?: DramaTrailer; episodes?: DramaEpisode[]; detailsUnavailable?: boolean };
 export type DramaResponse = { result?: DramaDetail };
 export type EpisodeResponse = { result: EpisodeResult };
 export type RecentResponse = { results: RecentItem[] };

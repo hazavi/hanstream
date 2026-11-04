@@ -49,6 +49,15 @@ describe("HTML source data mapping", () => {
     expect(findDramaDetails).toHaveBeenCalled();
     expect(getDetailEpisodes).not.toHaveBeenCalled();
   });
+  it('retains the published episode count for a finished title without fabricating episode names or streams',async()=>{
+    vi.mocked(findDramaDetails).mockResolvedValue(null);
+    vi.mocked(findMetadata).mockResolvedValue({...title,sourceName:'Metadata',meta:{Released:2025,Episodes:'12'},endDate:'2025-09-28'});
+    const result=await fetchDrama('drama-finished-fixture--2025');
+    expect(result.result?.episodes).toHaveLength(12);
+    expect(result.result?.episodes?.[0]).toEqual({season:1,episode:1,episode_link:'/drama-finished-fixture--2025/episode/s1e1'});
+    expect(result.result?.episodes?.[11]).not.toHaveProperty('title');
+    expect(getPlaybackStream).not.toHaveBeenCalled();
+  });
 
   it("prefers full primary details and retains alternate artwork and episode metadata", async () => {
     vi.mocked(findDramaDetails).mockResolvedValue({ ...title, overview: "The complete summary.", image: "https://primary.example/poster.webp", tags: ["marriage"], genres: ["Romance"], trailer: { embedUrl: "https://www.youtube-nocookie.com/embed/abcdefghijk" } });
@@ -94,6 +103,7 @@ describe("HTML source data mapping", () => {
     vi.mocked(searchMetadata).mockRejectedValue(new Error("Blocked"));
     vi.mocked(getPlaybackCatalog).mockResolvedValue([{ ...title, episode: 1 }, { ...title, episode: 2 }]);
     expect((await fetchSearch("Fixture Drama")).results).toEqual([{ title: "Fixture Drama", image: "/file.svg", "detail-link": "/drama-fixture-drama--2026" }]);
+    expect(getPlaybackCatalog).toHaveBeenCalledWith(true);
   });
 
   it("uses actual latest episode numbers instead of pretending every row is episode one", async () => {

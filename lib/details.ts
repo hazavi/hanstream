@@ -5,12 +5,13 @@ import { cache } from "react";
 import { cleanText, httpsUrl, readHtml, sourceUrl, structuredItems, SourceUnavailable } from "./html";
 import { normalizeTitle, type CatalogTitle } from "./catalog";
 import { getSourceConfig } from "./server-config.mjs";
-import type { DramaTrailer } from "./api-types";
+import type { DramaTrailer, DramaCast } from "./api-types";
 import { findCatalogDetails } from "./catalog-details";
+import { findReferenceDetail } from './reference-reader';
 
 const BASE = getSourceConfig().detailsOrigin;
-export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer };
-export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean; overview?: string };
+export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; aliases?: string[]; cast?: DramaCast[]; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer };
+export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean; overview?: string; upcoming?: boolean };
 
 function imageUrl(value: string | undefined, base: string): string | undefined {
   const address = httpsUrl(value, base);
@@ -168,6 +169,10 @@ export async function findDramaDetails(title: string, year?: number, movie = fal
     } catch { /* Other configured readers can still supply a matching title. */ }
   }
   let candidates: CatalogTitle[] = [];
+  if (!movie) {
+    const reference = await findReferenceDetail(title, year);
+    if (reference) return reference;
+  }
   try { candidates = parseDetailSearch(await readHtml(`${BASE}/search/?type=${movie ? "movies" : "tv"}&q=${encodeURIComponent(title)}`, 3600)); }
   catch { /* The server-rendered public catalog can still be accessible. */ }
   const matchesTitle = (item: CatalogTitle) => item.movie === movie && normalizeTitle(item.title) === normalizeTitle(title) && (!year || !item.year || item.year === year);

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface VideoControlsProps {
   episodes: { id: string }[];
@@ -31,15 +32,7 @@ export function VideoControls({
           href={`/${slug}/episode/${prevEpNum}`}
           className="glass-btn flex items-center gap-1 !px-3 !py-2 text-sm"
         >
-          <svg
-            className="w-3 h-3"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+          <ChevronLeft size={14} aria-hidden="true"/>
           Prev
         </Link>
       )}
@@ -51,15 +44,7 @@ export function VideoControls({
           className="glass-btn flex items-center gap-1 !px-3 !py-2 text-sm"
         >
           Next
-          <svg
-            className="w-3 h-3"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
+          <ChevronRight size={14} aria-hidden="true"/>
         </Link>
       )}
     </div>

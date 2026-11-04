@@ -4,7 +4,7 @@ export type CatalogTitle = {
 };
 
 export function normalizeTitle(title: string): string {
-  return title.normalize("NFKC").toLowerCase().replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return title.normalize("NFKD").replace(/([A-Za-z])\p{M}+/gu, "$1").normalize("NFKC").toLowerCase().replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
 // Title and year travel together across the three independent catalogs.

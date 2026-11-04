@@ -7,7 +7,7 @@ it("calls the configured backend with an abort signal and no cookies", async () 
   vi.stubGlobal("fetch", fetch);
   const signal = new AbortController().signal;
   expect(await readBackend("/api/health", signal)).toEqual({ status: "ok" });
-  expect(fetch).toHaveBeenCalledWith("https://backend.example/api/health", { signal, credentials: "omit" });
+  expect(fetch).toHaveBeenCalledWith("https://backend.example/api/health", { signal: expect.any(AbortSignal), credentials: "omit" });
 });
 it("maps search suggestions to static detail routes", async () => {
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://backend.example");

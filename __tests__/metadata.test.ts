@@ -31,6 +31,10 @@ describe("alternative HTML metadata", () => {
     expect(parseMetadataDetail("<title>Actor - DramaWiki</title>", "https://metadata.example/Actor")).toBeNull();
     expect(parseMetadataDetail(detailHtml.replace('src="/images/between.jpg"', ''), metadataDetail().url)?.image).toBe('/file.svg');
   });
+  it('accepts Japanese kanji and romaji title fields instead of rejecting the whole page',()=>{
+    const html=detailHtml.replace('<b>Title:</b> Yeonae Baksa','<b>Title (kanji):</b> 地雷グリコ</li><li><b>Title (romaji):</b> Jirai Guriko').replace('KDrama KDrama2026','JDrama JDrama2026');
+    expect(parseMetadataDetail(html,'https://metadata.example/Jirai_Guriko')).toMatchObject({meta:{Country:'Japan'},aliases:expect.arrayContaining(['Jirai Guriko','地雷グリコ']),image:'https://metadata.example/images/between.jpg'});
+  });
 
   it("keeps the published story synopsis when primary details are unavailable", () => {
     const html = detailHtml.replace('<h2>Synopsis</h2>', '<h2><span id="Synopsis">Synopsis</span></h2><p>Two old friends start over.<sup class="reference">[1]</sup></p><h2>Cast</h2><p>Unrelated cast notes</p>');
@@ -43,6 +47,11 @@ describe("alternative HTML metadata", () => {
     expect(await lookupMetadata("Between Steps", 2025, false, read)).toBeNull();
     expect(await lookupMetadata("Unknown Title", 2026, false, read)).toBeNull();
     expect(read.mock.calls.every(([address]) => !address.includes("api.php"))).toBe(true);
+  });
+  it('uses a matching published article when the search endpoint is only a loading page',async()=>{
+    const read=vi.fn(async(address:string)=>address.endsWith('/Between_Steps')?detailHtml:'<title>One moment, please...Loader</title>');
+    expect((await lookupMetadata('Between Steps',2026,false,read))?.title).toBe('Between Steps');
+    expect(read).toHaveBeenCalledTimes(1);
   });
 
   it("excludes missing pages and multi-season fragments from schedules", () => {

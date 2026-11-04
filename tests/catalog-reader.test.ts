@@ -1,8 +1,15 @@
 // @vitest-environment node
 import { expect, it } from "vitest";
 import { parseCatalogSearch, parseCatalogDetails, parseCatalogEpisodes, parseMediaSearch } from "../lib/catalog-reader.mjs";
+import { normalizeTitle, catalogRoute } from '../lib/catalog';
 
 const base = "https://catalog.example";
+it('matches accented Latin titles while preserving Korean and Japanese letters', () => {
+  expect(normalizeTitle('Bon Appétit, Your Majesty')).toBe(normalizeTitle('bon appetit your majesty'));
+  expect(catalogRoute({title:'Bon Appétit, Your Majesty',year:2025})).toBe('/drama-bon-appetit-your-majesty--2025');
+  expect(normalizeTitle('ガール')).not.toBe(normalizeTitle('カール'));
+  expect(normalizeTitle('무빙')).toBe('무빙');
+});
 it("keeps release years and same-origin identities in public search results", () => {
   const row = (year: number, url = '/shows/42/fixture') => `<article><div class="showname"><a href="${url}">Fixture</a></div><span class="source"><img class="flag-align" alt="Korea, Republic of">${year} - now</span></article>`;
   expect(parseCatalogSearch(row(2026) + row(2023) + row(2026,'https://untrusted.example/shows/42/fixture'), base).map(item => item.year)).toEqual([2026, 2023]);
@@ -18,6 +25,10 @@ it("keeps episode stills, descriptions, dates and season identity without inferr
 it('supports a worldwide web channel and a published Asian original-title country',()=>{
   const html='<h1>Fixture</h1><section id="general-information"><article>Story.</article></section><section><h2>Show Info</h2><div><strong>Web channel:</strong><a>Disney+</a><span id="year">2023 - now</span></div><div><strong>Language:</strong>Korean</div><div><strong>Schedule:</strong>Wednesday (~ 47 min)</div></section><div class="generic-info-panel"><ul><li>원제 (<img class="flag-align" src="https://pictures.example/kr.png" alt="Korea, Republic of">Korea)</li></ul></div>';
   expect(parseCatalogDetails(html,base+'/shows/42/fixture')).toMatchObject({country:'Korea, Republic of',meta:{Network:'Disney+',Duration:'47 min',Released:2023}});
+});
+it('preserves an explicitly unannounced episode air date as upcoming', () => {
+  const html = '<section class="episodeguide"><article><h3><a>TBA</a></h3><p class="info">Episode: 1x08 | Airdate: TBA</p></article></section>';
+  expect(parseCatalogEpisodes(html, base)).toMatchObject([{ season: 1, episode: 8, upcoming: true }]);
 });
 it("selects a matching official publisher trailer and rejects fan uploads or a different title", () => {
   const video = (name: string, verified: boolean) => ({ videoRenderer: { videoId: 'abcdefghijk', title: { runs: [{ text: name }] }, ownerText: { runs: [{ text: 'Prime Video' }] }, ownerBadges: verified ? [{ metadataBadgeRenderer: { style: 'BADGE_STYLE_TYPE_VERIFIED' } }] : [] } });

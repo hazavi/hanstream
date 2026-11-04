@@ -10,7 +10,7 @@ Push `render.yaml` and the deployment scripts to GitHub, then open [Deploy the b
 
 Render prompts for `STREAM_SOURCE_URL`, `METADATA_SOURCE_URL`, `EDITORIAL_SOURCE_URL`, and `DETAILS_SOURCE_URL`. Copy their values from your local `.env.local` into Render's private environment fields. Their values are not stored in `render.yaml`. The Blueprint sets `FRONTEND_ORIGINS=https://hazavi.github.io` and uses `/api/health` for readiness. A 503 health response means the required source configuration is missing or invalid.
 
-For the richer detail and watch pages, also copy `CATALOG_SOURCE_URL` and `MEDIA_SOURCE_URL` from the ignored local `.env.local` into the backend's private environment. They enable the alternative show/episode guide and official trailer readers. An existing Render service needs these two settings added before deploying this update; pushing code does not upload the ignored environment file. Keep all source settings server-only.
+For the richer detail and watch pages, also copy `CATALOG_SOURCE_URL`, `MEDIA_SOURCE_URL`, `ARTWORK_SOURCE_URL`, and `REFERENCE_SOURCE_URL` from the ignored local `.env.local` into the backend's private environment. They enable the alternative show/episode guide, official trailers, poster recovery, and broadcaster metadata. An existing Render service needs these reader settings added before deploying this update; pushing code does not upload the ignored environment file. Keep all source settings server-only.
 
 When Render reports the service is live, copy its public HTTPS origin from the service dashboard. From this checkout, run `npm run connect:backend --` followed by that URL. The command checks health, CORS access from GitHub Pages, and actual homepage content before changing GitHub. It then saves `API_BASE_URL` as a repository variable and starts a new **Deploy GitHub Pages** workflow on the default branch, using your existing Git credential manager sign-in. No Render API token is required for this command. The frontend remains on GitHub Pages.
 
@@ -28,6 +28,8 @@ Set these private environment variables on that service, using the values from y
 - `DETAILS_SOURCE_URL`
 - `CATALOG_SOURCE_URL`
 - `MEDIA_SOURCE_URL`
+- `ARTWORK_SOURCE_URL`
+- `REFERENCE_SOURCE_URL`
 - `FRONTEND_ORIGINS=https://hazavi.github.io`
 
 `FRONTEND_ORIGINS` accepts comma-separated exact origins without paths or trailing slashes. Add the custom domain's origin if you later use one.

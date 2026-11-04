@@ -126,13 +126,6 @@ export function MobileMenu() {
           >
             Movies
           </Link>
-          <Link
-            href="/schedule"
-            className="block py-2 text-secondary hover:text-primary transition-colors"
-            onClick={closeMenu}
-          >
-            Schedule
-          </Link>
         </nav>
 
         {/* Profile and Settings Section */}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SearchBar } from "../components/SearchBar";
+import { fetchSearchClient } from '../lib/api-client';
 
 // Mock internal search client used for suggestions
 vi.mock("@/lib/api-client", () => ({
@@ -29,6 +30,22 @@ describe("SearchBar Component", () => {
     const input = screen.getByPlaceholderText(/search/i);
     expect(input).toBeInTheDocument();
   });
+  it('finishes loading and displays no results instead of hiding an endless spinner', async () => {
+    render(<SearchBar/>);
+    fireEvent.change(screen.getByRole('combobox'), {target:{value:'No matching title'}});
+    expect(await screen.findByText('No dramas found.')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-busy','false');
+  });
+  it('shows request failures and lets a suggestion be selected', async () => {
+    vi.mocked(fetchSearchClient).mockRejectedValueOnce(new Error('offline'));
+    render(<SearchBar/>);
+    fireEvent.change(screen.getByRole('combobox'), {target:{value:'Unavailable'}});
+    expect(await screen.findByText('Search is unavailable. Please try again.')).toBeInTheDocument();
+    vi.mocked(fetchSearchClient).mockResolvedValueOnce({results:[{title:'A Drama',image:'/poster.jpg','detail-link':'/drama-a-drama--2025'}]});
+    fireEvent.change(screen.getByRole('combobox'), {target:{value:'A Drama'}});
+    fireEvent.click(await screen.findByRole('option',{name:'A Drama'}));
+    expect(mockPush).toHaveBeenCalledWith('/drama-a-drama--2025');
+  });
 
   it("should update input value on type", () => {
     render(<SearchBar />);
@@ -39,7 +56,7 @@ describe("SearchBar Component", () => {
     expect(input.value).toBe("test drama");
   });
 
-  it("should navigate to search page on form submit (hyphenated query)", async () => {
+  it("should navigate to search page on form submit", async () => {
     render(<SearchBar />);
 
     const input = screen.getByPlaceholderText(/search/i);
@@ -49,7 +66,7 @@ describe("SearchBar Component", () => {
     fireEvent.submit(form!);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/search?q=test-query");
+      expect(mockPush).toHaveBeenCalledWith("/search?q=test%20query");
     });
   });
 
@@ -64,7 +81,7 @@ describe("SearchBar Component", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("should trim whitespace and hyphenate", async () => {
+  it("should trim whitespace while preserving the query", async () => {
     render(<SearchBar />);
 
     const input = screen.getByPlaceholderText(/search/i);
@@ -74,7 +91,7 @@ describe("SearchBar Component", () => {
     fireEvent.submit(form!);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/search?q=test-drama");
+      expect(mockPush).toHaveBeenCalledWith("/search?q=test%20drama");
     });
   });
 
@@ -85,7 +102,7 @@ describe("SearchBar Component", () => {
     expect(button).toBeInTheDocument();
   });
 
-  it("should trigger search on button click (hyphenated)", async () => {
+  it("should trigger search on button click", async () => {
     render(<SearchBar />);
 
     const input = screen.getByPlaceholderText(/search/i);
@@ -96,7 +113,7 @@ describe("SearchBar Component", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/search?q=button-test");
+      expect(mockPush).toHaveBeenCalledWith("/search?q=button%20test");
     });
   });
 });

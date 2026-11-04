@@ -26,11 +26,16 @@ it("loads all homepage sections and the sidebar without homepage tabs", async ()
 });
 it("shows rich details, falls back from a broken poster, and loads the trailer on request", async () => {
   location.query = "id=drama-test--2026";
-  vi.mocked(readBackend).mockResolvedValue({ result: { title: "Test Drama", other_names: "Original title", image: "https://primary.example/poster.webp", poster_fallbacks: ["https://fallback.example/poster.jpg"], description: "A complete drama summary.", genres: ["Romance"], tags: ["marriage"], meta: { Country: "Korea", "Age Rating": "TV-14" }, trailer: { embedUrl: "https://www.youtube-nocookie.com/embed/abcdefghijk", thumbnail: "https://pictures.example/trailer.webp" }, episodes: [{ season: 1, episode: 1, title: "A new start", image: "https://pictures.example/episode.webp", available: true, episode_link: "/drama-test--2026/episode/s1e1" }, { season: 2, episode: 1, title: "A new season", available: false, release_date: "2099-01-01", episode_link: "/drama-test--2026/episode/s2e1" }] } });
+  vi.mocked(readBackend).mockResolvedValue({ result: { title: "Test Drama", other_names: "Original title", image: "https://primary.example/poster.webp", poster_fallbacks: ["https://fallback.example/poster.jpg"], description: "A complete drama summary.", genres: ["Romance"], tags: ["marriage"], cast: [{ name: "Actor One", character: "Lead", image: "https://pictures.example/cast.webp" }], meta: { Country: "Korea", "Age Rating": "TV-14" }, trailer: { embedUrl: "https://www.youtube-nocookie.com/embed/abcdefghijk", thumbnail: "https://pictures.example/trailer.webp" }, episodes: [{ season: 1, episode: 1, title: "A new start", image: "https://pictures.example/episode.webp", available: true, episode_link: "/drama-test--2026/episode/s1e1" }, { season: 2, episode: 1, title: "A new season", available: false, release_date: "2099-01-01", episode_link: "/drama-test--2026/episode/s2e1" }] } });
   const { container } = render(<PagesApp view="drama" />);
   expect(await screen.findByText("A complete drama summary.")).toBeInTheDocument();
   expect(screen.getByText("marriage")).toBeInTheDocument();
   expect(screen.getByText("TV-14")).toBeInTheDocument();
+  expect(screen.getByRole("heading", {name:"Cast"})).toBeInTheDocument();
+  expect(screen.getByText("Actor One")).toBeInTheDocument();
+  expect(screen.getByRole("complementary", {name:"Show info"})).toBeInTheDocument();
+  expect(screen.queryByRole("heading", {name:"Tags"})).toBeNull();
+  expect(screen.queryByRole("heading", {name:"Season 1"})).toBeNull();
   expect(screen.getByRole("link", { name: "Episode 1: A new start" })).toHaveAttribute("href", "/drama-test--2026/episode/s1e1");
   expect(screen.getByAltText("A new start")).toHaveAttribute("src", "https://pictures.example/episode.webp");
   expect(screen.queryByRole("link", { name: /A new season/ })).toBeNull();

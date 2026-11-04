@@ -43,7 +43,7 @@ const layout = adapt(await readFile(path.join(root, "app/layout.tsx"), "utf8"))
   .replace('icon: "/favicon.ico"', `icon: ${JSON.stringify(`${basePath}/favicon.ico`)}`)
   .replace('metadataBase: new URL("https://hanstream.site"),', "");
 await writeFile(path.join(stage, "app/layout.tsx"), layout);
-for (const route of ["home", "popular", "recently-added", "recent-movies", "search", "schedule", "drama", "watch", "profile"]) {
+for (const route of ["home", "popular", "recently-added", "recent-movies", "search", "drama", "watch", "profile"]) {
   const directory = route === "home" ? path.join(stage, "app") : path.join(stage, "app", route);
   await mkdir(directory, { recursive: true });
   const content = route === "profile" ? adapt(await readFile(path.join(root, "app/profile/page.tsx"), "utf8")) : `import { Suspense } from "react";

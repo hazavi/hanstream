@@ -13,8 +13,8 @@ async function walk(directory) {
       count++;
       if (/\.(?:js|html|txt|json)$/.test(entry)) {
         const content = await readFile(file, "utf8");
-        if (/(?:STREAM_SOURCE_URL|METADATA_SOURCE_URL|EDITORIAL_SOURCE_URL|DETAILS_SOURCE_URL|CATALOG_SOURCE_URL|MEDIA_SOURCE_URL|SIMKL_CLIENT_ID)/.test(content)) throw new Error(`Private configuration reference in ${relative}`);
-        for (const name of ["STREAM_SOURCE_URL", "METADATA_SOURCE_URL", "EDITORIAL_SOURCE_URL", "DETAILS_SOURCE_URL", "CATALOG_SOURCE_URL", "MEDIA_SOURCE_URL"]) {
+        if (/(?:STREAM_SOURCE_URL|METADATA_SOURCE_URL|EDITORIAL_SOURCE_URL|DETAILS_SOURCE_URL|CATALOG_SOURCE_URL|MEDIA_SOURCE_URL|ARTWORK_SOURCE_URL|REFERENCE_SOURCE_URL|SIMKL_CLIENT_ID)/.test(content)) throw new Error(`Private configuration reference in ${relative}`);
+        for (const name of ["STREAM_SOURCE_URL", "METADATA_SOURCE_URL", "EDITORIAL_SOURCE_URL", "DETAILS_SOURCE_URL", "CATALOG_SOURCE_URL", "MEDIA_SOURCE_URL", "ARTWORK_SOURCE_URL", "REFERENCE_SOURCE_URL"]) {
           const value = process.env[name];
           if (value && content.includes(value)) throw new Error(`Private configuration value in ${relative}`);
         }
@@ -23,5 +23,5 @@ async function walk(directory) {
   }
 }
 await walk(root);
-for (const route of ["", "popular/", "recently-added/", "recent-movies/", "search/", "schedule/", "profile/", "drama/", "watch/"]) await stat(path.join(root, route, "index.html"));
+for (const route of ["", "popular/", "recently-added/", "recent-movies/", "search/", "profile/", "drama/", "watch/"]) await stat(path.join(root, route, "index.html"));
 console.log(`Verified ${count} public files and all Pages routes.`);

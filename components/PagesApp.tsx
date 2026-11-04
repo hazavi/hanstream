@@ -3,22 +3,21 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import { Artwork } from "@/components/Artwork";
 import { readBackend } from "@/lib/pages-client";
 import { catalogRoute, type CatalogTitle } from "@/lib/catalog";
-import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, ScheduleResponse, SearchResponse, TopDramasResponse } from "@/lib/api-types";
+import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, SearchResponse, TopDramasResponse } from "@/lib/api-types";
 import { DramaDetails } from "./DramaDetails";
 import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
 import { WatchPage } from "./WatchPage";
-import { DayCard } from "./DayCard";
 
 type Section = "reviews" | "trending" | "starting" | "ending";
 type HomeData = { home: Record<Section, CatalogTitle[]>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"] };
 type CatalogData = { items: (RecentItem | PopularItem)[]; page: number; hasNext: boolean };
 type WatchData = { result: EpisodeResult; drama: DramaResponse["result"] };
-type View = "home" | "popular" | "recently-added" | "recent-movies" | "search" | "schedule" | "drama" | "watch";
+type View = "home" | "popular" | "recently-added" | "recent-movies" | "search" | "drama" | "watch";
 const labels: Record<Section, string> = { reviews: "Latest Reviews", trending: "Trending This Week", starting: "Shows Starting This Week", ending: "Shows Ending This Week" };
 
 function Cards({ items }: { items: (RecentItem | PopularItem)[] }) {
@@ -30,7 +29,7 @@ function Home({ data }: { data: HomeData }) {
       <ContinueWatching />
       {([{ title: "Latest Episodes", href: "/recently-added", items: data.recent }, { title: "Popular Dramas", href: "/popular", items: data.popular }]).map(section => <section key={section.href} className="space-y-4 sm:space-y-6"><div className="flex items-center justify-between"><h2 className="text-xl sm:text-2xl font-bold heading">{section.title}</h2><Link href={section.href} className="glass-btn text-sm">View all</Link></div><Cards items={section.items} /></section>)}
       {(Object.keys(labels) as Section[]).map(section => <section key={section} className="space-y-4 sm:space-y-6"><h2 className="text-xl sm:text-2xl font-bold heading">{labels[section]}</h2>
-        {data.home[section].length ? <div className="homepage-grid">{data.home[section].map(item => <article key={`${catalogRoute(item)}-${item.date}`} className="glass-card rounded-xl sm:rounded-2xl overflow-hidden card-hover"><Link href={catalogRoute(item)} className="block group"><div className="aspect-[4/5] relative surface overflow-hidden"><Image src={item.image} alt={item.title} fill sizes="(max-width:640px) 44vw, (max-width:1024px) 23vw, 15vw" className="object-cover group-hover:scale-105 transition-transform duration-500" /></div><div className="p-3 space-y-1"><h3 className="text-sm font-semibold text-primary line-clamp-2">{item.title}</h3>{item.note && <p className="text-xs text-secondary line-clamp-2">{item.note}</p>}{section === "reviews" && item.date && <p className="text-xs text-secondary">{new Date(item.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/Copenhagen" })}</p>}</div></Link></article>)}</div> : <p className="source-empty">No published entries are listed for this week.</p>}
+        {data.home[section].length ? <div className="homepage-grid">{data.home[section].map(item => <article key={`${catalogRoute(item)}-${item.date}`} className="glass-card rounded-xl sm:rounded-2xl overflow-hidden card-hover"><Link href={catalogRoute(item)} className="block group"><div className="aspect-[4/5] relative surface overflow-hidden"><Artwork sources={[item.image]} alt={item.title} title={item.title} year={item.year} /></div><div className="p-3 space-y-1"><h3 className="text-sm font-semibold text-primary line-clamp-2">{item.title}</h3>{item.note && <p className="text-xs text-secondary line-clamp-2">{item.note}</p>}{section === "reviews" && item.date && <p className="text-xs text-secondary">{new Date(item.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/Copenhagen" })}</p>}</div></Link></article>)}</div> : <p className="source-empty">No published entries are listed for this week.</p>}
       </section>)}
     </div><div className="w-full lg:w-80 xl:w-96 shrink-0"><TopAiringSection result={data.rankings} /></div>
   </div>;
@@ -42,7 +41,7 @@ export default function PagesApp({ view }: { view: View }) {
   const search = query.get("q") || "";
   const page = Math.max(1, Math.floor(Number(query.get("page")) || 1));
   const kind = view === "popular" ? "popular" : view === "recent-movies" ? "movies" : "recent";
-  const route = view === "home" ? "/api/home" : view === "drama" ? `/api/drama/${encodeURIComponent(slug)}` : view === "watch" ? `/api/episode/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}` : view === "schedule" ? "/api/schedule" : view === "search" ? `/api/search?q=${encodeURIComponent(search)}&page=${page}` : `/api/catalog?kind=${kind}&page=${page}`;
+  const route = view === "home" ? "/api/home" : view === "drama" ? `/api/drama/${encodeURIComponent(slug)}` : view === "watch" ? `/api/episode/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}` : view === "search" ? `/api/search?q=${encodeURIComponent(search)}&page=${page}` : `/api/catalog?kind=${kind}&page=${page}`;
   const [state, setState] = useState<{ route: string; data?: unknown; error?: string }>({ route: "" });
   const [retry, setRetry] = useState(0);
   useEffect(() => {
@@ -59,7 +58,6 @@ export default function PagesApp({ view }: { view: View }) {
   if (view === "home") return <Home data={state.data as HomeData} />;
   if (view === "drama") { const detail = (state.data as DramaResponse).result; return detail ? <DramaDetails detail={detail} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>; }
   if (view === "watch") { const data = state.data as WatchData; return <WatchPage result={data.result} drama={data.drama} slug={slug} episode={episode} />; }
-  if (view === "schedule") { const data = state.data as ScheduleResponse; return <div className="space-y-6"><h1 className="heading text-3xl">Weekly Schedule</h1><p className="text-secondary">{data.result.schedule_note}</p><div className="grid md:grid-cols-2 gap-5">{Object.entries(data.result.days).map(([day, schedule]) => <DayCard key={day} day={day} schedule={schedule} />)}</div></div>; }
   const items = view === "search" ? (state.data as SearchResponse).results : (state.data as CatalogData).items;
   const hasNext = view === "search" ? items.length >= 20 : (state.data as CatalogData).hasNext;
   const pageLink = (target: number) => `/${view}/?${new URLSearchParams({ ...(view === "search" ? { q: search } : {}), page: String(target) })}`;

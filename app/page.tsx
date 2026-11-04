@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Image from "next/image";
+import { Artwork } from "@/components/Artwork";
 import Link from "next/link";
 import { ContinueWatching } from "@/components/ContinueWatching";
 import { DramaCard } from "@/components/DramaCard";
@@ -34,7 +34,7 @@ function HomepageGrid({ section, items }: { section: HomeSection; items: Catalog
     if (!items.length) return <p className="source-empty">No published entries are listed for this week.</p>;
     return <div className="homepage-grid">{items.map(item => <article key={`${catalogRoute(item)}-${item.date || section}`} className="glass-card rounded-xl sm:rounded-2xl overflow-hidden card-hover animate-slide-up">
       <Link href={catalogRoute(item)} className="block group">
-        <div className="aspect-[4/5] relative surface overflow-hidden"><Image src={item.image} alt={item.title} fill sizes="(max-width:640px) 44vw, (max-width:1024px) 23vw, 15vw" className="object-cover group-hover:scale-105 transition-transform duration-500" /></div>
+        <div className="aspect-[4/5] relative surface overflow-hidden"><Artwork sources={[item.image]} alt={item.title} title={item.title} year={item.year} /></div>
         <div className="p-2 sm:p-3 md:p-4 space-y-1"><h3 className="text-xs sm:text-sm font-semibold text-primary line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400">{item.title}</h3>
           {section !== "reviews" && (item.note || item.year) && <p className="text-xs text-secondary line-clamp-2">{item.note || item.year}</p>}
         </div>

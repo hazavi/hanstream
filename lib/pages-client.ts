@@ -11,14 +11,15 @@ export async function readBackend<T>(path: string, signal?: AbortSignal): Promis
   const key = `${base.replace(/\/$/, "")}${path}`;
   const saved = responses.get(key);
   if (saved && saved.expires > Date.now()) return saved.value as T;
-  const response = await fetch(`${base.replace(/\/$/, "")}${path}`, { signal, credentials: "omit" });
+  const timeout = AbortSignal.timeout(path.startsWith('/api/search') ? 8000 : 15000);
+  const response = await fetch(`${base.replace(/\/$/, "")}${path}`, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout, credentials: "omit" });
   if (!response.ok) throw new Error("Unable to load this page. Please try again.");
   const value = await response.json();
   if (!path.startsWith('/api/episode/') || value?.result?.video) responses.set(key, { value, expires: Date.now() + 30_000 });
   if (responses.size > 50) responses.delete(responses.keys().next().value!);
   return value as T;
 }
-export async function fetchSearchClient(query: string, page = 1): Promise<SearchResponse> {
-  const data = await readBackend<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}&page=${page}`);
+export async function fetchSearchClient(query: string, page = 1, signal?: AbortSignal): Promise<SearchResponse> {
+  const data = await readBackend<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}&page=${page}`, signal);
   return { results: data.results.map(item => ({ ...item, "detail-link": pagesRoute(item["detail-link"]) })) };
 }

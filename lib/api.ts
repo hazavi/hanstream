@@ -5,6 +5,7 @@ import { enrichArtwork, findMetadata, getHomepage, getMetadataList, searchMetada
 import { findDramaDetails, getDramaDetails, getDetailEpisodes, type DetailRecord } from "./details";
 import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "./playback";
 import { getSourceConfig } from "./server-config.mjs";
+import { searchAsianCatalog } from "./catalog-details";
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, ScheduleDrama, ScheduleResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -38,14 +39,15 @@ export async function fetchRecentMovies(page = 1): Promise<RecentMoviesResponse>
 export async function fetchSearch(query: string, page = 1): Promise<SearchResponse> {
   const text = query.trim().replace(/-/g, " ");
   if (!text) return { results: [] };
-  const [metadata, playback] = await Promise.allSettled([searchMetadata(text, page), getPlaybackCatalog()]);
+  const [catalog, metadata, playback] = await Promise.allSettled([searchAsianCatalog(text), Promise.race([searchMetadata(text, page), new Promise<[]>(resolve => setTimeout(() => resolve([]), 1200))]), getPlaybackCatalog(true)]);
   const rows = new Map<string, ReturnType<typeof popularRow>>();
+  if (catalog.status === 'fulfilled') pageSlice(catalog.value, page).forEach(item => rows.set(catalogRoute(item), popularRow(item)));
   if (metadata.status === "fulfilled") metadata.value.forEach(item => rows.set(catalogRoute(item), popularRow(item)));
   if (playback.status === "fulfilled") {
     const unique = new Map(playback.value.filter(item => normalizeTitle(item.title).includes(normalizeTitle(text))).map(item => [catalogRoute(item), item]));
     pageSlice([...unique.values()], page).forEach(item => { if (!rows.has(catalogRoute(item))) rows.set(catalogRoute(item), popularRow(item)); });
   }
-  if (!rows.size && metadata.status === "rejected") throw metadata.reason;
+  if (!rows.size && metadata.status === "rejected" && catalog.status === 'rejected' && playback.status === 'rejected') throw metadata.reason;
   return { results: [...rows.values()] };
 }
 
@@ -81,8 +83,15 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   } catch { /* Details can still render if playback catalog is unavailable. */ }
   let episodes: NonNullable<NonNullable<DramaResponse["result"]>["episodes"]> = [];
   if (primary && !movie) {
-    try { episodes = (await getDetailEpisodes(primary)).map(ep => ({ season: ep.season, episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date, image: ep.image, description: ep.overview, finale: ep.finale, available: ep.date && ep.date > new Date().toISOString().slice(0, 10) ? false : undefined })); }
+    try { episodes = (await getDetailEpisodes(primary)).map(ep => ({ season: ep.season, episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date, image: ep.image, description: ep.overview, finale: ep.finale, available: ep.upcoming || ep.date && ep.date > new Date().toISOString().slice(0, 10) ? false : undefined })); }
     catch { /* Verified available playback entries can supply navigation. */ }
+  }
+  if (!episodes.length && !movie && alternative) {
+    const count = String(item?.meta.Episodes || '').trim();
+    const finished = alternative.endDate && alternative.endDate < new Date().toISOString().slice(0, 10) || /^(?:ended|finished|completed)$/i.test(String(item?.meta.Status || ''));
+    if (finished && /^\d+$/.test(count) && Number(count) <= 2000) {
+      episodes = Array.from({ length: Number(count) }, (_, index) => ({ season: 1, episode: index + 1, episode_link: `/${slug}/episode/s1e${index + 1}` }));
+    }
   }
   const embeddedSeason = Number(/\bseason\s+(\d+)$/i.exec(title)?.[1]) || 1;
   const availableSeasons = new Map([[embeddedSeason, available]]);
@@ -109,7 +118,7 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   const genres = primary?.genres?.length ? primary.genres : String(item?.meta.Genre || '').split(/[,;]/).map(value => value.trim()).filter(Boolean);
   return { result: { title, image: artwork.image, description: item?.overview, other_names: item?.otherNames,
     meta: item?.meta || (year ? { Released: year } : {}), episodes,
-    tags: primary?.tags?.length ? primary.tags : genres, genres, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
+    tags: primary?.tags?.length ? primary.tags : genres, genres, cast: primary?.cast?.length ? primary.cast : alternative?.cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
   } };
 });
 

@@ -62,7 +62,7 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 8000)
     const html = await response.text();
     // Content pages may include a challenge script alongside their published HTML.
     // Reject actual interstitial pages, without rejecting that accessible content.
-    if (html.length > 5_000_000 || /<title>\s*(?:Just a moment|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) throw new SourceUnavailable(source);
+    if (html.length > 5_000_000 || /<title>\s*(?:Just a moment|One moment,?\s*please|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) throw new SourceUnavailable(source);
     return html;
   }
   throw new SourceUnavailable(source);
