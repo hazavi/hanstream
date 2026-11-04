@@ -5,6 +5,7 @@ import { DramaCard } from "@/components/DramaCard";
 import { TopAiringSection } from "@/components/TopAiringSection";
 import { HomepageHighlights } from "@/components/HomepageHighlights";
 import { getHomeData } from '@/lib/home';
+import { RefreshListings } from '@/components/RefreshListings';
 import type { RecentItem, PopularItem } from '@/lib/api-types';
 
 // Render week boundaries and cached public-page metadata on request.
@@ -21,6 +22,7 @@ function PopularPreview({ items }: { items: PopularItem[] }) {
 export default async function Home() {
   const data = await getHomeData();
   return <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
+    <RefreshListings enabled={data.partial} />
     <div className="flex-1 animate-fade-in min-w-0 space-y-8 sm:space-y-12">
       <Suspense fallback={null}><ContinueWatching /></Suspense>
       {data.partial && <p role="status" className="text-sm text-secondary">Some listings are temporarily unavailable.</p>}

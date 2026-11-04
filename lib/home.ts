@@ -21,4 +21,4 @@ const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
     partial: [home, recent, popular, rankings].some(result => result.status === 'rejected'),
   };
 }, value => Boolean(value?.home && value?.rankings && !value.partial && Array.isArray(value.recent) && Array.isArray(value.popular)), 30_000);
-export const getHomeData = createRuntimeCache<HomeData>(previous => loadHome('home', previous), value => value.partial ? 10_000 : 30_000);
+export const getHomeData = createRuntimeCache<HomeData>(previous => loadHome('home', previous), value => value.partial ? 10_000 : 30_000, value => !value.partial);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -41,6 +41,12 @@ export default function PagesApp({ view }: { view: View }) {
   const route = view === "home" ? "/api/home" : view === "drama" ? `/api/drama/${encodeURIComponent(slug)}` : view === "watch" ? `/api/episode/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}` : view === "search" ? `/api/search?q=${encodeURIComponent(search)}&page=${page}` : `/api/catalog?kind=${kind}&page=${page}`;
   const [state, setState] = useState<{ route: string; data?: unknown; error?: string }>(()=>({ route, data:peekBackend(route) }));
   const [retry, setRetry] = useState(0);
+  const homeRetries = useRef(0);
+  useEffect(() => {
+    if (view !== 'home' || state.route !== route || !(state.data as HomeData | undefined)?.partial || homeRetries.current >= 3) return;
+    const timer = setTimeout(() => { homeRetries.current++; setRetry(value => value+1); },12_000);
+    return () => clearTimeout(timer);
+  },[view,route,state]);
   useEffect(() => {
     if ((view === "drama" || view === "watch") && !slug || view === "watch" && !episode || view === "search" && !search) return;
     const controller = new AbortController();
