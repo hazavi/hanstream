@@ -25,7 +25,7 @@ try {
   assert.deepEqual(exported.profile.watchedEpisodes['drama-fixture--2026'], ['s1e10']);
   payload.profile.watchlist[0].image = 'javascript:alert(1)';
   await input.setInputFiles(file());
-  await page.getByRole('alert').waitFor();
+  await page.getByText('Invalid library artwork.',{exact:true}).waitFor();
   await page.getByRole('button', { name: 'Delete saved data' }).click();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   assert.equal(await page.getByRole('heading', { name: 'Fixture Drama', exact: true }).count(), 1);

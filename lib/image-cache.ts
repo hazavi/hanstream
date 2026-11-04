@@ -77,5 +77,14 @@ export async function imageResponse(url: string, request: Request, fallbackTtl: 
   const image = await cachedImage(url, [80, 160, 320, 640].includes(width) ? width : 320);
   const headers = { 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400', 'Content-Type': 'image/webp', 'X-Content-Type-Options': 'nosniff', 'ETag': image?.etag || '' };
   if (image) return request.headers.get('if-none-match') === image.etag ? new Response(null, { status: 304, headers }) : new Response(new Uint8Array(image.body), { headers });
-  return new Response(null, { status: 307, headers: { Location: url, 'Cache-Control': `public, max-age=${fallbackTtl}` } });
+  return missingImageResponse(fallbackTtl);
+}
+
+/** A genuine miss is a short-lived neutral image, never a broken redirect. */
+export function missingImageResponse(ttl = 60, portrait = false) {
+  const drawing = portrait
+    ? '<circle cx="160" cy="175" r="38"/><path d="M98 290v-24a62 62 0 0 1 124 0v24"/>'
+    : '<rect x="116" y="162" width="88" height="110" rx="8"/><path d="m144 202 34 19-34 19z"/>';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="480" viewBox="0 0 320 480"><rect width="320" height="480" fill="#151518"/><g fill="none" stroke="#96969c" stroke-width="3">${drawing}</g>${portrait ? '' : '<text x="160" y="310" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#bdbdc2">Artwork unavailable</text>'}</svg>`;
+  return new Response(svg, {headers:{'Content-Type':'image/svg+xml','X-Content-Type-Options':'nosniff','Cache-Control':`public, max-age=${Math.min(ttl,60)}`,'Content-Security-Policy':"default-src 'none'; sandbox",'X-Artwork-Available':'0'}});
 }

@@ -79,6 +79,10 @@ jobs:
         run: node scripts/verify-pages.mjs
         env:
           HANSTREAM_DESKTOP: '1'
+      - name: Check installer and uninstaller
+        if: inputs.signed != true
+        shell: pwsh
+        run: ./scripts/check-installer.ps1
       - name: Check optional signed updater code
         run: cargo check --manifest-path src-tauri/Cargo.toml --locked --features signed-updates
       - name: Prepare signed update manifest

@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
 import { findCatalogArtwork } from "@/lib/catalog-details";
-import { imageResponse } from '@/lib/image-cache';
+import { imageResponse, missingImageResponse } from '@/lib/image-cache';
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams;
   const title = query.get('title')?.trim();
   const year = Number(query.get('year')) || undefined;
   if (!title || title.length > 160 || year && (year < 1900 || year > 2100)) return new NextResponse(null, { status: 400 });
-  try {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const image = await Promise.race([findCatalogArtwork(JSON.stringify({ title, year, secondary: query.get('secondary') === '1' })), new Promise<undefined>(resolve => {timer=setTimeout(()=>resolve(undefined),5500);})]).finally(()=>clearTimeout(timer));
-    if (image && image.startsWith('https://')) return imageResponse(image, request, 3600);
-  } catch { /* A poster miss should not affect the rest of the page. */ }
-  return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const resolve = async () => {
+    for (const secondary of query.get('secondary') === '1' ? [true] : [false,true]) {
+      try {
+        const image = await findCatalogArtwork(JSON.stringify({title,year,secondary}));
+        if (!image?.startsWith('https://')) continue;
+        const response = await imageResponse(image,request,60);
+        if (response.headers.get('X-Artwork-Available') !== '0') return response;
+      } catch { /* Try the next approved, independently matched cover. */ }
+    }
+    return missingImageResponse();
+  };
+  return Promise.race([resolve(),new Promise<Response>(resolve => {timer=setTimeout(()=>resolve(missingImageResponse()),11_000);})]).finally(()=>clearTimeout(timer));
 }

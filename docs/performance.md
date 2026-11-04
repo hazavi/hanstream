@@ -16,7 +16,7 @@ Homepage and detail responses include a `Server-Timing` duration. In-process dia
 
 ## Optional persistent metadata cache
 
-Set the backend-only `CACHE_URL` to a Redis-compatible connection URL using `rediss://`. Local development also permits `redis://localhost` or `redis://127.0.0.1`. Leave it empty to use existing memory caches. Never add it as a GitHub Pages build variable.
+Set the backend-only `CACHE_URL` to a Redis-compatible connection URL using `rediss://`. Local development also permits `redis://localhost` or `redis://127.0.0.1`. Leave it empty to use existing memory caches. Keep it server-only.
 
 Only assembled homepage data and complete drama metadata are stored. Keys are hashes, isolated by source configuration, with a one-day maximum lifetime and a 2 MB record cap. Fresh records avoid source reads after a restart; stale records return immediately while one refresh runs. Failed refreshes keep the saved record. Playback responses and expiring stream URLs are excluded. Connections and commands have short deadlines; an unavailable store falls back to live readers.
 
@@ -26,12 +26,16 @@ The Redis command queue is capped at 100. A timed-out command destroys its conne
 
 The outbound dispatcher uses Undici 7 to match Node 24's built-in fetch API. A real local HTTP regression test covers that integration; mocking fetch alone would miss an incompatible dispatcher major version.
 
-Server HTML readers use the HTTP client's own fetch implementation rather than Next's patched global fetch. Both HTTP paths have a real local-server regression check. Homepage sections resolve independently, retain previous successful sections during an outage, and mark partial responses as non-cacheable over HTTP. A failed optional metadata lookup no longer discards available episodes. The regular homepage reuses the same assembled snapshot as the Pages API.
+Server HTML readers use the HTTP client's own fetch implementation rather than Next's patched global fetch. Both HTTP paths have a real local-server regression check. Homepage sections resolve independently, retain previous successful sections during an outage, and mark partial responses as non-cacheable over HTTP. A failed optional metadata lookup no longer discards available episodes. The regular homepage reuses the same assembled snapshot as the desktop API.
 
 ## Optional image byte cache
 
-Set backend-only `IMAGE_ORIGINS` to a comma-separated list of exact HTTPS image CDN origins. Only server-discovered artwork and portrait URLs on that list can be resized. Without a matching origin, existing image redirects continue to work.
+Set backend-only `IMAGE_ORIGINS` to a comma-separated list of exact HTTPS image CDN origins. Only server-discovered artwork and portrait URLs on that list can be resized. A miss or failed approved download returns a neutral image with a 60-second cache lifetime; it does not redirect the browser to a stalled host.
 
-The existing artwork and portrait routes accept `width=80`, `160`, `320`, or `640`. The pipeline accepts JPEG, PNG, WebP, and AVIF, limits input to 5 MB and 25 million decoded pixels, emits WebP, caps active jobs at four, and retains at most 24 MB of image bytes in memory. It supplies ETags and conditional 304 responses. Every redirect is checked against the origin list. DNS resolution is bound to the connection and rejects non-public addresses. SVG is excluded.
+The existing artwork and portrait routes accept `width=80`, `160`, `320`, or `640`. The pipeline accepts JPEG, PNG, WebP, and AVIF, limits input to 5 MB and 25 million decoded pixels, emits WebP, caps active jobs at four, and retains at most 24 MB of image bytes in memory. It supplies ETags and conditional 304 responses. Every redirect is checked against the origin list. DNS resolution is bound to the connection and rejects non-public addresses. Upstream SVG is excluded. The server-generated fallback SVG contains no upstream content.
 
 This cache currently covers image requests through those backend routes, not every direct image URL returned by a catalog. It is process-local and is cleared on a backend restart. No image files or generated catalogs are committed.
+
+## Local client storage
+
+The desktop uses SQLite for its library and bounded catalog cache. Browser libraries use localStorage and browser catalog responses use IndexedDB. Complete catalog/detail responses can be reused during a short outage; incomplete results and playback URLs are not persisted. Disk operations run asynchronously, and cache failures fall through to the network. Browser records are limited to 50 entries and 10 MB; desktop cache records to 100 entries and 20 MB. All expire within 20 minutes.

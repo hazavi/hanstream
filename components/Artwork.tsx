@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { UserRound } from 'lucide-react';
 import { isPublishedImage } from '@/lib/image-utils.mjs';
 import { artworkFailedRecently, artworkWinner, claimArtworkRetry, failArtwork, rememberArtwork, subscribeArtwork } from '@/lib/artwork-cache';
 
 export function Artwork({ sources, alt, poster = false, placeholder = 'Artwork unavailable', title, year, person, personKey, fallbackLabel }: { sources: (string | undefined)[]; alt: string; poster?: boolean; placeholder?: string; title?: string; year?: number; person?: string; personKey?: string; fallbackLabel?: string }) {
+  const loadedSource = useRef<string | undefined>(undefined);
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
   const fallback = title ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}) })}` : undefined;
   const portrait = person ? `${base}/api/portrait?${new URLSearchParams({ name: person, ...(personKey ? {key:personKey} : {}) })}` : undefined;
-  const candidates = [...new Set([...sources, portrait, fallback, fallback ? `${fallback}&secondary=1` : undefined].filter((src): src is string => isPublishedImage(src)))];
+  const candidates = [...new Set([...sources, portrait, fallback].filter((src): src is string => isPublishedImage(src)))];
   const [failure, setFailure] = useState({ key: '', attempt: 0 });
   const key = JSON.stringify(candidates);
   const attempt = failure.key === key ? failure.attempt : 0;
@@ -30,7 +31,16 @@ export function Artwork({ sources, alt, poster = false, placeholder = 'Artwork u
     const timer=setTimeout(()=>{if(claimArtworkRetry(key))setFailure({key,attempt:0});},6000);
     return ()=>clearTimeout(timer);
   },[source,key]);
-  return source ? <Image key={source} src={source} alt={alt} fill sizes={person ? "64px" : poster ? "(max-width: 640px) 65vw, 300px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"} className="object-cover" priority={poster} decoding="async" referrerPolicy="no-referrer" onLoad={() => rememberArtwork(key,source)} onError={() => {
+  useEffect(() => {
+    if (!source || !/^https?:/.test(source) || source.startsWith(base + '/api/')) return;
+    const timer = setTimeout(() => {
+      if (loadedSource.current === source) return;
+      failArtwork(key,source);
+      setFailure({key,attempt:attempt+1});
+    },3500);
+    return () => clearTimeout(timer);
+  },[source,key,attempt,base]);
+  return source ? <Image key={source} src={source} alt={alt} fill sizes={person ? "64px" : poster ? "(max-width: 640px) 65vw, 300px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"} className="object-cover" priority={poster} decoding="async" referrerPolicy="no-referrer" onLoad={() => { loadedSource.current=source; rememberArtwork(key,source); }} onError={() => {
     failArtwork(key,source);
     let next=attempt+1;
     while(next<candidates.length && artworkFailedRecently(candidates[next]))next++;

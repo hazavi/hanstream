@@ -1,13 +1,13 @@
 # Performance, security, and desktop app suggestions
 
-The app uses a GitHub Pages frontend and a separate backend. Keep private reader configuration on that backend, and keep generated catalogs out of the repository.
+The complete website runs on Render; GitHub Pages is disabled. The desktop packages local frontend assets and calls the Render service. Keep private reader configuration on that backend, and keep generated catalogs out of the repository.
 
-Implementation status: performance code is documented in [performance.md](performance.md), security controls in [security-operations.md](security-operations.md), and the Windows desktop target in [desktop.md](desktop.md). External cache provisioning, image-origin configuration, signing credentials, and live signed-update testing remain pending. The sections below retain the original recommendations and their verification goals.
+Implementation status: performance code is documented in [performance.md](performance.md), security controls in [security-operations.md](security-operations.md), and the Windows desktop target in [desktop.md](desktop.md). The local SQLite/browser caches and explicit image-origin configuration are implemented. External Redis provisioning, signing credentials, and live signed-update testing remain optional or pending. The sections below retain the original recommendations and their verification goals.
 
 Verified on 2026-11-04:
 
 - Performance, security, and desktop changes were committed and pushed in separate stages. The deployed homepage returns live catalog content, with independently recoverable sections.
-- All 232 automated tests pass. Pages deployment, backend checks, native dependency checks, and the Windows app smoke test pass in GitHub Actions. npm audit reports zero findings; the two reviewed Rust warnings do not enter the Windows build graph.
+- All 232 automated tests pass. Backend, native dependency, and Windows desktop checks run in GitHub Actions. npm audit reports zero findings; the two reviewed Rust warnings do not enter the Windows build graph.
 - The unsigned Windows installer is available from the successful run of the [Windows desktop workflow](https://github.com/hazavi/hanstream/actions/workflows/desktop.yml). The production executable was checked to exclude the CI debugging flag.
 - Library import/export, confirmation, invalid-file rejection, deletion, production script nonces, and theme interaction were exercised in a real browser. The compiled desktop app was also exercised locally in WebView2.
 
@@ -19,9 +19,9 @@ Individual external video hosts can still fail or present their own verification
 
 2. **Persist successful metadata on the server.** The existing bounded memory caches, shared requests, and stale-data recovery reduce repeated reads within one process. Add a private external cache if results must survive restarts. Store fetch time and expiry, refresh in the background, and retain a known good record when a refresh fails. Do not persist expiring playback URLs as durable metadata. Local files on Render Free are lost on restart or spin-down, so a local SQLite file would not solve persistence there. See [Render's filesystem limits](https://render.com/docs/free#local-files-lost-on-redeploy).
 
-3. **Cache image bytes and serve appropriate sizes.** The current artwork cache remembers successful candidates; it does not resize or retain image files. Consider a backend image cache with thumbnail and poster variants, fixed size limits, safe content types, and explicit expiry. Restrict upstream destinations and redirects before adding any proxy. Verify reduced transferred bytes and working poster fallbacks on both deployments.
+3. **Cache image bytes and serve appropriate sizes.** The approved-origin image cache now resizes images and retains bounded image bytes. Consider a backend image cache with thumbnail and poster variants, fixed size limits, safe content types, and explicit expiry. Restrict upstream destinations and redirects before adding any proxy. Verify reduced transferred bytes and working poster fallbacks on both deployments.
 
-4. **Load only the code a route needs.** Inspect the Pages frontend bundle, then split detail, watch, and trailer UI with dynamic imports where those imports reduce the initial homepage download. Keep the existing lazy animation loader. Compare bundle size and interaction timing before accepting each split. See [Next.js lazy loading](https://nextjs.org/docs/app/guides/lazy-loading).
+4. **Load only the code a route needs.** Inspect the desktop frontend bundle, then split detail, watch, and trailer UI with dynamic imports where those imports reduce the initial homepage download. Keep the existing lazy animation loader. Compare bundle size and interaction timing before accepting each split. See [Next.js lazy loading](https://nextjs.org/docs/app/guides/lazy-loading).
 
 5. **Make failures measurable without exposing configuration.** Count cache hits, lookup timeouts, empty results, and recovery attempts. Log route categories and durations, with private URLs and query content removed. Keep retries bounded; avoid making every visible card retry an unavailable host independently.
 

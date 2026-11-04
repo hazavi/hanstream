@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { findPortrait } from '@/lib/portrait-reader';
-import { imageResponse } from '@/lib/image-cache';
+import { imageResponse, missingImageResponse } from '@/lib/image-cache';
 export async function GET(request: Request) {
   const name = new URL(request.url).searchParams.get('name')?.trim();
   const key = new URL(request.url).searchParams.get('key') || undefined;
@@ -11,5 +11,5 @@ export async function GET(request: Request) {
     const image = await Promise.race([findPortrait(name,key), new Promise<undefined>(resolve => {timer=setTimeout(()=>resolve(undefined),5500);})]).finally(()=>clearTimeout(timer));
     if (image) return imageResponse(image, request, 86400);
   } catch { /* Missing portraits never block the detail page. */ }
-  return new NextResponse(null, {status:404, headers:{'Cache-Control':'no-store'}});
+  return missingImageResponse(60, true);
 }
