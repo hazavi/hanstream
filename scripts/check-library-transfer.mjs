@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { chromium } from '@playwright/test';
+const executablePath = process.env.PERF_BROWSER_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const browser = await chromium.launch({ headless: true, ...(existsSync(executablePath) ? { executablePath } : {}) });
+try {
+  const page = await browser.newPage();
+  await page.goto(process.env.LIBRARY_TEST_URL || 'http://localhost:3000/profile', { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Export library', exact: true }).waitFor();
+  const date = new Date().toISOString();
+  const payload = { format: 'hanstream-library', version: 1, profile: { createdAt: date, updatedAt: date, watchlist: [{ slug: 'drama-fixture--2026', title: 'Fixture Drama', status: 'watching', dateAdded: date }], continueWatching: [], topRankings: [], watchedEpisodes: { 'drama-fixture--2026': ['s1e10'] } } };
+  const file = () => ({ name: 'library.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload)) });
+  const input = page.getByLabel('Library file');
+  await input.setInputFiles(file());
+  await page.getByRole('heading', { name: 'Replace saved library?' }).waitFor();
+  assert.equal(await page.getByRole('heading', { name: 'Fixture Drama', exact: true }).count(), 0);
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await input.setInputFiles(file());
+  await page.getByRole('heading', { name: 'Replace saved library?' }).waitFor();
+  await page.getByRole('button', { name: 'Import library', exact: true }).last().click();
+  await page.getByRole('heading', { name: 'Fixture Drama', exact: true }).waitFor();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export library', exact: true }).click()]);
+  const exported = JSON.parse(await readFile(await download.path(), 'utf8'));
+  assert.deepEqual(exported.profile.watchedEpisodes['drama-fixture--2026'], ['s1e10']);
+  payload.profile.watchlist[0].image = 'javascript:alert(1)';
+  await input.setInputFiles(file());
+  await page.getByRole('alert').waitFor();
+  await page.getByRole('button', { name: 'Delete saved data' }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  assert.equal(await page.getByRole('heading', { name: 'Fixture Drama', exact: true }).count(), 1);
+  await page.getByRole('button', { name: 'Delete saved data' }).click();
+  await page.getByRole('button', { name: 'Delete library', exact: true }).click();
+  assert.equal(await page.evaluate(() => localStorage.getItem('hanstream-local-profile')), null);
+  console.log('Browser library import confirmation, export round-trip, unsafe-file rejection, and confirmed deletion passed.');
+} finally { await browser.close(); }

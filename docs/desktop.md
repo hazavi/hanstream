@@ -10,6 +10,8 @@ Set `DESKTOP_API_BASE_URL` in `.env.local` to the same public HTTPS backend used
 
 The **Windows desktop** GitHub Actions workflow builds the unsigned Windows installer and portable executable and uploads them as an Actions artifact. It also launches the real app in WebView2 and checks its origin, local page loading, theme interaction, library controls, and restriction of external top-level navigation. Artifacts are retained for 14 days. No public GitHub release is created automatically.
 
+The first native compilation produced an installer successfully. Its initial smoke run could not reach WebView2's debugging endpoint; CI now explicitly installs the signed Microsoft runtime and retains app startup logs and build artifacts when a check fails. Native validation is tracked separately from frontend build success.
+
 The Windows app uses `https://tauri.localhost`; the backend permits exactly that origin alongside configured website origins. Changing the desktop scheme later would change where WebView2 stores the library. macOS and Linux installers are not included in this first Windows target.
 
 ## Library migration

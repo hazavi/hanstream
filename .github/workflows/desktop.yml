@@ -33,6 +33,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+      - name: Ensure WebView2 runtime
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+          Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $installer
+          if ((Get-AuthenticodeSignature -LiteralPath $installer).Status -ne 'Valid') { throw 'WebView2 installer signature is invalid.' }
+          $install = Start-Process -FilePath $installer -ArgumentList '/silent','/install' -WindowStyle Hidden -Wait -PassThru
+          if ($install.ExitCode -notin @(0, 3010)) {
+            $runtime = Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\*','HKCU:\SOFTWARE\Microsoft\EdgeUpdate\Clients\*' -ErrorAction SilentlyContinue | Where-Object { $_.name -like '*WebView2*' -and $_.pv -and $_.pv -ne '0.0.0.0' }
+            if (!$runtime) { throw "WebView2 installation failed: $($install.ExitCode)" }
+          }
       - run: npm ci
       - run: npm run check:secrets
       - run: npm audit --audit-level=moderate
@@ -67,6 +78,8 @@ jobs:
         run: node scripts/verify-pages.mjs
         env:
           HANSTREAM_DESKTOP: '1'
+      - name: Check optional signed updater code
+        run: cargo check --manifest-path src-tauri/Cargo.toml --locked --features signed-updates
       - name: Prepare signed update manifest
         if: inputs.signed == true
         run: node scripts/create-desktop-update.mjs
@@ -77,10 +90,16 @@ jobs:
         shell: pwsh
         run: |
           $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9223 --remote-debugging-address=127.0.0.1'
-          $app = Start-Process -FilePath './src-tauri/target/release/hanstream.exe' -WindowStyle Hidden -PassThru
-          try { node scripts/check-desktop.mjs; if ($LASTEXITCODE -ne 0) { throw 'Desktop smoke test failed.' } }
+          $log = Join-Path $env:RUNNER_TEMP 'hanstream-app.log'
+          $errorLog = Join-Path $env:RUNNER_TEMP 'hanstream-app-error.log'
+          $app = Start-Process -FilePath './src-tauri/target/release/hanstream.exe' -WindowStyle Hidden -PassThru -RedirectStandardOutput $log -RedirectStandardError $errorLog
+          try {
+            node scripts/check-desktop.mjs
+            if ($LASTEXITCODE -ne 0) { Get-Content $log,$errorLog -ErrorAction SilentlyContinue; throw 'Desktop smoke test failed.' }
+          }
           finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: HanStream-Windows-${{ github.sha }}
           retention-days: 14

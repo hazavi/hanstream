@@ -6,6 +6,8 @@
 
 The security workflow audits all npm dependencies, checks types, runs the regression suite, scans tracked files, and compiles the backend using non-secret placeholder origins. The Pages workflow also audits production dependencies and verifies the final public artifact. Keep dependency patches small and run these checks after updates. The current audit reports zero findings across production and development dependencies.
 
+The lint parser and plugin are pinned to the current ESLint-9-compatible releases. Their nested glob matcher is overridden to the patched minimatch 11 release; targeted lint checks pass. This avoids the old parser version selected by the automatic audit fix. Recheck that override when upgrading the lint toolchain.
+
 ## Request limits
 
 API requests have one-minute category budgets. With no verified client identity, requests share limits of 120 search, 180 detail, 600 image, and 300 other catalog requests per minute. Health checks are exempt. Rejections return 429 and `Retry-After`. The map is bounded to 10,000 active entries. With `CACHE_URL` configured, atomic Redis counters share the limits across backend instances; cache failures fall back to process-local counters.
