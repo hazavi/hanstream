@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "Local app UI with no filesystem, shell, or native network commands.",
+  "description": "Local main-window access to fixed library and cache operations, with no arbitrary SQL, filesystem, shell, or native network commands.",
   "windows": ["main"],
-  "permissions": []
+  "permissions": ["allow-library-load", "allow-library-save", "allow-library-clear", "allow-cache-load", "allow-cache-save"]
 }

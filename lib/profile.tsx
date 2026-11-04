@@ -1,16 +1,17 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { DEFAULT_PROFILE, type ContinueWatchingItem, type UserProfile, type WatchlistItem, type WatchStatus } from "./types";
 import { validateProfile } from './profile-transfer';
 
-const STORAGE_KEY = "hanstream-local-profile";
+import { loadSavedProfile, saveProfile, clearSavedProfile } from './profile-storage';
 type NewWatchlistItem = Omit<WatchlistItem, "dateAdded">;
 type NewContinueItem = Omit<ContinueWatchingItem, "dateAdded">;
 
 type ProfileContextValue = {
-  replaceProfile: (profile: UserProfile) => void;
-  clearProfile: () => void;
+  replaceProfile: (profile: UserProfile) => Promise<void>;
+  clearProfile: () => Promise<void>;
+  persistenceError: string;
   setEpisodeWatched: (slug:string,episode:string,watched:boolean)=>Promise<void>;
   profile: UserProfile | null;
   addToWatchlist: (item: NewWatchlistItem) => Promise<void>;
@@ -29,30 +30,33 @@ const ProfileContext = createContext<ProfileContextValue | null>(null);
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
+  const currentProfile = useRef<UserProfile | null>(null);
+  const [persistenceError, setPersistenceError] = useState('');
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      setProfile(stored ? validateProfile(JSON.parse(stored)) : { ...DEFAULT_PROFILE });
-    } catch {
-      setProfile({ ...DEFAULT_PROFILE });
-    }
+    let active = true;
+    void loadSavedProfile().then(saved => {
+      if (active) { currentProfile.current = saved || {...DEFAULT_PROFILE}; setProfile(currentProfile.current); }
+    }).catch(() => {
+      if (active) { setPersistenceError('Saved data could not be loaded. Export any session changes before closing the app.'); currentProfile.current = {...DEFAULT_PROFILE}; setProfile(currentProfile.current); }
+    });
+    return () => { active = false; };
   }, []);
 
-  const update = useCallback((change: (current: UserProfile) => UserProfile) => {
-    setProfile((current) => {
-      const next = { ...change(current || DEFAULT_PROFILE), updatedAt: new Date().toISOString() };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* Retain session state when browser storage is unavailable. */ }
-      return next;
-    });
+  const update = useCallback(async (change: (current: UserProfile) => UserProfile) => {
+    const next = { ...change(currentProfile.current || DEFAULT_PROFILE), updatedAt: new Date().toISOString() };
+    currentProfile.current = next; setProfile(next);
+    try { await saveProfile(next); setPersistenceError(''); }
+    catch { setPersistenceError('Changes are kept for this session but could not be saved. Export your library before closing.'); }
   }, []);
-  const replaceProfile = useCallback((value: UserProfile) => {
+  const replaceProfile = useCallback(async (value: UserProfile) => {
     const next = { ...validateProfile(value), updatedAt: new Date().toISOString() };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setProfile(next);
+    await saveProfile(next);
+    currentProfile.current = next; setProfile(next); setPersistenceError('');
   }, []);
-  const clearProfile = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setProfile({ ...DEFAULT_PROFILE, watchedEpisodes: {}, watchlist: [], continueWatching: [], topRankings: [], createdAt: new Date().toISOString() });
+  const clearProfile = useCallback(async () => {
+    await clearSavedProfile();
+    const next = { ...DEFAULT_PROFILE, watchedEpisodes: {}, watchlist: [], continueWatching: [], topRankings: [], createdAt: new Date().toISOString() };
+    currentProfile.current = next; setProfile(next); setPersistenceError('');
   }, []);
 
   const addToWatchlist = useCallback(async (item: NewWatchlistItem) => update((current) => ({ ...current, watchlist: [...current.watchlist.filter((existing) => existing.slug !== item.slug), { ...item, dateAdded: new Date().toISOString() }] })), [update]);
@@ -71,7 +75,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     return {...current,watchedEpisodes:{...history,[slug]:watched?[...new Set([...episodes,id])]:episodes.filter(value=>value!==id)}};
   }),[update]);
 
-  return <ProfileContext.Provider value={{ profile, replaceProfile, clearProfile, setEpisodeWatched, addToWatchlist, updateWatchlistStatus, removeFromWatchlist, rateItem, addToContinueWatching, updateContinueWatchingProgress, removeFromContinueWatching, getContinueWatching, getDisplayName }}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={{ profile, persistenceError, replaceProfile, clearProfile, setEpisodeWatched, addToWatchlist, updateWatchlistStatus, removeFromWatchlist, rateItem, addToContinueWatching, updateContinueWatchingProgress, removeFromContinueWatching, getContinueWatching, getDisplayName }}>{children}</ProfileContext.Provider>;
 }
 
 export function useProfile() {

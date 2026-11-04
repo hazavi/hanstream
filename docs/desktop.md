@@ -6,7 +6,7 @@ The desktop target packages the static React frontend in a Tauri 2 window. Metad
 
 Install Rust, Microsoft C++ Build Tools with the Desktop development with C++ workload, and WebView2. See [Tauri's Windows prerequisites](https://v2.tauri.app/start/prerequisites/#windows). The current local machine has a workspace Rust toolchain but lacks the C++ workload; Windows CI provides the native build environment.
 
-Set `DESKTOP_API_BASE_URL` in `.env.local` to the same public HTTPS backend used by Pages. Run `npm run desktop:dev` for a development window or `npm run desktop:build -- --locked` for an installer. `npm run build:desktop:web` builds only frontend assets. These commands use `.desktop-build/` and `desktop-out/`, independently of the Pages and backend outputs. Generated connection configuration and native build files are ignored by Git.
+Set `DESKTOP_API_BASE_URL` in `.env.local` to the public Render website address. Run `npm run desktop:dev` for a development window or `npm run desktop:build -- --locked` for an installer. `npm run build:desktop:web` builds only frontend assets. These commands use `.desktop-build/` and `desktop-out/`, independently of the Render output. Generated connection configuration and native build files are ignored by Git.
 
 The **Windows desktop** GitHub Actions workflow builds the unsigned Windows installer and portable executable and uploads them as an Actions artifact. It also launches the real app in WebView2 and checks its origin, local page loading, theme interaction, library controls, and restriction of external top-level navigation. Artifacts are retained for 14 days. No public GitHub release is created automatically.
 
@@ -14,13 +14,19 @@ The compiled Windows app passed local WebView2 checks for its HTTPS app origin, 
 
 The Windows app uses `https://tauri.localhost`; the backend permits exactly that origin alongside configured website origins. Changing the desktop scheme later would change where WebView2 stores the library. macOS and Linux installers are not included in this first Windows target.
 
+## Installation and local storage
+
+The interactive installer asks for an installation folder and offers a desktop-shortcut checkbox on its final page. It installs for the current Windows user and places `uninstall.exe` in the chosen folder. The WebView2 prerequisite may install silently; the HanStream installer itself remains interactive.
+
+The desktop library is stored in `library.sqlite3` in the application data directory, separate from the installation folder. Existing desktop localStorage data migrates only after the SQLite write succeeds. Browser libraries remain in localStorage; browser catalog responses use IndexedDB. SQLite uses WAL and fixed parameterized queries on a background worker. Cached catalog responses are bounded, expire after at most 20 minutes, and exclude playback URLs. Library export still provides a portable backup; this database is local storage, not encryption.
+
 ## Library migration
 
 Open **My Library**, choose **Export library**, then import the file into the other browser or desktop app. Imports require a supported format version and are limited to 1 MB. Text, identifiers, image URLs, progress, dates, ratings, and list lengths are validated. Unknown properties are discarded. Importing replaces the current library only after confirmation. **Delete saved data** requires a separate confirmation. No browser storage is copied automatically, and no library data is uploaded to the backend.
 
 ## Native restrictions
 
-The default main-window capability grants no native commands. Filesystem, shell, arbitrary native network access, new windows, and device permission requests are not enabled. External top-level navigation is blocked; media stays inside the existing sandboxed iframe. Downloads are blocked except blobs created by the local app, used for explicit library export. The native window loads packaged assets rather than an arbitrary remote website. See [Tauri capabilities](https://v2.tauri.app/security/capabilities/).
+The local main window can invoke only five fixed SQLite operations for library and bounded content-cache storage. No arbitrary SQL is exposed. Filesystem, shell, arbitrary native network access, new windows, and device permission requests are not enabled. External top-level navigation is blocked; media stays inside the existing sandboxed iframe. Downloads are blocked except blobs created by the local app, used for explicit library export. The native window loads packaged assets rather than an arbitrary remote website. See [Tauri capabilities](https://v2.tauri.app/security/capabilities/).
 
 CI builds a separate `automation` feature executable with a loopback-only WebView2 debugging port and GPU acceleration disabled. That test executable stays in the runner's temporary directory. The workflow restores the ordinary production executable before uploading artifacts, and the installer is built before the automation feature. Production builds never enable this test feature. Frontend script hashes and the desktop CSP restrict scripts and allow only the configured backend and Tauri's IPC transport for connections.
 

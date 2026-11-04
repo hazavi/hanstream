@@ -21,6 +21,9 @@
     "targets": ["nsis"],
     "icon": ["icons/icon.ico"],
     "createUpdaterArtifacts": false,
-    "windows": { "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true } }
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": { "installMode": "currentUser", "startMenuFolder": "HanStream", "displayLanguageSelector": false }
+    }
   }
 }

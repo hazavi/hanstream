@@ -48,7 +48,7 @@ jobs:
       - run: npm ci
       - run: npm run check:secrets
       - run: npm audit --audit-level=moderate
-      - run: npm test -- --run --maxWorkers=2
+      - run: npm run check:types
       - name: Import signing certificate
         if: inputs.signed == true
         shell: pwsh

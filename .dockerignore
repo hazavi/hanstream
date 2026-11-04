@@ -20,3 +20,8 @@ coverage
 .desktop-build
 desktop-out
 src-tauri
+
+tests
+__tests__
+playwright-report
+test-results

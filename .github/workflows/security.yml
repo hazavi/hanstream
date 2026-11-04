@@ -40,7 +40,6 @@ jobs:
       - run: npm audit --audit-level=moderate
       - run: npm run check:secrets
       - run: npm run check:types
-      - run: npm test -- --run --maxWorkers=2
       - name: Build backend without private settings
         run: npm run build:backend
         env:

@@ -8,7 +8,7 @@ import type { UserProfile } from '@/lib/types';
 import { ConfirmationModal } from './ConfirmationModal';
 
 export function ProfileTransfer() {
-  const { profile, replaceProfile, clearProfile } = useProfile();
+  const { profile, replaceProfile, clearProfile, persistenceError } = useProfile();
   const input = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<UserProfile | 'delete' | null>(null);
   const [message, setMessage] = useState('');
@@ -33,10 +33,10 @@ export function ProfileTransfer() {
       setPending(importProfile(await file.text()));
     } catch (error) { setError(error instanceof Error ? error.message : 'Import failed.'); }
   }
-  function confirm() {
+  async function confirm() {
     try {
-      if (pending === 'delete') { clearProfile(); setMessage('Saved library and watch history deleted from this device.'); }
-      else if (pending) { replaceProfile(pending); setMessage('Library imported on this device.'); }
+      if (pending === 'delete') { await clearProfile(); setMessage('Saved library and watch history deleted from this device.'); }
+      else if (pending) { await replaceProfile(pending); setMessage('Library imported on this device.'); }
       setPending(null); setError('');
     } catch { setError('The library could not be saved.'); }
   }
@@ -48,7 +48,7 @@ export function ProfileTransfer() {
       <button type="button" className="glass-btn gap-2 px-4" disabled={!profile} onClick={() => setPending('delete')}><Trash2 size={16} aria-hidden="true" />Delete saved data</button>
       <input ref={input} type="file" accept="application/json,.json" aria-label="Library file" className="sr-only" onChange={upload} />
     </div>
-    {error && <p role="alert" className="text-sm">{error}</p>}{message && <p role="status" className="text-sm text-secondary">{message}</p>}
+    {persistenceError && <p role="alert" className="text-sm">{persistenceError}</p>}{error && <p role="alert" className="text-sm">{error}</p>}{message && <p role="status" className="text-sm text-secondary">{message}</p>}
     <ConfirmationModal isOpen={pending !== null} onClose={() => setPending(null)} onConfirm={confirm} title={pending === 'delete' ? 'Delete saved library?' : 'Replace saved library?'} message={pending === 'delete' ? 'This removes the watchlist, ratings, progress, and watched episodes saved on this device. Export first if you want a backup.' : 'The imported watchlist and history will replace the library on this device. Your other devices will not change.'} confirmText={pending === 'delete' ? 'Delete library' : 'Import library'} />
   </section>;
 }
