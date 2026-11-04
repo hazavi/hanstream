@@ -10,6 +10,16 @@ concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  rust-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust dependency auditor
+        run: cargo install cargo-audit --locked
+      - name: Audit desktop dependencies
+        run: cargo audit --file src-tauri/Cargo.lock
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
