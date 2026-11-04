@@ -9,6 +9,7 @@ import { EpisodeList } from "./EpisodeList";
 import { EpisodeProgressTracker } from "./EpisodeProgressTracker";
 import { VideoControls } from "./VideoControls";
 import { formatEpisodeLabel } from "@/lib/format";
+import { EpisodeWatchedButton } from './EpisodeWatchedButton';
 
 export function WatchPage({ result, drama, slug, episode }: { result: EpisodeResult; drama?: DramaDetail; slug: string; episode: string }) {
   const frameRoot = useRef<HTMLDivElement>(null);
@@ -49,9 +50,9 @@ export function WatchPage({ result, drama, slug, episode }: { result: EpisodeRes
     <div className="watch-layout" style={frameHeight ? { "--watch-frame-height": frameHeight + "px" } as CSSProperties : undefined}><div ref={frameRoot} className="watch-primary">
       <EpisodePlayer key={`${slug}/${episode}/${playback.video}`} video={playback.video} servers={playback.servers} title={playback.title} />
       {!playback.video && <div className="flex items-center gap-3 py-3"><button type="button" className="glass-btn text-sm inline-flex items-center gap-2" onClick={retryEpisode} disabled={retrying}><RotateCcw size={14} aria-hidden="true" className={retrying ? "animate-spin" : ""}/>{retrying ? "Reloading…" : "Retry episode"}</button>{retryError && <p role="status" className="text-xs text-secondary">{retryError}</p>}</div>}
-      <div className="watch-toolbar"><span className="text-xs text-secondary">{formatEpisodeLabel(selectedEpisode)}</span><VideoControls episodes={playable} currentEpisode={selectedEpisode} slug={slug} /></div>
+      <div className="watch-toolbar"><EpisodeWatchedButton slug={slug} episode={selectedEpisode}/><VideoControls episodes={playable} currentEpisode={selectedEpisode} slug={slug} /></div>
       {current?.description && <section className="watch-summary"><h2 className="heading text-sm font-semibold mb-2">About this episode</h2><p className="text-sm text-secondary leading-relaxed">{current.description}</p></section>}
-      <EpisodeProgressTracker slug={slug} episode={selectedEpisode} title={title} image={drama?.image} totalEpisodes={playable.length} />
+      <EpisodeProgressTracker slug={slug} episode={selectedEpisode} title={title} image={drama?.image} totalEpisodes={playable.length} enabled={Boolean(playback.video)} />
     </div><EpisodeList episodes={episodes} currentEpisode={selectedEpisode} slug={slug} poster={drama?.image} coverTitle={title} coverYear={Number(drama?.meta?.Released) || undefined} /></div>
   </div>;
 }

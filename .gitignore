@@ -16,6 +16,9 @@
 # next.js
 /.next/
 /.next-dev/
+/.next-dev-webpack/
+/.next-dev-turbo/
+/.hanstream-dev.lock
 /out/
 /.pages-build/
 /data/

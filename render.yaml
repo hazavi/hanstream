@@ -24,5 +24,7 @@ services:
         sync: false
       - key: REFERENCE_SOURCE_URL
         sync: false
+      - key: POSTER_SEARCH_URLS
+        sync: false
       - key: FRONTEND_ORIGINS
         value: https://hazavi.github.io

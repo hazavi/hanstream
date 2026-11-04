@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useProfile } from "@/lib/profile";
 
 interface EpisodeProgressTrackerProps {
+  enabled?:boolean;
   slug: string;
   episode: string;
   title: string;
@@ -17,13 +18,14 @@ export function EpisodeProgressTracker({
   title,
   image,
   totalEpisodes,
+  enabled=true,
 }: EpisodeProgressTrackerProps) {
   const { profile, addToContinueWatching, updateContinueWatchingProgress } =
     useProfile();
   const recordedRoute = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!profile || recordedRoute.current === `${slug}/${episode}`) {
+    if (!enabled || !profile || recordedRoute.current === `${slug}/${episode}`) {
       return;
     }
 
@@ -31,9 +33,9 @@ export function EpisodeProgressTracker({
     if (isNaN(episodeNum)) {
       return;
     }
-    recordedRoute.current = `${slug}/${episode}`;
 
     const updateProgress = async () => {
+      recordedRoute.current = `${slug}/${episode}`;
       try {
         // Check if drama is already in continue watching
         const continueWatchingList = Array.isArray(profile.continueWatching)
@@ -69,6 +71,7 @@ export function EpisodeProgressTracker({
     return () => clearTimeout(timer);
   }, [
     profile,
+    enabled,
     slug,
     episode,
     title,

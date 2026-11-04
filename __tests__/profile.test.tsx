@@ -22,3 +22,13 @@ it("keeps a watchlist in local storage across provider mounts", async () => {
   const second = renderHook(() => useProfile(), { wrapper });
   await waitFor(() => expect(second.result.current.profile?.watchlist[0].slug).toBe("42"));
 });
+it('persists watched episodes independently per season and supports marking them unwatched',async()=>{
+  const wrapper=({children}:{children:React.ReactNode})=><ProfileProvider>{children}</ProfileProvider>;
+  const first=renderHook(()=>useProfile(),{wrapper});
+  await waitFor(()=>expect(first.result.current.profile).not.toBeNull());
+  await act(async()=>{await first.result.current.setEpisodeWatched('drama','1',true);await first.result.current.setEpisodeWatched('drama','s1e1',true);await first.result.current.setEpisodeWatched('drama','s2e1',true);});
+  expect(first.result.current.profile?.watchedEpisodes?.drama).toEqual(['s1e1','s2e1']);
+  await act(async()=>first.result.current.setEpisodeWatched('drama','s1e1',false));
+  first.unmount();const second=renderHook(()=>useProfile(),{wrapper});
+  await waitFor(()=>expect(second.result.current.profile?.watchedEpisodes?.drama).toEqual(['s2e1']));
+});

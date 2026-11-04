@@ -7,6 +7,7 @@ import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "./pl
 import { getSourceConfig } from "./server-config.mjs";
 import { searchAsianCatalog } from "./catalog-details";
 import { findPublishedDetail } from './cover-reader';
+import { validDramaSlug, validEpisodeId, validSearchQuery } from './request-validation';
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -38,6 +39,7 @@ export async function fetchRecentMovies(page = 1): Promise<RecentMoviesResponse>
 }
 
 export async function fetchSearch(query: string, page = 1): Promise<SearchResponse> {
+  if (!validSearchQuery(query) || !Number.isInteger(page) || page < 1 || page > 2000) throw new Error('Enter a title up to 160 characters and a valid page number.');
   const text = query.trim().replace(/-/g, " ");
   if (!text) return { results: [] };
   const [catalog, metadata, playback] = await Promise.allSettled([searchAsianCatalog(text), Promise.race([searchMetadata(text, page), new Promise<[]>(resolve => setTimeout(() => resolve([]), 1200))]), getPlaybackCatalog(true)]);
@@ -45,7 +47,8 @@ export async function fetchSearch(query: string, page = 1): Promise<SearchRespon
   if (catalog.status === 'fulfilled') pageSlice(catalog.value, page).forEach(item => rows.set(catalogRoute(item), popularRow(item)));
   if (metadata.status === "fulfilled") metadata.value.forEach(item => rows.set(catalogRoute(item), popularRow(item)));
   if (playback.status === "fulfilled") {
-    const unique = new Map(playback.value.filter(item => normalizeTitle(item.title).includes(normalizeTitle(text))).map(item => [catalogRoute(item), item]));
+    const normalized = normalizeTitle(text);
+    const unique = new Map(playback.value.filter(item => normalizeTitle(item.title).includes(normalized)).map(item => [catalogRoute(item), item]));
     pageSlice([...unique.values()], page).forEach(item => { if (!rows.has(catalogRoute(item))) rows.set(catalogRoute(item), popularRow(item)); });
   }
   if (!rows.size && metadata.status === "rejected" && catalog.status === 'rejected' && playback.status === 'rejected') throw metadata.reason;
@@ -53,6 +56,7 @@ export async function fetchSearch(query: string, page = 1): Promise<SearchRespon
 }
 
 export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => {
+  if (!validDramaSlug(slug)) throw new Error('Invalid drama identifier');
   const identity = parseCatalogRoute(slug);
   let item: DetailRecord | null = null;
   let alternative: Awaited<ReturnType<typeof findMetadata>> = null;
@@ -136,6 +140,7 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
 });
 
 export async function fetchEpisode(slug: string, episode: string): Promise<EpisodeResponse> {
+  if (!validEpisodeId(episode)) throw new Error('Invalid episode identifier');
   const match = /^(?:s(\d+)e)?(\d+(?:\.\d+)?)$/i.exec(episode);
   if (!match || Number(match[2]) < 1 || (match[1] && Number(match[1]) < 1)) throw new Error("Invalid episode identifier");
   const drama = await fetchDrama(slug);

@@ -8,6 +8,7 @@ type NewWatchlistItem = Omit<WatchlistItem, "dateAdded">;
 type NewContinueItem = Omit<ContinueWatchingItem, "dateAdded">;
 
 type ProfileContextValue = {
+  setEpisodeWatched: (slug:string,episode:string,watched:boolean)=>Promise<void>;
   profile: UserProfile | null;
   addToWatchlist: (item: NewWatchlistItem) => Promise<void>;
   updateWatchlistStatus: (slug: string, status: WatchStatus) => Promise<void>;
@@ -38,7 +39,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const update = useCallback((change: (current: UserProfile) => UserProfile) => {
     setProfile((current) => {
       const next = { ...change(current || DEFAULT_PROFILE), updatedAt: new Date().toISOString() };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* Retain session state when browser storage is unavailable. */ }
       return next;
     });
   }, []);
@@ -52,12 +53,28 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const removeFromContinueWatching = useCallback(async (slug: string) => update((current) => ({ ...current, continueWatching: current.continueWatching.filter((item) => item.slug !== slug) })), [update]);
   const getContinueWatching = useCallback(() => profile?.continueWatching || [], [profile]);
   const getDisplayName = useCallback(() => "My Library", []);
+  const setEpisodeWatched=useCallback(async(slug:string,episode:string,watched:boolean)=>update(current=>{
+    const id=canonicalEpisode(episode);if(!id)return current;
+    const history=current.watchedEpisodes && typeof current.watchedEpisodes==='object' ? current.watchedEpisodes : {};
+    const episodes=Array.isArray(history[slug])?history[slug]:[];
+    return {...current,watchedEpisodes:{...history,[slug]:watched?[...new Set([...episodes,id])]:episodes.filter(value=>value!==id)}};
+  }),[update]);
 
-  return <ProfileContext.Provider value={{ profile, addToWatchlist, updateWatchlistStatus, removeFromWatchlist, rateItem, addToContinueWatching, updateContinueWatchingProgress, removeFromContinueWatching, getContinueWatching, getDisplayName }}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={{ profile, setEpisodeWatched, addToWatchlist, updateWatchlistStatus, removeFromWatchlist, rateItem, addToContinueWatching, updateContinueWatchingProgress, removeFromContinueWatching, getContinueWatching, getDisplayName }}>{children}</ProfileContext.Provider>;
 }
 
 export function useProfile() {
   const context = useContext(ProfileContext);
   if (!context) throw new Error("useProfile must be used within ProfileProvider");
   return context;
+}
+
+export function canonicalEpisode(value:string) {
+  const match=/^(?:s(\d+)e)?(\d+(?:\.\d+)?)$/i.exec(value);
+  return match && Number(match[2])>0 ? 's'+Number(match[1]||1)+'e'+Number(match[2]) : '';
+}
+export function useEpisodeHistory(slug:string) {
+  const context=useContext(ProfileContext);
+  const values=context?.profile?.watchedEpisodes?.[slug];
+  return {watched:Array.isArray(values)?values:[],ready:Boolean(context?.profile),setWatched:(episode:string,watched:boolean)=>context?.setEpisodeWatched(slug,episode,watched)};
 }

@@ -3,13 +3,13 @@ import { DramaCard } from "@/components/DramaCard";
 import { redirect } from "next/navigation";
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string | string[]; page?: string | string[] }>;
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
-  const query = params.q || "";
-  const page = params.page ? parseInt(params.page, 10) || 1 : 1;
+  const query = typeof params.q === 'string' ? params.q.slice(0, 161) : '';
+  const page = typeof params.page === 'string' && /^[1-9]\d{0,3}$/.test(params.page) ? Number(params.page) : 1;
 
   let data: { results?: SearchResultItem[] } | null = null;
   let results: SearchResultItem[] = [];

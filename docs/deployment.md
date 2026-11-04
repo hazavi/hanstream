@@ -10,7 +10,7 @@ Push `render.yaml` and the deployment scripts to GitHub, then open [Deploy the b
 
 Render prompts for `STREAM_SOURCE_URL`, `METADATA_SOURCE_URL`, `EDITORIAL_SOURCE_URL`, and `DETAILS_SOURCE_URL`. Copy their values from your local `.env.local` into Render's private environment fields. Their values are not stored in `render.yaml`. The Blueprint sets `FRONTEND_ORIGINS=https://hazavi.github.io` and uses `/api/health` for readiness. A 503 health response means the required source configuration is missing or invalid.
 
-For the richer detail and watch pages, also copy `CATALOG_SOURCE_URL`, `MEDIA_SOURCE_URL`, `ARTWORK_SOURCE_URL`, and `REFERENCE_SOURCE_URL` from the ignored local `.env.local` into the backend's private environment. They enable the alternative show/episode guide, official trailers, poster recovery, and broadcaster metadata. An existing Render service needs these reader settings added before deploying this update; pushing code does not upload the ignored environment file. Keep all source settings server-only.
+For the richer detail and watch pages, also copy `CATALOG_SOURCE_URL`, `MEDIA_SOURCE_URL`, `ARTWORK_SOURCE_URL`, `REFERENCE_SOURCE_URL`, and `POSTER_SEARCH_URLS` from the ignored local `.env.local` into the backend's private environment. They enable the alternative show/episode guide, official trailers, poster recovery, and broadcaster metadata. An existing Render service needs these reader settings added before deploying this update; pushing code does not upload the ignored environment file. Keep all source settings server-only.
 
 When Render reports the service is live, copy its public HTTPS origin from the service dashboard. From this checkout, run `npm run connect:backend --` followed by that URL. The command checks health, CORS access from GitHub Pages, and actual homepage content before changing GitHub. It then saves `API_BASE_URL` as a repository variable and starts a new **Deploy GitHub Pages** workflow on the default branch, using your existing Git credential manager sign-in. No Render API token is required for this command. The frontend remains on GitHub Pages.
 
@@ -30,6 +30,7 @@ Set these private environment variables on that service, using the values from y
 - `MEDIA_SOURCE_URL`
 - `ARTWORK_SOURCE_URL`
 - `REFERENCE_SOURCE_URL`
+- `POSTER_SEARCH_URLS`
 - `FRONTEND_ORIGINS=https://hazavi.github.io`
 
 `FRONTEND_ORIGINS` accepts comma-separated exact origins without paths or trailing slashes. Add the custom domain's origin if you later use one.
@@ -73,4 +74,6 @@ Drama and episode URLs use `/drama/?id=...` and `/watch/?id=...&episode=...`, al
 
 Build the regular server app with `npm run build`, or the container-ready standalone output with `npm run build:backend`.
 
-The production dependency audit passes. The development lint dependency chain still has six high-severity advisories involving glob pattern parsing; npm currently proposes a framework lint-config downgrade to remove them. Those packages are not exposed by the exported frontend. Recheck `npm audit` when updating the lint tooling.
+The production dependency audit passes. The development lint dependency chain currently has 14 moderate advisories involving glob pattern parsing; npm proposes incompatible lint-tool downgrades to remove them. Those packages are not exposed by the exported frontend. Recheck `npm audit` when updating the lint tooling.
+
+The backend sends security headers from `next.config.ts`. The Pages build adds a script-hash CSP to every exported HTML file and verifies those hashes before deployment. GitHub Pages cannot apply the backend's custom response headers; see [security controls](security.md) for the difference. Redeploy both builds to apply these changes; no additional secrets are needed.

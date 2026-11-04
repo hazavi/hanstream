@@ -6,31 +6,55 @@ import { catalogRoute, normalizeTitle, type CatalogTitle } from "./catalog";
 import { collectMetadata, homepageSections, lookupMetadata, matchMetadata, rankingLists } from "./metadata-source.mjs";
 import { findCatalogArtwork } from "./catalog-details";
 import type { DramaCast } from './api-types';
+import { getCalendarTitles, type CalendarTitle } from './calendar-reader';
 
 export { HOME_LABELS } from "./metadata-source.mjs";
 export type HomeSection = "reviews" | "trending" | "starting" | "ending";
 export type Ranking = "airing" | "upcoming" | "popular";
-export type MetadataTitle = CatalogTitle & { sourceName: string; indexOnly?: boolean; aliases?: string[]; cast?: DramaCast[]; meta?: Record<string, string | number>; overview?: string; otherNames?: string; startDate?: string; endDate?: string };
+export type MetadataTitle = CatalogTitle & { sourceName: string; indexOnly?: boolean; airing?:boolean;upcoming?:boolean; aliases?: string[]; cast?: DramaCast[]; meta?: Record<string, string | number>; overview?: string; otherNames?: string; startDate?: string; endDate?: string };
 type Editorial = { titles: MetadataTitle[]; trending: MetadataTitle[]; popular: MetadataTitle[]; reviews: MetadataTitle[] };
 export type MetadataSnapshot = { version: 2; fetchedAt: string; titles: MetadataTitle[]; airingUrls: string[]; editorial: Editorial; sources: string[] };
 
+function mergeCalendar(snapshot:MetadataSnapshot,items:CalendarTitle[]):MetadataSnapshot {
+  const titles=[...snapshot.titles];
+  for(const item of items){const index=titles.findIndex(old=>normalizeTitle(old.title)===normalizeTitle(item.title)&&(!old.year||!item.year||old.year===item.year));
+    const old=titles[index];const next=old?{...item,...old,airing:item.airing,upcoming:item.upcoming,year:old.year||item.year,startDate:old.startDate||item.startDate,endDate:old.endDate||item.endDate,image:old.image&&old.image!='/file.svg'?old.image:item.image,meta:{...item.meta,...old.meta}}:item;
+    if(index<0)titles.push(next);else titles[index]=next;
+  }return {...snapshot,titles};
+}
 const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
-  const first = await collectMetadata(readHtml, { previous, limit: 12 }) as MetadataSnapshot;
-  void collectMetadata(readHtml, { previous: first, limit: 60 }).then((next: MetadataSnapshot) => liveMetadata.prime(next)).catch(() => {});
+  const [main,calendar]=await Promise.allSettled([collectMetadata(readHtml,{previous,limit:12}),getCalendarTitles()]);
+  if(main.status==='rejected'&&calendar.status==='rejected')throw main.reason;
+  const base=main.status==='fulfilled'?main.value as MetadataSnapshot:previous||{version:2 as const,fetchedAt:new Date().toISOString(),titles:[],airingUrls:[],editorial:{titles:[],trending:[],popular:[],reviews:[]},sources:[]};
+  const items=calendar.status==='fulfilled'?calendar.value:[];
+  const first=mergeCalendar(base,items);
+  void collectMetadata(readHtml, { previous: first, limit: 60 }).then((next: MetadataSnapshot) => liveMetadata.prime(mergeCalendar(next,items))).catch(() => {});
   return first;
 }, 21_600_000);
 
 export const getMetadata = cache(liveMetadata);
+async function datedMetadata() {
+  const [snapshot,calendar]=await Promise.all([getMetadata(),getCalendarTitles().catch(()=>[])]);
+  return mergeCalendar(snapshot,calendar);
+}
 export const getHomepage = cache(async (): Promise<Record<HomeSection, CatalogTitle[]>> => {
-  const sections = homepageSections(await getMetadata()) as Record<HomeSection, MetadataTitle[]>;
-  await Promise.all((Object.keys(sections) as HomeSection[]).map(async section => { sections[section] = await enrichArtwork(sections[section]); }));
+  const sections = homepageSections(await datedMetadata()) as Record<HomeSection, MetadataTitle[]>;
+  // One worker pool for all sections, including titles appearing in several grids.
+  const keys = Object.keys(sections) as HomeSection[];
+  const enriched = await enrichArtwork(keys.flatMap(section => sections[section]));
+  let offset = 0;
+  for (const section of keys) {
+    const length = sections[section].length;
+    sections[section] = enriched.slice(offset, offset + length);
+    offset += length;
+  }
   return Object.fromEntries(Object.entries(sections).map(([section, items]) => [section, items.map(item => ({
     title: item.title, image: item.image, year: item.year, movie: item.movie,
     url: catalogRoute(item), date: item.date, note: item.note,
   }))])) as Record<HomeSection, CatalogTitle[]>;
 });
 export async function getMetadataList(kind: Ranking, page = 1): Promise<MetadataTitle[]> {
-  const lists = rankingLists(await getMetadata()) as Record<Ranking, MetadataTitle[]>;
+  const lists = rankingLists(await datedMetadata()) as Record<Ranking, MetadataTitle[]>;
   const current = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
   return enrichArtwork(lists[kind].slice((current - 1) * 20, current * 20));
 }

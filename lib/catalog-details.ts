@@ -6,6 +6,7 @@ import { createKeyedCache } from "./runtime-cache";
 import { parseCatalogSearch, parseCatalogDetails, parseCatalogEpisodes, parseMediaSearch } from "./catalog-reader.mjs";
 import type { DetailRecord } from "./details";
 import { lookupMetadata } from "./metadata-source.mjs";
+import { findAlbumPoster } from './album-reader';
 import { findPublishedCover } from './cover-reader';
 import { findReferenceDetail } from './reference-reader';
 
@@ -56,14 +57,14 @@ export const findCatalogArtwork = createKeyedCache<string | undefined>(async key
       } catch { /* A season can still use another published cover. */ }
     }
   }
+  const metadata = async () => {
+    const exact=await lookupMetadata(title,year,false,readHtml);
+    const candidate=exact || (year ? await lookupMetadata(title,undefined,false,readHtml) : null);
+    return candidate && (!year || !candidate.year || candidate.year===year) && candidate.image!=='/file.svg' ? candidate.image : undefined;
+  };
   try {
-    const exact = await lookupMetadata(title, year, false, readHtml);
-    const candidate = exact || (year ? await lookupMetadata(title, undefined, false, readHtml) : null);
-    const detail = candidate && (!year || !candidate.year || candidate.year === year) ? candidate : null;
-    if (detail?.image && detail.image !== '/file.svg') return detail.image;
-  } catch { /* Try the independent published-cover reader. */ }
-  const [reference, cover] = await Promise.all([findReferenceDetail(title, year), findPublishedCover(title, year)]);
-  return reference?.image && reference.image !== '/file.svg' ? reference.image : cover;
+    return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
+  } catch { return undefined; }
 });
 export async function searchAsianCatalog(query: string) {
   const rows = await searchCatalogTitles(query);

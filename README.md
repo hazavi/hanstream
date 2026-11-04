@@ -10,6 +10,10 @@ npm install
 npm run dev
 ```
 
+The default development command uses Webpack with its own clean `.next-dev-webpack` cache to avoid the Next 15.5 Turbopack debug-frame decoder failure (`frame.join`). `npm run dev:turbo` remains available for explicit experiments and uses a separate cache. Reusable shadcn primitives and the supplied bookmark-tabs demo live in `components/ui`; application components stay in `components`, with shared styles in `app/globals.css` and the `cn` helper in `lib/utils.ts`. `components.json` records these aliases for the shadcn CLI.
+
+Use `npm run dev` for development, including `npm run dev -- --port 3000` when specifying a port. Its launcher permits one dev server per checkout so two Next processes cannot overwrite the same vendor chunks. Stop the existing terminal with Ctrl+C before restarting. The ignored runtime lock is released on exit and recovered after a terminated launcher. The server HTML parser and transport load as native Node dependencies instead of generated vendor chunks. Production builds keep their separate `.next` output.
+
 Source configuration lives in the ignored .env.local file. Set STREAM_SOURCE_URL, METADATA_SOURCE_URL, EDITORIAL_SOURCE_URL, and DETAILS_SOURCE_URL to HTTPS origins. CATALOG_SOURCE_URL enables the additional public show and episode guide reader; MEDIA_SOURCE_URL enables official trailer discovery from public search HTML. These reader settings are already configured in this checkout's ignored local environment and must also be copied to the backend host before deploying this update. No API keys are required. The app's own routes expose only the data needed for browsing and playback. Catalogs are fetched at runtime and cached inside the backend process. No metadata or playback data files are included in the repository or deployment image.
 
 The source readers are marked server-only. Never prefix these variables with NEXT_PUBLIC_ or add them to next.config.env. On deployment, set the variables in the hosting service's private server environment.
@@ -18,7 +22,7 @@ Environment variables keep source configuration out of the client bundle. The br
 
 The homepage includes latest episodes, popular dramas, reviews, weekly trends, premieres, and finales. Cards open internal drama pages. Source labels and outbound navigation are omitted from the interface; playback servers use numbered controls.
 
-Drama pages share the same layout on the backend and GitHub Pages. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Show info, cast, and trailer share centered pill tabs below the poster and summary, with Show info selected first; cast pages show six people, and actor portraits load only for the current page using the existing catalogs. The trailer tab is omitted when no trailer is available. Upcoming episodes remain visible without a playback link and keep their full episode number. Released episodes without a published still use the show poster. Missing or blocked detail pages use available fallback metadata and verified playback entries.
+Drama pages share the same layout on the backend and GitHub Pages. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Show info, cast, and trailer share left-aligned tabs inside a bordered panel below the poster and summary, with Show info selected first; cast pages show six people, and actor portraits load only for the current page using the existing catalogs. The trailer tab is omitted when no trailer is available. Upcoming episodes remain visible without a playback link and keep their full episode number. Released episodes without a published still use the show poster. Missing or blocked detail pages use available fallback metadata and verified playback entries.
 
 ## Runtime catalog data
 
@@ -27,6 +31,8 @@ The backend reads current HTML pages after startup. Drama details use title-spec
 The watch page uses a responsive player and episode sidebar with pictures, descriptions, season selection, exact-number or title search, and sorting in a compact list. Large episode lists mount at most 50 cards per range. Successful browser data requests are reused for 30 seconds, and concurrent backend lookups for the same title share one request.
 
 The process keeps live results in memory and refreshes them periodically. If a refresh fails, it keeps the data already fetched by that process. HTML requests share a bounded in-memory cache, time out within 3.5 seconds, and cool down an unreachable host for one minute. Previous valid HTML remains available during an outage. Image endpoints cap each request at 5.5 seconds, while background lookup results can be reused later. An unavailable metadata host does not discard accessible editorial listings, and the existing artwork catalog can also recover published cast details. A cold backend needs at least one relevant source page to be available. Restarting clears these in-memory catalogs. The ignored `data/` directory is excluded from Docker builds.
+
+The homepage API shares a successful snapshot for 30 seconds and refreshes it in the background. All homepage sections share one artwork worker pool. HTML reads cap concurrent uncached requests and cancel response bodies above 5 MB before buffering the entire page. See [security controls and deployment limits](docs/security.md) for request validation, browser policies, iframe isolation, and dependency checks.
 
 Weekly lists use published dates and Monday to Sunday in Europe/Copenhagen. No finale is inferred from an episode count. Title matching includes the release year so different remakes are kept separate.
 
@@ -51,3 +57,9 @@ Use the [deployment guide](docs/deployment.md) for the Pages frontend and separa
 The optional private ARTWORK_SOURCE_URL enables a published-series-cover fallback for missing posters. Copy its value from the ignored local environment into your backend environment before deploying.
 
 The optional private REFERENCE_SOURCE_URL enables the public broadcaster catalog fallback for matching titles, including cast and summaries. Copy its value from the ignored local environment to the backend host.
+
+Watched status is saved per show, season, and episode in the local profile. Use the watched/unwatched controls in the detail grid, watch sidebar, or player toolbar. Opening a page updates resume history only when a player is available and never marks an episode watched. Embedded third-party players do not provide a generic trusted completion event, so watched completion stays under the viewer's control.
+
+Airing, upcoming, and weekly premiere/finale lists can use published HTML calendar dates and filtered scripted-show catalogs when the primary metadata index is unavailable. Dates are not inferred from episode counts.
+
+For the additional official-distributor poster fallback, copy `POSTER_SEARCH_URLS` from the ignored local environment to the backend host. It contains comma-separated public HTML search URL templates with `{query}`. Keep this server-only.

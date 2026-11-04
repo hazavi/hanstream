@@ -1,5 +1,7 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { load } from 'cheerio';
+import { createHash } from 'node:crypto';
 const root = path.resolve("out");
 const forbidden = /(?:^|\/)(?:\.env[^/]*|api|data|node_modules|server-config\.mjs|playback-catalog\.json|drama-metadata\.json)(?:\/|$)/;
 let count = 0;
@@ -13,8 +15,18 @@ async function walk(directory) {
       count++;
       if (/\.(?:js|html|txt|json)$/.test(entry)) {
         const content = await readFile(file, "utf8");
-        if (/(?:STREAM_SOURCE_URL|METADATA_SOURCE_URL|EDITORIAL_SOURCE_URL|DETAILS_SOURCE_URL|CATALOG_SOURCE_URL|MEDIA_SOURCE_URL|ARTWORK_SOURCE_URL|REFERENCE_SOURCE_URL|SIMKL_CLIENT_ID)/.test(content)) throw new Error(`Private configuration reference in ${relative}`);
-        for (const name of ["STREAM_SOURCE_URL", "METADATA_SOURCE_URL", "EDITORIAL_SOURCE_URL", "DETAILS_SOURCE_URL", "CATALOG_SOURCE_URL", "MEDIA_SOURCE_URL", "ARTWORK_SOURCE_URL", "REFERENCE_SOURCE_URL"]) {
+        if (entry.endsWith('.html')) {
+          const $ = load(content);
+          const policy = $('meta[http-equiv="Content-Security-Policy"]').attr('content') || '';
+          const scriptPolicy = policy.split(';').find(directive => directive.trim().startsWith('script-src ')) || '';
+          if (!policy.includes("object-src 'none'") || !policy.includes("base-uri 'none'") || /unsafe-inline|unsafe-eval/.test(scriptPolicy)) throw new Error(`Missing or unsafe script policy in ${relative}`);
+          $('script:not([src])').each((_, element) => {
+            const hash = createHash('sha256').update($(element).html() || '').digest('base64');
+            if (!scriptPolicy.includes(`'sha256-${hash}'`)) throw new Error(`Unapproved inline script in ${relative}`);
+          });
+        }
+        if (/(?:STREAM_SOURCE_URL|METADATA_SOURCE_URL|EDITORIAL_SOURCE_URL|DETAILS_SOURCE_URL|CATALOG_SOURCE_URL|MEDIA_SOURCE_URL|ARTWORK_SOURCE_URL|REFERENCE_SOURCE_URL|POSTER_SEARCH_URLS|SIMKL_CLIENT_ID)/.test(content)) throw new Error(`Private configuration reference in ${relative}`);
+        for (const name of ["STREAM_SOURCE_URL", "METADATA_SOURCE_URL", "EDITORIAL_SOURCE_URL", "DETAILS_SOURCE_URL", "CATALOG_SOURCE_URL", "MEDIA_SOURCE_URL", "ARTWORK_SOURCE_URL", "REFERENCE_SOURCE_URL", "POSTER_SEARCH_URLS"]) {
           const value = process.env[name];
           if (value && content.includes(value)) throw new Error(`Private configuration value in ${relative}`);
         }

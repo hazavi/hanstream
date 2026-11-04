@@ -22,3 +22,35 @@ it('coalesces HTML reads, reuses results, and preserves old data during an outag
   expect(await readHtml('https://metadata.example/saved',1)).toContain('Published HTML');
   expect(fetch).toHaveBeenCalledTimes(2);
 });
+
+it('blocks off-source requests and redirects before contacting any other origin', async () => {
+  const fetch = vi.fn().mockResolvedValue(new Response(null, {status:302, headers:{location:'https://127.0.0.1/private'}}));
+  vi.stubGlobal('fetch',fetch);
+  await expect(readHtml('https://not-configured.example/')).rejects.toThrow('Invalid source URL');
+  expect(fetch).not.toHaveBeenCalled();
+  await expect(readHtml('https://metadata.example/redirect')).rejects.toThrow('temporarily unavailable');
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it('cancels oversized responses before buffering the complete body', async () => {
+  const cancel=vi.fn();
+  let sent=0;
+  const body=new ReadableStream({pull(controller){controller.enqueue(new Uint8Array(1_000_000));sent++;},cancel});
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(body,{headers:{'content-type':'text/html'}})));
+  await expect(readHtml('https://metadata.example/oversized')).rejects.toThrow('temporarily unavailable');
+  expect(cancel).toHaveBeenCalledOnce();
+  expect(sent).toBeLessThanOrEqual(7);
+});
+
+it('caps concurrent uncached reads while still sharing an existing lookup', async () => {
+  const finishes: (()=>void)[]=[];
+  const fetch=vi.fn().mockImplementation(()=>new Promise<Response>(resolve=>finishes.push(()=>resolve(new Response('<p>ok</p>',{headers:{'content-type':'text/html'}})))));
+  vi.stubGlobal('fetch',fetch);
+  const reads=Array.from({length:24},(_,i)=>readHtml(`https://metadata.example/${i}`));
+  await expect(readHtml('https://metadata.example/overflow')).rejects.toThrow('temporarily unavailable');
+  const shared=readHtml('https://metadata.example/0');
+  expect(fetch).toHaveBeenCalledTimes(24);
+  finishes.forEach(finish=>finish());
+  expect(await shared).toBe('<p>ok</p>');
+  await Promise.all(reads);
+});

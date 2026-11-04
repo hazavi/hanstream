@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowUp, ArrowDown, Search, Play } from "lucide-react";
 import type { EpisodeListItem } from "@/lib/api-types";
 import { Artwork } from "./Artwork";
+import { EpisodeWatchedButton } from './EpisodeWatchedButton';
+import { canonicalEpisode, useEpisodeHistory } from '@/lib/profile';
 
 type Episode = EpisodeListItem & { id: string };
 const identity = (episode: Episode) => {
@@ -14,6 +16,7 @@ const identity = (episode: Episode) => {
 const pageSize = 50;
 
 export function EpisodeList({ episodes, currentEpisode, slug, poster, coverTitle, coverYear }: { episodes: Episode[]; currentEpisode: string; slug: string; poster?: string; coverTitle?: string; coverYear?: number }) {
+  const history=useEpisodeHistory(slug);
   const active = episodes.find(episode => episode.id === currentEpisode);
   const activeSeason = active ? identity(active).season : 1;
   const [query, setQuery] = useState("");
@@ -61,7 +64,7 @@ export function EpisodeList({ episodes, currentEpisode, slug, poster, coverTitle
         const disabled = episode.available === false || upcoming;
         const title = episode.title || `Episode ${number}`;
         const content = <><div className="episode-thumbnail"><Artwork sources={upcoming ? [] : [episode.image, poster]} alt="" title={upcoming ? undefined : coverTitle} year={coverYear} placeholder={upcoming ? "Upcoming" : undefined} />{current && <span className="episode-playing" aria-hidden="true"><Play size={11} fill="currentColor" aria-hidden="true"/></span>}</div><div className="episode-copy"><p className="episode-name"><span>{number}.</span> {title}</p>{episode.description && <p className="episode-description">{episode.description}</p>}{current ? <p className="episode-state">Now playing</p> : disabled ? <p className="episode-state text-secondary">{upcoming ? "" : "Unavailable"}</p> : episode.time && <time className="episode-date" dateTime={episode.time}>{new Date(episode.time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Copenhagen" })}</time>}</div></>;
-        return disabled ? <article className="watch-episode is-unavailable" key={episode.id} aria-label={`Episode ${number}: ${title}`}>{content}</article> : <Link key={episode.id} href={`/${slug}/episode/${episode.id}`} prefetch={false} aria-current={current ? "page" : undefined} aria-label={`Episode ${number}: ${title}`} className={`watch-episode ${current ? "is-current" : ""}`}>{content}</Link>;
+        return disabled ? <article className="watch-episode is-unavailable" key={episode.id} aria-label={`Episode ${number}: ${title}`}>{content}</article> : <div key={episode.id} className={`watch-episode ${current ? "is-current" : ""} ${history.watched.includes(canonicalEpisode(episode.id))?"is-watched":""}`}><Link href={`/${slug}/episode/${episode.id}`} prefetch={false} aria-current={current ? "page" : undefined} aria-label={`Episode ${number}: ${title}`} className="watch-episode-link">{content}</Link><EpisodeWatchedButton slug={slug} episode={episode.id} compact/></div>;
       })}
       {!visible.length && <p className="source-empty py-8" role="status">{episodes.length ? "No episodes match your search." : "No episodes are listed yet."}</p>}
     </div>

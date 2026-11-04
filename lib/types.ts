@@ -37,6 +37,7 @@ export interface ContinueWatchingItem {
 }
 
 export interface UserProfile {
+  watchedEpisodes?: Record<string,string[]>;
   displayName?: string;
   displayNameLastChanged?: string; // ISO date string - when display name was last changed
   profilePicture: string; // template picture identifier
@@ -62,6 +63,7 @@ export type ProfileTemplateId = typeof PROFILE_TEMPLATES[number]['id'];
 
 // Default profile
 export const DEFAULT_PROFILE: UserProfile = {
+  watchedEpisodes: {},
   profilePicture: 'avatar-1',
   watchlist: [],
   continueWatching: [],

@@ -24,6 +24,8 @@ export class SourceUnavailable extends Error {
 const unavailableUntil = new Map<string, number>();
 const pages = new Map<string, { html: string; expires: number }>();
 const pending = new Map<string, Promise<string>>();
+const MAX_HTML_BYTES = 5_000_000;
+const MAX_PENDING_READS = 24;
 export function clearHtmlCache() { pages.clear(); pending.clear(); unavailableUntil.clear(); }
 
 // Only public HTML pages from the configured sources may be requested.
@@ -34,6 +36,10 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 3500)
   if (revalidate > 0 && saved && saved.expires > Date.now()) return saved.html;
   const existing = pending.get(url.href);
   if (existing) return existing;
+  if (pending.size >= MAX_PENDING_READS) {
+    if (saved) return saved.html;
+    throw new SourceUnavailable('Catalog');
+  }
   const request = readFreshHtml(url.href, Math.min(timeout, 3500)).then(html => {
     if (revalidate > 0 && html.length < 1_000_000) pages.set(url.href, { html, expires: Date.now() + revalidate * 1000 });
     if (pages.size > 80) pages.delete(pages.keys().next().value!);
@@ -75,25 +81,56 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
       throw new SourceUnavailable(source);
     }
     if ([500, 502, 503, 504].includes(response.status) && !retried) {
+      await response.body?.cancel();
       retried = true;
       await new Promise(resolve => setTimeout(resolve, 150));
       continue;
     }
     if ([301, 302, 303, 307, 308].includes(response.status)) {
+      await response.body?.cancel();
       const location = httpsUrl(response.headers.get("location") || undefined, url.href);
       if (!location || !allowedOrigins.has(new URL(location).origin) || !isSourceRedirect(url, new URL(location))) throw new SourceUnavailable(source);
       url = new URL(location);
       continue;
     }
     if ([403, 429].includes(response.status)) unavailableUntil.set(url.origin, Date.now() + 60_000);
-    if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html")) throw new SourceUnavailable(source);
-    const html = await response.text();
+    if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html")) {
+      await response.body?.cancel();
+      throw new SourceUnavailable(source);
+    }
+    const html = await limitedHtml(response);
     // Content pages may include a challenge script alongside their published HTML.
     // Reject actual interstitial pages, without rejecting that accessible content.
-    if (html.length > 5_000_000 || /<title>\s*(?:Just a moment|One moment,?\s*please|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) throw new SourceUnavailable(source);
+    if (/<title>\s*(?:Just a moment|One moment,?\s*please|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) throw new SourceUnavailable(source);
     return html;
   }
   throw new SourceUnavailable(source);
+}
+
+async function limitedHtml(response: Response): Promise<string> {
+  if (Number(response.headers.get('content-length')) > MAX_HTML_BYTES) {
+    await response.body?.cancel();
+    throw new SourceUnavailable('Catalog');
+  }
+  const reader = response.body?.getReader();
+  if (!reader) return '';
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_HTML_BYTES) {
+        await reader.cancel();
+        throw new SourceUnavailable('Catalog');
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join('');
+  } finally { reader.releaseLock(); }
 }
 
 export function structuredItems(html: string): Record<string, unknown>[] {

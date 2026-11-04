@@ -9,6 +9,8 @@ import { Breadcrumb } from "./Breadcrumb";
 import { DescriptionSection } from "./DescriptionSection";
 import { WatchlistButton } from "./WatchlistButton";
 import { DramaRatingButton } from "./DramaRatingButton";
+import { EpisodeWatchedButton } from './EpisodeWatchedButton';
+import { canonicalEpisode, useEpisodeHistory } from '@/lib/profile';
 
 
 function airDate(value?: string) {
@@ -16,7 +18,9 @@ function airDate(value?: string) {
   return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Copenhagen" });
 }
 
-function EpisodeCard({ episode, posters }: { episode: DramaEpisode; posters: (string | undefined)[] }) {
+function EpisodeCard({ episode, posters,slug }: { episode: DramaEpisode; posters: (string | undefined)[];slug:string }) {
+  const id=episode.episode_link.split('/').pop()||String(episode.episode);
+  const watched=useEpisodeHistory(slug).watched.includes(canonicalEpisode(id));
   const future = Boolean(episode.release_date && Date.parse(episode.release_date) > Date.now() || episode.available === false && !episode.release_date);
   const available = episode.available !== false && !future;
   const label = `Episode ${episode.episode}`;
@@ -34,9 +38,9 @@ function EpisodeCard({ episode, posters }: { episode: DramaEpisode; posters: (st
       {!available && !future && <p className="text-xs text-secondary">Playback unavailable</p>}
     </div>
   </>;
-  const classes = `block overflow-hidden glass-card rounded-xl ${available ? "card-hover group" : ""}`;
+  const classes = `block overflow-hidden glass-card rounded-xl ${available ? "card-hover group" : ""} ${watched?'is-watched episode-card-watched':''}`;
   const accessibleName = `${(episode.season || 1) > 1 ? `Season ${episode.season}, ` : ""}${label}${episode.title ? `: ${episode.title}` : ""}`;
-  return available ? <Link href={episode.episode_link} aria-label={accessibleName} className={classes} prefetch={false}>{content}</Link> : <article aria-label={accessibleName} className={classes}>{content}</article>;
+  return <article aria-label={available?undefined:accessibleName} className={classes}>{available?<Link href={episode.episode_link} aria-label={accessibleName} prefetch={false}>{content}</Link>:content}{!future&&<div className="px-3 pb-3"><EpisodeWatchedButton slug={slug} episode={id}/></div>}</article>;
 }
 
 export function DramaDetails({ detail, slug }: { detail: DramaDetail; slug: string }) {
@@ -66,7 +70,7 @@ export function DramaDetails({ detail, slug }: { detail: DramaDetail; slug: stri
     </div>
     <div className="detail-media-row"><DramaMedia key={slug} cast={cast} trailer={detail.trailer} facts={facts}/></div>
     <section aria-labelledby="episodes-heading" className="space-y-5"><h2 id="episodes-heading" className="text-xl sm:text-2xl font-bold heading">Episodes ({detail.episodes?.length || 0})</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">{detail.episodes?.map(episode => <EpisodeCard key={episode.episode_link} episode={episode} posters={posters} />)}</div>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">{detail.episodes?.map(episode => <EpisodeCard key={episode.episode_link} episode={episode} posters={posters} slug={slug}/>)}</div>
       {!detail.episodes?.length && <p className="source-empty">No episodes are listed yet.</p>}
     </section>
   </div>;
