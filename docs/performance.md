@@ -10,6 +10,8 @@ The report separates the first API request from the next warm request. It also o
 
 Local development measurement on 2026-11-04: homepage API first/warm requests took 14,079/926 ms; search took 7,251/115 ms. The mobile browser passes reported zero runtime errors and no horizontal overflow. Development compilation affected these numbers; they are not production benchmarks or a controlled before/after comparison. Repeat against the deployed production frontend and backend after release.
 
+After deployment and the outbound transport repair, the same script measured homepage API requests at 4,073/42 ms and search at 878/79 ms (first/warm). Under mobile throttling, LCP was 10,460/4,032 ms, with images loaded, no runtime errors, and no horizontal overflow. These are individual samples with changing upstream data, not a controlled speedup ratio. The desktop/library validation adds about 1 kB to the post-split initial route bundle, bringing it to about 124 kB versus the original 156 kB.
+
 Homepage and detail responses include a `Server-Timing` duration. In-process diagnostics count HTML cache hits, misses and failures, persistent cache activity, and image processing results. Counters use fixed names and contain no source URLs, titles, credentials, or request bodies.
 
 ## Optional persistent metadata cache

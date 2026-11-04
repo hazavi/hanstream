@@ -10,6 +10,8 @@ The lint parser and plugin are pinned to the current ESLint-9-compatible release
 
 The Windows target has a separate RustSec audit of `src-tauri/Cargo.lock` in CI. This scans native dependencies as well as the npm checks for frontend and backend dependencies. RustSec warnings about unmaintained packages need review even when they do not fail the vulnerability check.
 
+The initial Rust audit reported two informational warnings in the cross-platform lockfile: unmaintained `proc-macro-error` 1.0.4 ([RUSTSEC-2024-0370](https://rustsec.org/advisories/RUSTSEC-2024-0370)) and a `glib` 0.18.5 iterator soundness issue ([RUSTSEC-2024-0429](https://rustsec.org/advisories/RUSTSEC-2024-0429)). Neither appears in the current Windows dependency graph. CI also checks the Windows graph with the optional signed updater enabled and fails if those affected versions enter it. The warnings remain visible in the full audit; they are not silently ignored. Revisit the GTK dependencies before adding a Linux build.
+
 ## Request limits
 
 API requests have one-minute category budgets. With no verified client identity, requests share limits of 120 search, 180 detail, 600 image, and 300 other catalog requests per minute. Health checks are exempt. Rejections return 429 and `Retry-After`. The map is bounded to 10,000 active entries. With `CACHE_URL` configured, atomic Redis counters share the limits across backend instances; cache failures fall back to process-local counters.

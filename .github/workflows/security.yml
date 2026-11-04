@@ -20,6 +20,13 @@ jobs:
         run: cargo install cargo-audit --locked
       - name: Audit desktop dependencies
         run: cargo audit --file src-tauri/Cargo.lock
+      - name: Check Windows advisory scope
+        run: |
+          cargo tree --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --features signed-updates --edges normal,build --prefix none > windows-dependencies.txt
+          if rg '^glib v0\.(15|16|17|18|19)\.|^proc-macro-error v1\.' windows-dependencies.txt; then
+            echo 'An unresolved off-target advisory has entered the Windows dependency graph.'
+            exit 1
+          fi
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
