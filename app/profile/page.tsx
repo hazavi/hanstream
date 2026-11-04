@@ -3,14 +3,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useProfile } from "@/lib/profile";
+import { ProfileTransfer } from '@/components/ProfileTransfer';
+import { DesktopUpdates } from '@/components/DesktopUpdates';
 
 export default function ProfilePage() {
   const { profile, removeFromWatchlist } = useProfile();
   return <main className="mx-auto max-w-6xl space-y-8">
     <div className="glass-card p-6 sm:p-8">
       <h1 className="heading text-3xl">My Library</h1>
-      <p className="text-secondary mt-2">Saved on this device. Your watchlist and progress stay in this browser.</p>
+      <p className="text-secondary mt-2">Saved on this device. Your watchlist and progress stay in this app or browser.</p>
     </div>
+    <ProfileTransfer />
+    <DesktopUpdates />
     <section className="space-y-4">
       <h2 className="heading text-2xl">Watchlist</h2>
       {!profile?.watchlist.length && <p className="glass-card p-6 text-secondary">Save a drama to see it here.</p>}

@@ -39,6 +39,9 @@
   ],
   "exclude": [
     "node_modules",
-    ".pages-build"
+    ".pages-build",
+    ".desktop-build",
+    ".tools",
+    "src-tauri/target"
   ]
 }

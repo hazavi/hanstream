@@ -2,7 +2,7 @@
 
 The app uses a GitHub Pages frontend and a separate backend. Keep private reader configuration on that backend, and keep generated catalogs out of the repository.
 
-Implementation status: performance code is documented in [performance.md](performance.md), including optional Redis and image-origin configuration. Security controls and CI checks are documented in [security-operations.md](security-operations.md). External cache provisioning remains pending. Desktop work follows as a separate commit.
+Implementation status: performance code is documented in [performance.md](performance.md), security controls in [security-operations.md](security-operations.md), and the Windows desktop target in [desktop.md](desktop.md). External cache provisioning, image-origin configuration, signing credentials, and live signed-update testing remain pending. The sections below retain the original recommendations and their verification goals.
 
 ## Performance
 

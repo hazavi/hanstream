@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HanStream",
+  "version": "0.1.0",
+  "identifier": "io.github.hazavi.hanstream",
+  "build": {
+    "beforeBuildCommand": "npm run build:desktop:web",
+    "beforeDevCommand": "npm run build:desktop:web",
+    "frontendDist": "../desktop-out"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [{ "label": "main", "create": false, "title": "HanStream", "width": 1280, "height": 820, "minWidth": 760, "minHeight": 560, "useHttpsScheme": true }],
+    "security": {
+      "capabilities": ["main"],
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self' ipc: http://ipc.localhost; frame-src https:; object-src 'none'; base-uri 'none'; form-action 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "createUpdaterArtifacts": false,
+    "windows": { "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true } }
+  }
+}

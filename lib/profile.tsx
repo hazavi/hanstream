@@ -2,12 +2,15 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { DEFAULT_PROFILE, type ContinueWatchingItem, type UserProfile, type WatchlistItem, type WatchStatus } from "./types";
+import { validateProfile } from './profile-transfer';
 
 const STORAGE_KEY = "hanstream-local-profile";
 type NewWatchlistItem = Omit<WatchlistItem, "dateAdded">;
 type NewContinueItem = Omit<ContinueWatchingItem, "dateAdded">;
 
 type ProfileContextValue = {
+  replaceProfile: (profile: UserProfile) => void;
+  clearProfile: () => void;
   setEpisodeWatched: (slug:string,episode:string,watched:boolean)=>Promise<void>;
   profile: UserProfile | null;
   addToWatchlist: (item: NewWatchlistItem) => Promise<void>;
@@ -29,8 +32,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      const data = stored ? JSON.parse(stored) as Partial<UserProfile> : {};
-      setProfile({ ...DEFAULT_PROFILE, ...data, watchlist: Array.isArray(data.watchlist) ? data.watchlist : [], continueWatching: Array.isArray(data.continueWatching) ? data.continueWatching : [], topRankings: Array.isArray(data.topRankings) ? data.topRankings : [] });
+      setProfile(stored ? validateProfile(JSON.parse(stored)) : { ...DEFAULT_PROFILE });
     } catch {
       setProfile({ ...DEFAULT_PROFILE });
     }
@@ -42,6 +44,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* Retain session state when browser storage is unavailable. */ }
       return next;
     });
+  }, []);
+  const replaceProfile = useCallback((value: UserProfile) => {
+    const next = { ...validateProfile(value), updatedAt: new Date().toISOString() };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setProfile(next);
+  }, []);
+  const clearProfile = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setProfile({ ...DEFAULT_PROFILE, watchedEpisodes: {}, watchlist: [], continueWatching: [], topRankings: [], createdAt: new Date().toISOString() });
   }, []);
 
   const addToWatchlist = useCallback(async (item: NewWatchlistItem) => update((current) => ({ ...current, watchlist: [...current.watchlist.filter((existing) => existing.slug !== item.slug), { ...item, dateAdded: new Date().toISOString() }] })), [update]);
@@ -60,7 +71,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     return {...current,watchedEpisodes:{...history,[slug]:watched?[...new Set([...episodes,id])]:episodes.filter(value=>value!==id)}};
   }),[update]);
 
-  return <ProfileContext.Provider value={{ profile, setEpisodeWatched, addToWatchlist, updateWatchlistStatus, removeFromWatchlist, rateItem, addToContinueWatching, updateContinueWatchingProgress, removeFromContinueWatching, getContinueWatching, getDisplayName }}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={{ profile, replaceProfile, clearProfile, setEpisodeWatched, addToWatchlist, updateWatchlistStatus, removeFromWatchlist, rateItem, addToContinueWatching, updateContinueWatchingProgress, removeFromContinueWatching, getContinueWatching, getDisplayName }}>{children}</ProfileContext.Provider>;
 }
 
 export function useProfile() {

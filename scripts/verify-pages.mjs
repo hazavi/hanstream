@@ -2,7 +2,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { load } from 'cheerio';
 import { createHash } from 'node:crypto';
-const root = path.resolve("out");
+const root = path.resolve(process.env.HANSTREAM_DESKTOP === '1' ? 'desktop-out' : 'out');
 const forbidden = /(?:^|\/)(?:\.env[^/]*|api|data|node_modules|server-config\.mjs|playback-catalog\.json|drama-metadata\.json)(?:\/|$)/;
 let count = 0;
 async function walk(directory) {

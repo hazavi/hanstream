@@ -22,6 +22,14 @@
 /out/
 /.pages-build/
 /.tools/
+/.desktop-build/
+/desktop-out/
+/src-tauri/target/
+/src-tauri/gen/
+/src-tauri/tauri.generated.conf.json
+*.pfx
+*.p12
+*.key
 /data/
 
 # production

@@ -60,6 +60,8 @@ Use the [deployment guide](docs/deployment.md) for the Pages frontend and separa
 
 See [performance, security, and desktop app suggestions](docs/improvement-suggestions.md) for proposed follow-up work.
 
+Implemented work is documented in [performance](docs/performance.md), [security operations](docs/security-operations.md), and [Windows desktop setup](docs/desktop.md). Run `npm run desktop:dev` or `npm run desktop:build -- --locked` after configuring the public desktop backend URL and native prerequisites.
+
 The optional private ARTWORK_SOURCE_URL enables a published-series-cover fallback for missing posters. Copy its value from the ignored local environment into your backend environment before deploying.
 
 The optional private REFERENCE_SOURCE_URL enables the public broadcaster catalog fallback for matching titles, including cast and summaries. Copy its value from the ignored local environment to the backend host.

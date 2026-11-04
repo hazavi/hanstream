@@ -1,0 +1,14 @@
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+const directory = path.resolve('src-tauri/target/release/bundle/nsis');
+const base = new URL(process.env.DESKTOP_DOWNLOAD_BASE_URL || '');
+if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash) throw new Error('Set an HTTPS release download directory.');
+if (!base.pathname.endsWith('/')) base.pathname += '/';
+const files = await readdir(directory);
+const installer = files.find(file => file.endsWith('.exe') && files.includes(file + '.sig'));
+if (!installer) throw new Error('A signed installer and its updater signature are required.');
+const signature = (await readFile(path.join(directory, installer + '.sig'), 'utf8')).trim();
+if (!signature || signature.length > 10_000) throw new Error('Invalid updater signature file.');
+const config = JSON.parse(await readFile('src-tauri/tauri.conf.json', 'utf8'));
+await writeFile(path.join(directory, 'latest.json'), JSON.stringify({ version: config.version, notes: 'HanStream desktop update', pub_date: new Date().toISOString(), platforms: { 'windows-x86_64': { signature, url: new URL(encodeURIComponent(installer), base).href } } }, null, 2));
+console.log('Prepared latest.json. Publish it with the signed installer only after testing the release.');

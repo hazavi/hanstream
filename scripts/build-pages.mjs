@@ -5,8 +5,9 @@ import { getPagesConfig } from "./pages-config.mjs";
 import { securePages } from './secure-pages.mjs';
 
 const root = process.cwd();
-const stage = path.join(root, ".pages-build");
-const output = path.join(root, "out");
+const desktop = process.env.HANSTREAM_DESKTOP === '1';
+const stage = path.join(root, desktop ? '.desktop-build' : '.pages-build');
+const output = path.join(root, desktop ? 'desktop-out' : 'out');
 const { api, basePath } = getPagesConfig();
 if (!api) console.warn("Backend URL is not set. Publishing the frontend with a connection notice; set the repository variable API_BASE_URL and rebuild to enable live listings and playback.");
 for (const target of [stage, output]) {
@@ -24,7 +25,7 @@ for (const name of await readdir(path.join(root, "components"))) {
   await writeFile(path.join(stage, "components", name), adapt(await readFile(path.join(root, "components", name), "utf8")));
 }
 await cp(path.join(root,"components/ui"),path.join(stage,"components/ui"),{recursive:true});
-for (const name of ["detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
+for (const name of ["detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "profile-transfer.ts", "request-validation.ts", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
 await writeFile(path.join(stage, "lib/api-client.ts"), 'export { fetchSearchClient } from "./pages-client";\n');
 await writeFile(path.join(stage, "lib/site-link.tsx"), `"use client";
 import Link from "next/link";
@@ -68,6 +69,6 @@ await writeFile(path.join(stage, "next.config.mjs"), `export default { output: "
 const result = spawnSync(process.execPath, [path.join(root, "node_modules/next/dist/bin/next"), "build", stage], { cwd: root, stdio: "inherit", env: { ...process.env, NEXT_PUBLIC_API_BASE_URL: api, NEXT_TELEMETRY_DISABLED: "1" } });
 if (result.status !== 0) process.exit(result.status || 1);
 await cp(path.join(stage, "out"), output, { recursive: true });
-await securePages(output, api);
+await securePages(output, api, desktop);
 await writeFile(path.join(output, ".nojekyll"), "");
-console.log(`Pages files are ready in out/ (base path: ${basePath || "/"}).`);
+console.log(`Frontend files are ready in ${desktop ? 'desktop-out/' : 'out/'} (base path: ${basePath || "/"}).`);

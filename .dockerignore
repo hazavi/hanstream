@@ -16,3 +16,7 @@ data
 coverage
 *.log
 *.tsbuildinfo
+.tools
+.desktop-build
+desktop-out
+src-tauri

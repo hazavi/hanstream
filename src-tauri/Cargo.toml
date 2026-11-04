@@ -1,0 +1,22 @@
+[package]
+name = "hanstream"
+version = "0.1.0"
+description = "HanStream desktop client"
+edition = "2021"
+rust-version = "1.77.2"
+
+[features]
+signed-updates = ["dep:tauri-plugin-updater"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-updater = { version = "2", optional = true }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

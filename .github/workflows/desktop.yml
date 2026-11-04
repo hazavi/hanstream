@@ -1,0 +1,89 @@
+name: Windows desktop
+on:
+  push:
+    branches: [master, main]
+    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: Build a signed installer and signed updater artifacts (requires configured secrets)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DESKTOP_API_BASE_URL: ${{ vars.API_BASE_URL }}
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: npm ci
+      - run: npm run check:secrets
+      - run: npm audit --audit-level=moderate
+      - run: npm test -- --run --maxWorkers=2
+      - name: Import signing certificate
+        if: inputs.signed == true
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if (!$env:CERTIFICATE -or !$env:CERTIFICATE_PASSWORD) { throw 'Configure Windows signing certificate secrets first.' }
+          $file = Join-Path $env:RUNNER_TEMP 'desktop-signing.pfx'
+          [IO.File]::WriteAllBytes($file, [Convert]::FromBase64String($env:CERTIFICATE))
+          try {
+            $certificate = Import-PfxCertificate -FilePath $file -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString $env:CERTIFICATE_PASSWORD -AsPlainText -Force)
+            "WINDOWS_CERTIFICATE_THUMBPRINT=$($certificate.Thumbprint)" >> $env:GITHUB_ENV
+          } finally { Remove-Item -LiteralPath $file -Force }
+      - name: Build unsigned installer
+        if: inputs.signed != true
+        run: npm run desktop:build -- --locked
+      - name: Build signed installer and updates
+        if: inputs.signed == true
+        run: npm run desktop:build -- --locked
+        env:
+          DESKTOP_SIGNED_UPDATES: '1'
+          DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.DESKTOP_UPDATER_PUBLIC_KEY }}
+          DESKTOP_UPDATER_ENDPOINT: ${{ vars.DESKTOP_UPDATER_ENDPOINT }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Verify public desktop assets
+        run: node scripts/verify-pages.mjs
+        env:
+          HANSTREAM_DESKTOP: '1'
+      - name: Prepare signed update manifest
+        if: inputs.signed == true
+        run: node scripts/create-desktop-update.mjs
+        env:
+          DESKTOP_DOWNLOAD_BASE_URL: ${{ vars.DESKTOP_DOWNLOAD_BASE_URL }}
+      - name: Test app in WebView2
+        if: inputs.signed != true
+        shell: pwsh
+        run: |
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9223 --remote-debugging-address=127.0.0.1'
+          $app = Start-Process -FilePath './src-tauri/target/release/hanstream.exe' -WindowStyle Hidden -PassThru
+          try { node scripts/check-desktop.mjs; if ($LASTEXITCODE -ne 0) { throw 'Desktop smoke test failed.' } }
+          finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HanStream-Windows-${{ github.sha }}
+          retention-days: 14
+          path: |
+            src-tauri/target/release/bundle/nsis/*
+            src-tauri/target/release/hanstream.exe
