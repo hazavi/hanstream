@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const client = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), connect: vi.fn(), on: vi.fn(), isOpen: false, destroy: vi.fn() }));
 vi.mock('redis', () => ({ createClient: () => client }));
 beforeEach(() => { vi.resetModules(); vi.stubEnv('CACHE_URL', 'rediss://cache.example:6380'); client.get.mockReset(); client.set.mockReset(); client.connect.mockReset(); });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); client.isOpen = false; });
 it('restores fresh metadata without reading sources after a process restart', async () => {
   client.get.mockResolvedValue(JSON.stringify({ version: 1, fetchedAt: Date.now(), value: { title: 'Saved' } }));
   const { persistentLoader } = await import('../lib/persistent-cache');
@@ -31,4 +31,13 @@ it('falls back to live loading when the store is corrupt or not configured', asy
   expect(client.set).toHaveBeenCalledWith(expect.stringMatching(/^hanstream:v1:/), expect.not.stringContaining('rediss://'), { EX: 86_400 });
   vi.stubEnv('CACHE_URL', '');
   expect(await persistentLoader('detail', load, () => true)('other')).toEqual({ title: 'Live' });
+});
+it('destroys a stalled connection and falls back instead of leaving commands queued indefinitely', async () => {
+  vi.useFakeTimers(); client.isOpen = true; client.destroy.mockClear();
+  client.get.mockImplementation(() => new Promise(() => {}));
+  const { persistentLoader } = await import('../lib/persistent-cache');
+  const read = persistentLoader('detail', async () => ({title:'Live'}), () => true);
+  const result = read('show');
+  await vi.advanceTimersByTimeAsync(801);
+  expect(await result).toEqual({title:'Live'}); expect(client.destroy).toHaveBeenCalledOnce();
 });

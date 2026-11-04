@@ -20,6 +20,10 @@ Only assembled homepage data and complete drama metadata are stored. Keys are ha
 
 No external cache has been provisioned or configured yet. Choose a store with the durability required for your deployment; enabling a non-persistent Redis service alone does not guarantee survival of its own restart.
 
+The Redis command queue is capped at 100. A timed-out command destroys its connection and starts a one-minute cooldown, so repeated requests cannot leave an unbounded queue behind a stalled cache server.
+
+The outbound dispatcher uses Undici 7 to match Node 24's built-in fetch API. A real local HTTP regression test covers that integration; mocking fetch alone would miss an incompatible dispatcher major version.
+
 ## Optional image byte cache
 
 Set backend-only `IMAGE_ORIGINS` to a comma-separated list of exact HTTPS image CDN origins. Only server-discovered artwork and portrait URLs on that list can be resized. Without a matching origin, existing image redirects continue to work.

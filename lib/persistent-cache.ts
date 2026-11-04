@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { createClient } from 'redis';
 import { count } from './diagnostics';
 
-type Store = { get(key: string): Promise<string | null>; set(key: string, value: string, options: { EX: number }): Promise<unknown>; eval(script: string, options: { keys: string[]; arguments: string[] }): Promise<unknown> };
+type Store = { get(key: string): Promise<string | null>; set(key: string, value: string, options: { EX: number }): Promise<unknown>; eval(script: string, options: { keys: string[]; arguments: string[] }): Promise<unknown>; isOpen: boolean; destroy(): void };
 let connection: Promise<Store | undefined> | undefined;
 let cooldown = 0;
 const MAX_BYTES = 2_000_000;
@@ -13,7 +13,7 @@ async function store() {
   if (!connection) connection = (async () => {
     const url = new URL(process.env.CACHE_URL!);
     if (url.protocol !== 'rediss:' && !(process.env.NODE_ENV !== 'production' && url.protocol === 'redis:' && ['localhost', '127.0.0.1'].includes(url.hostname))) throw new Error('Cache requires TLS');
-    const client = createClient({ url: url.href, disableOfflineQueue: true, socket: { connectTimeout: 700, reconnectStrategy: false } });
+    const client = createClient({ url: url.href, disableOfflineQueue: true, commandsQueueMaxLength: 100, socket: { connectTimeout: 700, reconnectStrategy: false } });
     client.on('error', () => { count('cache.failure'); cooldown = Date.now() + 60_000; connection = undefined; if (client.isOpen) client.destroy(); });
     await client.connect();
     return client;
@@ -21,16 +21,17 @@ async function store() {
   return connection;
 }
 
-async function bounded<T>(task: Promise<T>): Promise<T> {
+async function bounded<T>(task: Promise<T>, client: Store): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try { return await Promise.race([task, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Cache timeout')), 800); })]); }
+  catch (error) { cooldown = Date.now() + 60_000; connection = undefined; if (client.isOpen) client.destroy(); throw error; }
   finally { clearTimeout(timer); }
 }
 
 export async function cacheCommand<T>(run: (client: Store) => Promise<T>): Promise<T | undefined> {
   const client = await store();
   if (!client) return undefined;
-  try { return await bounded(run(client)); } catch { count('cache.failure'); return undefined; }
+  try { return await bounded(run(client), client); } catch { count('cache.failure'); return undefined; }
 }
 
 /** Cache only assembled metadata, never stream responses or private configuration. */
@@ -44,7 +45,7 @@ export function persistentLoader<T>(namespace: string, load: (key: string, previ
     const cache = await store();
     if (!saved && cache) {
       try {
-        const raw = await bounded(cache.get(id));
+        const raw = await bounded(cache.get(id), cache);
         if (raw && Buffer.byteLength(raw) <= MAX_BYTES) {
           const entry = JSON.parse(raw);
           if (entry.version === 1 && Number.isFinite(entry.fetchedAt) && Date.now() - entry.fetchedAt >= 0 && Date.now() - entry.fetchedAt < 86_400_000 && accept(entry.value)) {
@@ -60,7 +61,7 @@ export function persistentLoader<T>(namespace: string, load: (key: string, previ
         pending = load(key, saved).then(value => {
           if (cache && accept(value)) {
             const raw = JSON.stringify({ version: 1, fetchedAt: Date.now(), value });
-            if (Buffer.byteLength(raw) <= MAX_BYTES) void bounded(cache.set(id, raw, { EX: 86_400 })).catch(() => count('cache.failure'));
+            if (Buffer.byteLength(raw) <= MAX_BYTES) void bounded(cache.set(id, raw, { EX: 86_400 }), cache).catch(() => count('cache.failure'));
           }
           return value;
         }).finally(() => refreshing.delete(key));
