@@ -17,12 +17,12 @@ await mkdir(path.join(stage, "lib"));
 await mkdir(path.join(stage, "components"));
 await cp(path.join(root, "public"), path.join(stage, "public"), { recursive: true });
 const adapt = text => text.replaceAll('from "next/link"', 'from "@/lib/site-link"').replaceAll('from "next/image"', 'from "@/lib/site-image"').replaceAll('from "@/lib/api"', 'from "@/lib/api-types"').replaceAll('from "../lib/api"', 'from "../lib/api-types"').replaceAll('pathname.includes("/episode/")', 'pathname.includes("/watch")');
-const excluded = new Set(["HeroSection.tsx", "Pagination.tsx", "VideoPlayer.tsx"]);
+const excluded = new Set(["Pagination.tsx", "VideoPlayer.tsx"]);
 for (const name of await readdir(path.join(root, "components"))) {
   if (!name.endsWith(".tsx") || excluded.has(name)) continue;
   await writeFile(path.join(stage, "components", name), adapt(await readFile(path.join(root, "components", name), "utf8")));
 }
-for (const name of ["api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
+for (const name of ["image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
 await writeFile(path.join(stage, "lib/api-client.ts"), 'export { fetchSearchClient } from "./pages-client";\n');
 await writeFile(path.join(stage, "lib/site-link.tsx"), `"use client";
 import Link from "next/link";

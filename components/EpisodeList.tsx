@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ArrowDown, Search } from "lucide-react";
+import { ArrowUp, ArrowDown, Search, Play } from "lucide-react";
 import type { EpisodeListItem } from "@/lib/api-types";
 import { Artwork } from "./Artwork";
 
@@ -60,7 +60,7 @@ export function EpisodeList({ episodes, currentEpisode, slug, poster, coverTitle
         const upcoming = Boolean(episode.time && Date.parse(episode.time) > Date.now() || episode.available === false && !episode.time);
         const disabled = episode.available === false || upcoming;
         const title = episode.title || `Episode ${number}`;
-        const content = <><div className="episode-thumbnail"><Artwork sources={upcoming ? [] : [episode.image, poster]} alt="" title={upcoming ? undefined : coverTitle} year={coverYear} placeholder={upcoming ? "Upcoming" : undefined} />{current && <span className="episode-playing" aria-hidden="true"><i/><i/><i/></span>}</div><div className="episode-copy"><p className="episode-name"><span>{number}.</span> {title}</p>{episode.description && <p className="episode-description">{episode.description}</p>}{current ? <p className="episode-state">Now playing</p> : disabled ? <p className="episode-state text-secondary">{upcoming ? "" : "Unavailable"}</p> : episode.time && <time className="episode-date" dateTime={episode.time}>{new Date(episode.time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Copenhagen" })}</time>}</div></>;
+        const content = <><div className="episode-thumbnail"><Artwork sources={upcoming ? [] : [episode.image, poster]} alt="" title={upcoming ? undefined : coverTitle} year={coverYear} placeholder={upcoming ? "Upcoming" : undefined} />{current && <span className="episode-playing" aria-hidden="true"><Play size={11} fill="currentColor" aria-hidden="true"/></span>}</div><div className="episode-copy"><p className="episode-name"><span>{number}.</span> {title}</p>{episode.description && <p className="episode-description">{episode.description}</p>}{current ? <p className="episode-state">Now playing</p> : disabled ? <p className="episode-state text-secondary">{upcoming ? "" : "Unavailable"}</p> : episode.time && <time className="episode-date" dateTime={episode.time}>{new Date(episode.time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Copenhagen" })}</time>}</div></>;
         return disabled ? <article className="watch-episode is-unavailable" key={episode.id} aria-label={`Episode ${number}: ${title}`}>{content}</article> : <Link key={episode.id} href={`/${slug}/episode/${episode.id}`} prefetch={false} aria-current={current ? "page" : undefined} aria-label={`Episode ${number}: ${title}`} className={`watch-episode ${current ? "is-current" : ""}`}>{content}</Link>;
       })}
       {!visible.length && <p className="source-empty py-8" role="status">{episodes.length ? "No episodes match your search." : "No episodes are listed yet."}</p>}

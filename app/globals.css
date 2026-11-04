@@ -4,7 +4,16 @@
 .detail-poster { width: 100%; max-width: 260px; margin: 0 auto; }
 .detail-info { min-width: 0; }
 @media (min-width: 640px) { .detail-layout { grid-template-columns: 210px minmax(0,1fr); } .detail-poster { margin: 0; } .detail-info { grid-column: 2; } }
-@media (min-width: 1100px) { .detail-layout { grid-template-columns: 240px minmax(0,1fr) 220px; gap: 1.75rem; } .detail-info { grid-column: auto; } }
+@media (min-width: 1100px) { .detail-layout { grid-template-columns: 240px minmax(0,1fr); gap: 2rem; } }
+.detail-media-row { max-width: 900px; width: 100%; margin-inline: auto; }
+.drama-media-tabs { display: flex; width: fit-content; margin-inline: auto; gap: .3rem; padding: .35rem; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+.drama-media-tabs button { display: inline-flex; align-items: center; gap: .5rem; padding: .65rem 1rem; border-radius: 999px; font-size: .85rem; font-weight: 600; color: var(--muted-foreground); cursor: pointer; transition: color .15s, background-color .15s; }
+.drama-media-tabs button:hover { color: var(--foreground); }
+.drama-media-tabs button[aria-selected="true"] { color: #fff; background: #172c50; box-shadow: 0 2px 6px #0002; }
+.show-info-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.5rem 2rem; padding: 1.5rem; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
+@media(min-width:640px) { .show-info-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+.drama-media-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.drama-media button:disabled { opacity: .3; cursor: default; }
 .stream-server-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; padding: .65rem .75rem; border: 1px solid var(--border); background: var(--card); border-radius: 10px; }
 .stream-server-label { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted-foreground); font-size: .72rem; margin-right: .35rem; }
 .stream-server-button { display: inline-flex; align-items: center; gap: .3rem; padding: .4rem .6rem; border: 1px solid transparent; border-radius: 6px; font-size: .72rem; color: var(--muted-foreground); cursor: pointer; }
@@ -13,7 +22,7 @@
 
 /* Watch page: a quiet player area and a searchable episode sidebar. */
 .watch-page { width: 100%; margin: 0 auto; }
-.watch-heading { display: flex; flex-direction: column; gap: .65rem; margin-bottom: 1.5rem; }
+.watch-heading { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 1.5rem; }
 .watch-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.75rem; align-items: start; }
 .watch-primary { min-width: 0; }
 .watch-primary .video-container { overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: #050505; }
@@ -32,7 +41,16 @@
 .episode-scroll { overflow-y: auto; flex: 1; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--border-hover) transparent; display: flex; flex-direction: column; gap: .4rem; padding: 2px 5px 3px 1px; overscroll-behavior: contain; }
 .watch-episode { display: flex; gap: .6rem; flex-shrink: 0; padding: .4rem; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); transition: background-color .15s, border-color .15s; text-decoration: none; }
 .watch-episode:hover { background: var(--card-hover); border-color: var(--border-hover); }
-.watch-episode.is-current { border-color: var(--primary); background: var(--accent-muted); }
+.watch-episode.is-current { border-color: #294c80; background: #122544; color: #f1f5ff; }
+.watch-episode.is-current .episode-name, .watch-episode.is-current .episode-state { color: #e4edff; }
+.watch-episode.is-current .episode-description { color: #b4c3de; }
+.dark .episode-panel, .dark .stream-server-controls { background: #080b12; }
+.dark .watch-episode { background: #0d111b; }
+.dark .watch-episode:hover { background: #111a2b; }
+.dark .watch-episode.is-current { background: #122544; }
+.dark .episode-find { background: #0d111b; }
+.dark .stream-server-button { background: #101725; }
+.dark .stream-server-button[aria-pressed="true"] { background: #172c50; border-color: #294c80; color: #e4edff; }
 .watch-episode.is-unavailable { opacity: .65; }
 .episode-thumbnail { flex: 0 0 72px; position: relative; aspect-ratio: 16/10; overflow: hidden; border-radius: 5px; background: var(--muted); align-self: flex-start; }
 .episode-thumbnail img { transition: transform .2s; }
@@ -40,13 +58,10 @@
 .episode-copy { min-width: 0; padding: .1rem 0; }
 .episode-name { font-size: .76rem; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .episode-name > span { font-variant-numeric: tabular-nums; }
-.episode-description { font-size: .7rem; color: var(--muted-foreground); line-height: 1.45; margin-top: .2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.episode-description { font-size: .7rem; color: var(--muted-foreground); line-height: 1.45; margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .episode-state, .episode-date { display: block; font-size: .67rem; margin-top: .35rem; color: var(--muted-foreground); }
 .is-current .episode-state { color: var(--primary); font-weight: 600; }
-.episode-playing { position: absolute; right: 5px; bottom: 5px; display: flex; gap: 2px; align-items: end; padding: 5px; border-radius: 4px; background: rgba(0,0,0,.75); height: 23px; }
-.episode-playing i { display: block; width: 3px; height: 9px; background: #fff; }
-.episode-playing i:nth-child(2) { height: 13px; }
-.episode-playing i:nth-child(3) { height: 6px; }
+.episode-playing { position: absolute; right: 5px; bottom: 5px; display: flex; align-items: center; justify-content: center; padding: 5px; border-radius: 50%; background: #172c50; color: #fff; width: 22px; height: 22px; }
 .episode-icon-button:focus-visible, .watch-episode:focus-visible, .episode-select:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 @media (min-width: 1024px) {
   .watch-layout { grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr); gap: 1.25rem; }
@@ -3455,185 +3470,16 @@ a { color: inherit; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Schedule Page Styles */
-.schedule-day-card {
-  background: linear-gradient(135deg, var(--glass), rgba(255, 255, 255, 0.6));
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.schedule-day-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.dark .schedule-day-card {
-  background: linear-gradient(135deg, rgba(31, 41, 55, 0.6), rgba(17, 24, 39, 0.8));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.schedule-today {
-  position: relative;
-  overflow: hidden;
-}
-
-.schedule-today::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
-  pointer-events: none;
-}
-
-/* Clean Schedule Styles */
-.schedule-page {
-  background: var(--background);
-  color: var(--foreground);
-  min-height: 100vh;
-}
-
-.schedule-header {
-  background: transparent;
-}
-
-.schedule-live-indicator {
-  background: transparent;
-  color: var(--accent);
-}
-
-.schedule-day-card-clean {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease-in-out;
-}
-
-.schedule-day-card-clean:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.schedule-day-card-clean.today {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
-}
-
-.schedule-day-header {
-  color: var(--foreground);
-}
-
-.schedule-day-count {
-  background: var(--glass);
-  color: var(--muted);
-  backdrop-filter: blur(8px);
-}
-
-.schedule-today-badge {
-  background: var(--accent);
-  color: white;
-}
-
-.schedule-drama-card {
-  background: var(--card-hover);
-  border: 1px solid var(--border);
-  transition: all 0.2s ease-in-out;
-}
-
-.schedule-drama-card:hover {
-  border-color: var(--border-hover);
-  background: var(--card);
-  box-shadow: var(--shadow-sm);
-}
-
-.schedule-drama-title {
-  color: var(--foreground);
-}
-
-.schedule-drama-title:hover {
-  color: var(--accent);
-}
-
-.schedule-drama-meta {
-  color: var(--muted);
-}
-
-.schedule-status-upcoming {
-  color: #f59e0b;
-}
-
-.schedule-status-available {
-  color: var(--accent-green);
-}
-
-/* Minimal List Styles */
-.schedule-drama-list-item {
-  background: transparent;
-  border: 1px solid transparent;
-}
-
-.schedule-drama-list-item:hover {
-  background: var(--card-hover);
-  border-color: var(--border);
-}
-
-.schedule-drama-arrow {
-  color: var(--muted);
-}
-
-.schedule-drama-arrow:hover {
-  color: var(--accent);
-}
-
-.schedule-status-upcoming-dot {
-  background-color: #f59e0b;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.schedule-status-available-dot {
-  background-color: var(--accent-green);
-}
-
-.schedule-drama-image {
-  background: var(--card-hover);
-  border: 1px solid var(--border);
-}
-
-.schedule-skeleton {
-  background: transparent;
-}
-
-.schedule-skeleton-item {
-  background: var(--card-hover);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
-
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-/* Hero Carousel Progress Animation */
-@keyframes progress {
-  from { width: 0%; }
-  to { width: 100%; }
 }
 
 /* Global Responsive Utilities */

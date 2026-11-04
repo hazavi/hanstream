@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 interface BreadcrumbItem {
   label: string;
@@ -14,7 +15,7 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav className="flex items-center gap-2 text-sm text-secondary">
+    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-secondary">
       {items.map((item, index) => (
         <div key={index} className="flex items-center gap-2">
           {item.href && !item.isActive ? (
@@ -25,7 +26,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
               {item.label}
             </Link>
           ) : (
-            <span
+            <span aria-current={item.isActive ? 'page' : undefined}
               className={
                 item.isActive ? "text-primary font-medium" : "text-secondary"
               }
@@ -35,19 +36,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
           )}
 
           {index < items.length - 1 && (
-            <svg
-              className="w-4 h-4 text-tertiary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            <ChevronRight size={14} className="text-tertiary" aria-hidden="true"/>
           )}
         </div>
       ))}

@@ -22,9 +22,31 @@ export class SourceUnavailable extends Error {
 }
 
 const unavailableUntil = new Map<string, number>();
+const pages = new Map<string, { html: string; expires: number }>();
+const pending = new Map<string, Promise<string>>();
+export function clearHtmlCache() { pages.clear(); pending.clear(); unavailableUntil.clear(); }
 
 // Only public HTML pages from the configured sources may be requested.
-export async function readHtml(value: string, revalidate = 3600, timeout = 8000): Promise<string> {
+export async function readHtml(value: string, revalidate = 3600, timeout = 3500): Promise<string> {
+  const url = new URL(value);
+  if (url.protocol !== 'https:' || !getSourceConfig().allowedOrigins.includes(url.origin) || url.username || url.password || url.port) throw new Error('Invalid source URL');
+  const saved = pages.get(url.href);
+  if (revalidate > 0 && saved && saved.expires > Date.now()) return saved.html;
+  const existing = pending.get(url.href);
+  if (existing) return existing;
+  const request = readFreshHtml(url.href, Math.min(timeout, 3500)).then(html => {
+    if (revalidate > 0 && html.length < 1_000_000) pages.set(url.href, { html, expires: Date.now() + revalidate * 1000 });
+    if (pages.size > 80) pages.delete(pages.keys().next().value!);
+    return html;
+  }).catch(error => {
+    if (revalidate > 0 && saved) return saved.html;
+    throw error instanceof SourceUnavailable ? error : new SourceUnavailable('Catalog');
+  }).finally(() => pending.delete(url.href));
+  pending.set(url.href, request);
+  return request;
+}
+
+async function readFreshHtml(value: string, timeout: number): Promise<string> {
   let url = new URL(value);
   const allowedOrigins = new Set(getSourceConfig().allowedOrigins);
   const source = "Catalog";
@@ -36,14 +58,20 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 8000)
     try {
       response = await fetch(url.href, {
         headers: { Accept: "text/html", "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
-        next: { revalidate }, redirect: "manual", signal: AbortSignal.timeout(timeout),
+        cache: 'no-store', redirect: "manual", signal: AbortSignal.timeout(timeout),
       });
     } catch (error) {
+      const code = (error as { cause?: {code?:string} })?.cause?.code;
+      if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) || code === 'UND_ERR_CONNECT_TIMEOUT') {
+        unavailableUntil.set(url.origin, Date.now() + 60_000);
+        throw new SourceUnavailable(source);
+      }
       if (!retried && !(error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name))) {
         retried = true;
         await new Promise(resolve => setTimeout(resolve, 150));
         continue;
       }
+      unavailableUntil.set(url.origin, Date.now() + 60_000);
       throw new SourceUnavailable(source);
     }
     if ([500, 502, 503, 504].includes(response.status) && !retried) {

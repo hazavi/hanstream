@@ -28,6 +28,18 @@ describe("HTML source data mapping", () => {
     expect(result.result?.episodes?.map(ep => ep.episode_link)).toEqual(["/drama-fixture-drama--2026/episode/s1e1", "/drama-fixture-drama--2026/episode/s2e1"]);
     expect(result.result).not.toHaveProperty("sourceUrl");
   });
+  it('retains the most complete verified cast and recovers matching portrait images',async()=>{
+    vi.mocked(findDramaDetails).mockResolvedValue({...title,cast:[{name:'Actor One',image:'https://pictures.example/one.jpg'}]});
+    vi.mocked(findMetadata).mockResolvedValue({...title,sourceName:'Metadata',cast:[{name:'Actor One',character:'Lead'},{name:'Actor Two',character:'Friend'}]});
+    const result=await fetchDrama('drama-fixture-cast--2026');
+    expect(result.result?.cast).toHaveLength(2);
+    expect(result.result?.cast?.[0]).toMatchObject({name:'Actor One',character:'Lead',image:'https://pictures.example/one.jpg'});
+  });
+  it('retains numbered episodes for a finished guide even when the secondary host is offline',async()=>{
+    vi.mocked(findDramaDetails).mockResolvedValue({...title,meta:{Released:2026,Status:'Ended',Episodes:10}});
+    const result=await fetchDrama('drama-fixture-finished--2026');
+    expect(result.result?.episodes?.map(episode=>episode.episode)).toEqual([1,2,3,4,5,6,7,8,9,10]);
+  });
 
   it("keeps verified playback entries when the detail source is blocked", async () => {
     vi.mocked(findDramaDetails).mockRejectedValue(new Error("Blocked"));

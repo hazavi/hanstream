@@ -30,6 +30,12 @@ it('preserves an explicitly unannounced episode air date as upcoming', () => {
   const html = '<section class="episodeguide"><article><h3><a>TBA</a></h3><p class="info">Episode: 1x08 | Airdate: TBA</p></article></section>';
   expect(parseCatalogEpisodes(html, base)).toMatchObject([{ season: 1, episode: 8, upcoming: true }]);
 });
+it('discards published placeholder stills instead of treating them as episode pictures', () => {
+  const html='<section class="episodeguide"><article><h3><a>Episode 10</a></h3><p class="info">Episode: 1x10 | Airdate: Nov 3, 2026</p><div class="description"><img src="/images/no-img/no-img-landscape-text.png"></div></article></section>';
+  const [episode] = parseCatalogEpisodes(html,base);
+  expect(episode.episode).toBe(10);
+  expect(episode.image).toBeUndefined();
+});
 it("selects a matching official publisher trailer and rejects fan uploads or a different title", () => {
   const video = (name: string, verified: boolean) => ({ videoRenderer: { videoId: 'abcdefghijk', title: { runs: [{ text: name }] }, ownerText: { runs: [{ text: 'Prime Video' }] }, ownerBadges: verified ? [{ metadataBadgeRenderer: { style: 'BADGE_STYLE_TYPE_VERIFIED' } }] : [] } });
   const html = '<script>var ytInitialData = '+JSON.stringify({ contents: [video('Fixture | Official Trailer',false),video('Fixture Again | Official Trailer',true),video('Fixture | Official Trailer',true)] })+';</script>';

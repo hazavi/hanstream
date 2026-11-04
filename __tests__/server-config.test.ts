@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getSourceConfig } from '../lib/server-config.mjs';
-import { readHtml } from '../lib/html';
+import { readHtml, clearHtmlCache } from '../lib/html';
 
 const settings = {
   STREAM_SOURCE_URL: 'https://stream.example',
@@ -9,7 +9,7 @@ const settings = {
   EDITORIAL_SOURCE_URL: 'https://www.editorial.example',
   DETAILS_SOURCE_URL: 'https://details.example',
 };
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+afterEach(() => { clearHtmlCache(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe('private source configuration', () => {
   it('uses private origins and supports editorial canonical links', () => {
@@ -38,7 +38,7 @@ describe('private source configuration', () => {
     const request = vi.fn().mockResolvedValueOnce(new Response('<html>Public page</html>', { headers: { 'content-type': 'text/html' } }))
       .mockResolvedValueOnce(new Response(null, { status: 302, headers: { Location: settings.METADATA_SOURCE_URL } }));
     vi.stubGlobal('fetch', request);
-    expect(await readHtml('https://stream.example/')).toContain('Public page');
+    expect(await readHtml('https://stream.example/', 0)).toContain('Public page');
     await expect(readHtml('https://unconfigured.example/')).rejects.toThrow('Invalid source URL');
     expect(request).toHaveBeenCalledTimes(1);
     await expect(readHtml('https://stream.example/')).rejects.toThrow('temporarily unavailable');

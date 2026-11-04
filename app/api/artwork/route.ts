@@ -6,7 +6,8 @@ export async function GET(request: Request) {
   const year = Number(query.get('year')) || undefined;
   if (!title || title.length > 160 || year && (year < 1900 || year > 2100)) return new NextResponse(null, { status: 400 });
   try {
-    const image = await findCatalogArtwork(JSON.stringify({ title, year, secondary: query.get('secondary') === '1' }));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const image = await Promise.race([findCatalogArtwork(JSON.stringify({ title, year, secondary: query.get('secondary') === '1' })), new Promise<undefined>(resolve => {timer=setTimeout(()=>resolve(undefined),5500);})]).finally(()=>clearTimeout(timer));
     if (image && image.startsWith('https://')) return NextResponse.redirect(image, { status: 307, headers: { 'Cache-Control': 'public, max-age=3600' } });
   } catch { /* A poster miss should not affect the rest of the page. */ }
   return new NextResponse(null, { status: 404 });

@@ -1,12 +1,13 @@
 import "server-only";
 import { cache } from "react";
 import { catalogRoute, normalizeTitle, parseCatalogRoute, type CatalogTitle } from "./catalog";
-import { enrichArtwork, findMetadata, getHomepage, getMetadataList, searchMetadata } from "./metadata";
+import { enrichArtwork, findMetadata, getMetadataList, searchMetadata } from "./metadata";
 import { findDramaDetails, getDramaDetails, getDetailEpisodes, type DetailRecord } from "./details";
 import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "./playback";
 import { getSourceConfig } from "./server-config.mjs";
 import { searchAsianCatalog } from "./catalog-details";
-import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, ScheduleDrama, ScheduleResponse, SearchResponse, TopDramasResponse } from "./api-types";
+import { findPublishedDetail } from './cover-reader';
+import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
 export { formatRelativeTime } from "./format";
@@ -74,6 +75,12 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   }
   const movie = item?.movie ?? identity?.movie ?? false;
   const year = item?.year ?? identity?.year;
+  let published: Awaited<ReturnType<typeof findPublishedDetail>> = null;
+  if (!movie && !primary?.cast?.length && !alternative?.cast?.length && identity) {
+    try { published = await findPublishedDetail(JSON.stringify({title:primary?.title || identity.title,year})); }
+    catch { /* Existing details still render if another catalog is unavailable. */ }
+    if(published) item = item ? {...item,meta:{...published.meta,...item.meta},overview:item.overview || published.overview} : published;
+  }
   let title = item?.title || identity!.title;
   let available: Awaited<ReturnType<typeof getPlaybackEpisodes>> = [];
   try {
@@ -86,9 +93,9 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
     try { episodes = (await getDetailEpisodes(primary)).map(ep => ({ season: ep.season, episode: ep.episode, episode_link: `/${slug}/episode/s${ep.season}e${ep.episode}`, title: ep.title, release_date: ep.date, image: ep.image, description: ep.overview, finale: ep.finale, available: ep.upcoming || ep.date && ep.date > new Date().toISOString().slice(0, 10) ? false : undefined })); }
     catch { /* Verified available playback entries can supply navigation. */ }
   }
-  if (!episodes.length && !movie && alternative) {
+  if (!episodes.length && !movie && item) {
     const count = String(item?.meta.Episodes || '').trim();
-    const finished = alternative.endDate && alternative.endDate < new Date().toISOString().slice(0, 10) || /^(?:ended|finished|completed)$/i.test(String(item?.meta.Status || ''));
+    const finished = alternative?.endDate && alternative.endDate < new Date().toISOString().slice(0, 10) || /^(?:ended|finished|completed)$/i.test(String(item?.meta.Status || ''));
     if (finished && /^\d+$/.test(count) && Number(count) <= 2000) {
       episodes = Array.from({ length: Number(count) }, (_, index) => ({ season: 1, episode: index + 1, episode_link: `/${slug}/episode/s1e${index + 1}` }));
     }
@@ -116,9 +123,15 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   const [artwork] = await enrichArtwork([{ title, year, movie, url: item?.url || "", image: item?.image || "/file.svg" }]);
   const posters = [...new Set([alternative?.image].filter((image): image is string => Boolean(image && image !== "/file.svg" && image !== artwork.image)))];
   const genres = primary?.genres?.length ? primary.genres : String(item?.meta.Genre || '').split(/[,;]/).map(value => value.trim()).filter(Boolean);
+  const castSources=[primary?.cast || [],alternative?.cast || [],published?.cast || []].sort((a,b)=>b.length-a.length);
+  const cast=castSources[0].map(person=>{
+    const key=normalizeTitle(person.name).replaceAll(' ','');
+    const extra=castSources.flat().find(other=>normalizeTitle(other.name).replaceAll(' ','')===key && other.image);
+    return {...person,image:person.image || extra?.image};
+  });
   return { result: { title, image: artwork.image, description: item?.overview, other_names: item?.otherNames,
     meta: item?.meta || (year ? { Released: year } : {}), episodes,
-    tags: primary?.tags?.length ? primary.tags : genres, genres, cast: primary?.cast?.length ? primary.cast : alternative?.cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
+    tags: primary?.tags?.length ? primary.tags : genres, genres, cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
   } };
 });
 
@@ -161,24 +174,6 @@ export async function fetchPopularSeries(): Promise<TopDramasResponse> {
     lists[kind] = result.value.slice(0, 10).map((item, rank) => ({ detail_link: catalogRoute(item), image: item.image, rank: rank + 1, release_year: item.year || 0, slug: catalogRoute(item).slice(1), title: item.title }));
   });
   return { error: null, page: "top-dramas", status: 200, result: { lists, errors } };
-}
-
-export async function fetchSchedule(): Promise<ScheduleResponse> {
-  const data = await getHomepage();
-  const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const days: ScheduleResponse["result"]["days"] = Object.fromEntries(names.map(day => [day.toLowerCase(), { count: 0, day, dramas: [] }]));
-  for (const [kind, items] of [["Premiere", data.starting], ["Finale", data.ending]] as const) {
-    for (const item of items) {
-      // Only use actual source dates. Do not infer a release from list position.
-      if (!item.date) continue;
-      const timestamp = Date.parse(item.date);
-      if (!Number.isFinite(timestamp)) continue;
-      const day = new Date(timestamp).toLocaleDateString("en", { weekday: "long", timeZone: "Europe/Copenhagen" }).toLowerCase();
-      const row: ScheduleDrama = { countdown: new Date(timestamp).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "Europe/Copenhagen" }), countdown_seconds: Math.floor((timestamp - Date.now()) / 1000), detail_link: catalogRoute(item), episode_count: 0, image: item.image, release_status: kind.toLowerCase(), release_timestamp: timestamp, slug: `${catalogRoute(item).slice(1)}-${kind}`, subtitle_type: kind, title: item.title };
-      days[day].dramas.push(row); days[day].count++;
-    }
-  }
-  return { error: null, page: "schedule", result: { days, schedule_note: "Premieres and finales this week. Dates shown in Copenhagen time." }, status: 200 };
 }
 
 export const fetchRecentCached = fetchRecent;

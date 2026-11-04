@@ -1,7 +1,8 @@
 import "server-only";
 /** Read public drama detail pages without API credentials or API endpoints. */
 import { load } from "cheerio";
-import { cache } from "react";
+import { createKeyedCache } from './runtime-cache';
+import { isPublishedImage } from './image-utils.mjs';
 import { cleanText, httpsUrl, readHtml, sourceUrl, structuredItems, SourceUnavailable } from "./html";
 import { normalizeTitle, type CatalogTitle } from "./catalog";
 import { getSourceConfig } from "./server-config.mjs";
@@ -15,7 +16,7 @@ export type DetailEpisode = { title?: string; season: number; episode: number; d
 
 function imageUrl(value: string | undefined, base: string): string | undefined {
   const address = httpsUrl(value, base);
-  return address && !/(?:^|\/)(?:no[-_]?image|no[-_]?poster|placeholder|blank|default)[^/]*\.(?:gif|png|jpe?g|webp)(?:\?|$)/i.test(new URL(address).pathname) ? address : undefined;
+  return isPublishedImage(address) ? address : undefined;
 }
 
 export function parseTrailerUrl(value: string | undefined): DramaTrailer | undefined {
@@ -153,13 +154,15 @@ export function parseDetailSearch(html: string): CatalogTitle[] {
 
 // The detail search may render in JavaScript. These public catalog pages include
 // title links in HTML and let us resolve matching titles without its search API.
-const getPublicCatalog = cache(async (movie: boolean): Promise<CatalogTitle[]> => {
+const publicCatalog = createKeyedCache<CatalogTitle[]>(async kind => {
+  const movie = kind === 'movies';
   const pages = movie ? [`${BASE}/movies/`] : [`${BASE}/tv/drama/kr/all-years`, `${BASE}/tv/drama/`];
   const results = await Promise.allSettled(pages.map(async url => parseDetailSearch(await readHtml(url, 86400))));
   const items = results.flatMap(result => result.status === "fulfilled" ? result.value : []);
   if (!items.length && results.every(result => result.status === "rejected")) throw new SourceUnavailable("Details");
   return [...new Map(items.map(item => [item.url, item])).values()];
 });
+const getPublicCatalog = (movie: boolean) => publicCatalog(movie ? 'movies' : 'tv');
 
 export async function findDramaDetails(title: string, year?: number, movie = false): Promise<DetailRecord | null> {
   if (!movie && getSourceConfig().catalogOrigin) {

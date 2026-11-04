@@ -4,7 +4,7 @@ import { WatchPage } from "@/components/WatchPage";
 import type { Metadata } from "next";
 
 interface EpisodePageProps { params: Promise<{ slug: string; episode: string }> }
-export async function generateStaticParams() { return []; }
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

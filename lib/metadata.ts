@@ -1,8 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
 import { readHtml } from "./html";
-import { createRuntimeCache } from "./runtime-cache";
+import { createRuntimeCache, createKeyedCache } from "./runtime-cache";
 import { catalogRoute, normalizeTitle, type CatalogTitle } from "./catalog";
 import { collectMetadata, homepageSections, lookupMetadata, matchMetadata, rankingLists } from "./metadata-source.mjs";
 import { findCatalogArtwork } from "./catalog-details";
@@ -36,15 +35,16 @@ export async function getMetadataList(kind: Ranking, page = 1): Promise<Metadata
   return enrichArtwork(lists[kind].slice((current - 1) * 20, current * 20));
 }
 
-const lookup = unstable_cache(async (title: string, year?: number, movie = false): Promise<MetadataTitle | null> => {
+const lookup = createKeyedCache<MetadataTitle | null>(async key => {
+  const {title,year,movie}=JSON.parse(key);
   try { return await lookupMetadata(title, year, movie, readHtml) as MetadataTitle | null; }
   catch { return null; }
-}, ["metadata-title-v3"], { revalidate: 21600 });
+}, 21_600_000);
 
 export async function findMetadata(title: string, year?: number, movie = false): Promise<MetadataTitle | null> {
   const saved = liveMetadata.peek?.();
   const item = saved ? matchMetadata(saved.titles, title, year, movie) as MetadataTitle | undefined : undefined;
-  return item && !item.indexOnly ? item : await lookup(title, year, movie) || item || null;
+  return item && !item.indexOnly ? item : await lookup(JSON.stringify({title,year,movie})) || item || null;
 }
 
 export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise<T[]> {
@@ -57,7 +57,7 @@ export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise
   })];
   const result = [...items];
   let next = 0;
-  await Promise.all([0, 1, 2, 3].map(async () => {
+  const enrichment = Promise.all([0, 1, 2, 3].map(async () => {
     while (next < items.length) {
       const index = next++, item = items[index];
       if (item.image && item.image !== '/file.svg') continue;
@@ -69,7 +69,12 @@ export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise
       if (image && image !== '/file.svg') result[index] = { ...item, image };
     }
   }));
-  return result;
+  // Render listings promptly; lazy image requests reuse the ongoing cached lookups.
+  if (items.length > 1) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([enrichment, new Promise<void>(resolve => { timer = setTimeout(resolve, 1000); })]).finally(() => clearTimeout(timer));
+  } else await enrichment;
+  return [...result];
 }
 
 export async function searchMetadata(query: string, page = 1): Promise<MetadataTitle[]> {

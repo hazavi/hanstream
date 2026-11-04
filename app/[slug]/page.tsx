@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { parseCatalogRoute } from "@/lib/catalog";
 
-export async function generateStaticParams() { return []; }
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

@@ -2,12 +2,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parsePlaybackCatalog, parsePlaybackPage, getPlaybackCatalog, getPlaybackStream } from "../lib/playback";
 import { parseDetailPage, parseDetailEpisodes, parseTrailerUrl, isAsianCountry, findDramaDetails } from "../lib/details";
-import { readHtml, sourceUrl } from "../lib/html";
+import { readHtml, clearHtmlCache, sourceUrl } from "../lib/html";
 import { catalogRoute, parseCatalogRoute } from "../lib/catalog";
 
 // Keep parser tests isolated; runtime cache behavior is covered separately.
 vi.mock("../lib/runtime-cache", async importOriginal => ({ ...await importOriginal<typeof import('../lib/runtime-cache')>(), createRuntimeCache: (load: () => Promise<unknown>) => load }));
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+afterEach(() => { clearHtmlCache(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 const htmlResponse = (html: string) => new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 const catalog = '<a class="post-title-link" href="https://stream.example/embed/fixture-2026-ep-2.html">Fixture (2026) Ep 2</a><a class="post-title-link" href="https://stream.example/embed/fixture-2025-ep-2.html">Fixture (2025) Ep 2</a><a class="post-title-link" href="https://stream.example/embed/fixture-2026-ep-20.html">Fixture (2026) Ep 20</a>';
 
@@ -121,14 +121,14 @@ describe("Source URL and routing boundaries", () => {
   it("rejects JSON responses and 200-status challenge pages", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response('{}', { headers: { "Content-Type": "application/json" } })).mockResolvedValueOnce(htmlResponse('<title>Just a moment...</title>')));
     await expect(readHtml("https://details.example/tv/42/fixture")).rejects.toThrow("temporarily unavailable");
-    await expect(readHtml("https://metadata.example/")).rejects.toThrow("temporarily unavailable");
+    await expect(readHtml("https://metadata.example/", 0)).rejects.toThrow("temporarily unavailable");
   });
 
   it("accepts published HTML containing a challenge script, but rejects an interstitial form", async () => {
     const content = '<title>Drama News</title><main>Published catalog</main><script src="/cdn-cgi/challenge-platform/script.js"></script>';
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(htmlResponse(content)).mockResolvedValueOnce(htmlResponse('<form id="challenge-form">Please wait</form>')));
-    expect(await readHtml("https://metadata.example/")).toBe(content);
-    await expect(readHtml("https://metadata.example/")).rejects.toThrow("temporarily unavailable");
+    expect(await readHtml("https://metadata.example/", 0)).toBe(content);
+    await expect(readHtml("https://metadata.example/", 0)).rejects.toThrow("temporarily unavailable");
   });
   it("recovers from one transient server failure without retrying an access denial", async () => {
     vi.stubEnv('CATALOG_SOURCE_URL', 'https://retry.example');

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { Breadcrumb } from "./Breadcrumb";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { DramaDetail, EpisodeResult } from "@/lib/api-types";
 import { EpisodePlayer } from "./EpisodePlayer";
 import { EpisodeList } from "./EpisodeList";
@@ -45,7 +45,7 @@ export function WatchPage({ result, drama, slug, episode }: { result: EpisodeRes
     finally { setRetrying(false); }
   }
   return <div className="watch-page animate-fade-in">
-    <header className="watch-heading"><Link href={`/${slug}`} className="text-sm text-secondary hover:text-primary inline-flex items-center gap-2"><ArrowLeft size={16} aria-hidden="true"/>{title}</Link><h1 className="heading text-xl sm:text-2xl font-semibold">{formatEpisodeLabel(episode)}{current?.title && <span className="font-normal text-secondary"> · {current.title}</span>}</h1></header>
+    <header className="watch-heading"><Breadcrumb items={[{label:"Home",href:"/"},{label:title,href:`/${slug}`},{label:formatEpisodeLabel(selectedEpisode),isActive:true}]}/><h1 className="heading text-xl sm:text-2xl font-semibold">{formatEpisodeLabel(episode)}{current?.title && <span className="font-normal text-secondary"> · {current.title}</span>}</h1></header>
     <div className="watch-layout" style={frameHeight ? { "--watch-frame-height": frameHeight + "px" } as CSSProperties : undefined}><div ref={frameRoot} className="watch-primary">
       <EpisodePlayer key={`${slug}/${episode}/${playback.video}`} video={playback.video} servers={playback.servers} title={playback.title} />
       {!playback.video && <div className="flex items-center gap-3 py-3"><button type="button" className="glass-btn text-sm inline-flex items-center gap-2" onClick={retryEpisode} disabled={retrying}><RotateCcw size={14} aria-hidden="true" className={retrying ? "animate-spin" : ""}/>{retrying ? "Reloading…" : "Retry episode"}</button>{retryError && <p role="status" className="text-xs text-secondary">{retryError}</p>}</div>}
