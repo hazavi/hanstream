@@ -10,23 +10,32 @@ fn main() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
-        .invoke_handler(tauri::generate_handler![storage::library_load, storage::library_save, storage::library_clear, storage::cache_load, storage::cache_save])
+        .invoke_handler(tauri::generate_handler![
+            storage::library_load,
+            storage::library_save,
+            storage::library_clear,
+            storage::cache_load,
+            storage::cache_save
+        ])
         .setup(|app| {
             app.manage(storage::Storage::open(&app.path().app_data_dir()?)?);
-            let window = tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
-                .on_navigation(|url| {
-                    (url.scheme() == "https" && url.host_str() == Some("tauri.localhost") && url.port().is_none())
-                        || (url.scheme() == "tauri" && url.host_str() == Some("localhost"))
-                })
-                .on_new_window(|_, _| NewWindowResponse::Deny)
-                .on_permission_request(|_, _| PermissionResponse::Deny)
-                .on_download(|_, event| match event {
-                    DownloadEvent::Requested { url, .. } => {
-                        url.as_str().starts_with("blob:https://tauri.localhost/")
-                            || url.as_str().starts_with("blob:tauri://localhost/")
-                    }
-                    _ => true,
-                });
+            let window =
+                tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
+                    .on_navigation(|url| {
+                        (url.scheme() == "https"
+                            && url.host_str() == Some("tauri.localhost")
+                            && url.port().is_none())
+                            || (url.scheme() == "tauri" && url.host_str() == Some("localhost"))
+                    })
+                    .on_new_window(|_, _| NewWindowResponse::Deny)
+                    .on_permission_request(|_, _| PermissionResponse::Deny)
+                    .on_download(|_, event| match event {
+                        DownloadEvent::Requested { url, .. } => {
+                            url.as_str().starts_with("blob:https://tauri.localhost/")
+                                || url.as_str().starts_with("blob:tauri://localhost/")
+                        }
+                        _ => true,
+                    });
             // CI builds this separate harness; installers never enable this feature.
             #[cfg(feature = "automation")]
             let window = window.additional_browser_args(

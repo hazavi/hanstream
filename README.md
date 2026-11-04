@@ -69,3 +69,5 @@ Manual watched buttons are omitted from episode cards and playback controls. Exi
 Airing, upcoming, and weekly premiere/finale lists can use published HTML calendar dates and filtered scripted-show catalogs when the primary metadata index is unavailable. Dates are not inferred from episode counts.
 
 For the additional official-distributor poster fallback, copy `POSTER_SEARCH_URLS` from the ignored local environment to the backend host. It contains comma-separated public HTML search URL templates with `{query}`. Keep this server-only.
+
+Windows installer: [Download HanStream v1.0](https://github.com/hazavi/hanstream/releases/download/v1.0/HanStream_1.0.0_x64-setup.exe). The installer asks for a folder, offers an optional desktop shortcut, and includes an uninstaller. This release is unsigned; automatic signed updates remain disabled.

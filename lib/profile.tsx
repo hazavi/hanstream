@@ -31,13 +31,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const currentProfile = useRef<UserProfile | null>(null);
+  const canSave = useRef(true);
   const [persistenceError, setPersistenceError] = useState('');
   useEffect(() => {
     let active = true;
     void loadSavedProfile().then(saved => {
       if (active) { currentProfile.current = saved || {...DEFAULT_PROFILE}; setProfile(currentProfile.current); }
     }).catch(() => {
-      if (active) { setPersistenceError('Saved data could not be loaded. Export any session changes before closing the app.'); currentProfile.current = {...DEFAULT_PROFILE}; setProfile(currentProfile.current); }
+      if (active) { canSave.current=false; setPersistenceError('Saved data could not be loaded. Existing data will be kept until you import a library or confirm deletion.'); currentProfile.current = {...DEFAULT_PROFILE}; setProfile(currentProfile.current); }
     });
     return () => { active = false; };
   }, []);
@@ -45,18 +46,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const update = useCallback(async (change: (current: UserProfile) => UserProfile) => {
     const next = { ...change(currentProfile.current || DEFAULT_PROFILE), updatedAt: new Date().toISOString() };
     currentProfile.current = next; setProfile(next);
-    try { await saveProfile(next); setPersistenceError(''); }
+    try { if (!canSave.current) throw new Error('Saved library needs recovery'); await saveProfile(next); setPersistenceError(''); }
     catch { setPersistenceError('Changes are kept for this session but could not be saved. Export your library before closing.'); }
   }, []);
   const replaceProfile = useCallback(async (value: UserProfile) => {
     const next = { ...validateProfile(value), updatedAt: new Date().toISOString() };
     await saveProfile(next);
-    currentProfile.current = next; setProfile(next); setPersistenceError('');
+    canSave.current=true; currentProfile.current = next; setProfile(next); setPersistenceError('');
   }, []);
   const clearProfile = useCallback(async () => {
     await clearSavedProfile();
     const next = { ...DEFAULT_PROFILE, watchedEpisodes: {}, watchlist: [], continueWatching: [], topRankings: [], createdAt: new Date().toISOString() };
-    currentProfile.current = next; setProfile(next); setPersistenceError('');
+    canSave.current=true; currentProfile.current = next; setProfile(next); setPersistenceError('');
   }, []);
 
   const addToWatchlist = useCallback(async (item: NewWatchlistItem) => update((current) => ({ ...current, watchlist: [...current.watchlist.filter((existing) => existing.slug !== item.slug), { ...item, dateAdded: new Date().toISOString() }] })), [update]);

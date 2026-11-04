@@ -44,9 +44,12 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
       if (!search && !episode && !saved && !options.fresh) {
         const local = await readLocalResponse(key);
         if (local && local.expires > Date.now()) {
-          saved = {value:local.value,expires:Math.min(local.expires,local.savedAt+30_000),staleUntil:local.expires};
+          saved = {value:local.value,expires:Math.min(local.expires,local.savedAt+(drama ? 300_000 : 30_000)),staleUntil:local.expires};
           responses.set(key,saved);
-          if (saved.expires > Date.now()) return saved.value;
+          if (saved.expires <= Date.now()) setTimeout(() => {
+            if (generation===started) void readBackend(path,undefined,{fresh:true,sameOrigin:options.sameOrigin}).catch(()=>{});
+          },0);
+          return saved.value;
         }
       }
       try {
