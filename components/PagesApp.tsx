@@ -13,7 +13,7 @@ import { HomepageHighlights, type HomepageHighlightsData } from "./HomepageHighl
 const DramaDetails = dynamic(() => import('./DramaDetails').then(module => module.DramaDetails), { loading: () => <p role="status">Loading drama details...</p> });
 const WatchPage = dynamic(() => import('./WatchPage').then(module => module.WatchPage), { loading: () => <p role="status">Loading episode...</p> });
 
-type HomeData = { home: HomepageHighlightsData; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"] };
+type HomeData = { home: HomepageHighlightsData; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"]; partial?: boolean };
 type CatalogData = { items: (RecentItem | PopularItem)[]; page: number; hasNext: boolean };
 type WatchData = { result: EpisodeResult; drama: DramaResponse["result"] };
 type View = "home" | "popular" | "recently-added" | "recent-movies" | "search" | "drama" | "watch";
@@ -25,6 +25,7 @@ function Home({ data }: { data: HomeData }) {
   return <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
     <div className="flex-1 min-w-0 space-y-8 sm:space-y-12 animate-fade-in">
       <ContinueWatching />
+      {data.partial && <p role="status" className="text-sm text-secondary">Some listings are temporarily unavailable.</p>}
       {([{ title: "Latest Episodes", href: "/recently-added", items: data.recent }, { title: "Popular Dramas", href: "/popular", items: data.popular }]).map(section => <section key={section.href} className="space-y-4 sm:space-y-6"><div className="flex items-center justify-between"><h2 className="text-xl sm:text-2xl font-bold heading">{section.title}</h2><Link href={section.href} className="glass-btn text-sm">View all</Link></div><Cards items={section.items} /></section>)}
     </div><div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-5"><TopAiringSection result={data.rankings} /><HomepageHighlights home={data.home} /></div>
   </div>;

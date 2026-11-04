@@ -24,6 +24,8 @@ The Redis command queue is capped at 100. A timed-out command destroys its conne
 
 The outbound dispatcher uses Undici 7 to match Node 24's built-in fetch API. A real local HTTP regression test covers that integration; mocking fetch alone would miss an incompatible dispatcher major version.
 
+Server HTML readers use the HTTP client's own fetch implementation rather than Next's patched global fetch. Both HTTP paths have a real local-server regression check. Homepage sections resolve independently, retain previous successful sections during an outage, and mark partial responses as non-cacheable over HTTP. A failed optional metadata lookup no longer discards available episodes. The regular homepage reuses the same assembled snapshot as the Pages API.
+
 ## Optional image byte cache
 
 Set backend-only `IMAGE_ORIGINS` to a comma-separated list of exact HTTPS image CDN origins. Only server-discovered artwork and portrait URLs on that list can be resized. Without a matching origin, existing image redirects continue to work.

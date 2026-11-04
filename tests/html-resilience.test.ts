@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest';
 import { clearHtmlCache, readHtml } from '../lib/html';
+vi.mock('undici', async original => ({ ...(await original<typeof import('undici')>()), fetch: (...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args) }));
 afterEach(()=>{clearHtmlCache();vi.unstubAllGlobals();vi.unstubAllEnvs();vi.useRealTimers();});
 it('cools down a connect-timeout host immediately without retry storms or raw errors',async()=>{
   const error=Object.assign(new TypeError('fetch failed'),{cause:{code:'UND_ERR_CONNECT_TIMEOUT'}});

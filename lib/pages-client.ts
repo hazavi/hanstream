@@ -49,10 +49,11 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
       if (!response.ok) throw new Error('Unable to load this page. Please try again.');
       const raw = await response.json();
       const value = drama ? mergeDramaResponse(saved?.value as DramaResponse | undefined, raw) : raw;
-      const ttl = drama ? detailNeedsRefresh(value) ? 15_000 : 300_000 : 30_000;
+      const partial = path === '/api/home' && value?.partial === true;
+      const ttl = drama ? detailNeedsRefresh(value) ? 15_000 : 300_000 : partial ? 10_000 : 30_000;
       if (generation===started && (!episode || value?.result?.video)) {
         responses.delete(key);
-        responses.set(key, {value,expires:Date.now()+ttl,staleUntil:Date.now()+ttl+(search || episode || drama && detailNeedsRefresh(value) ? 0 : 900_000)});
+        responses.set(key, {value,expires:Date.now()+ttl,staleUntil:Date.now()+ttl+(search || episode || partial || drama && detailNeedsRefresh(value) ? 0 : 900_000)});
       }
       if (responses.size > 50) responses.delete(responses.keys().next().value!);
       return value;

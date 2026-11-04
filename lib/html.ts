@@ -3,7 +3,7 @@ import { load } from "cheerio";
 import { getSourceConfig, isSourceRedirect } from "./server-config.mjs";
 import { count } from './diagnostics';
 import { publicDispatcher } from './outbound';
-import type { Dispatcher } from 'undici';
+import { fetch as sourceFetch, type RequestInit as SourceRequestInit, type Response as SourceResponse } from 'undici';
 
 export const cleanText = (value: string) => value.replace(/\s+/g, " ").trim();
 
@@ -65,14 +65,14 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
   for (let attempt = 0; attempt < 4; attempt++) {
     if (url.protocol !== "https:" || !allowedOrigins.has(url.origin) || url.username || url.password || url.port) throw new Error("Invalid source URL");
     if ((unavailableUntil.get(url.origin) || 0) > Date.now()) throw new SourceUnavailable(source);
-    let response: Response;
+    let response: SourceResponse;
     try {
-      const options: RequestInit & { dispatcher: Dispatcher } = {
+      const options: SourceRequestInit = {
         dispatcher: publicDispatcher,
         headers: { Accept: "text/html", "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
         cache: 'no-store', redirect: "manual", signal: AbortSignal.timeout(timeout),
       };
-      response = await fetch(url.href, options);
+      response = await sourceFetch(url.href, options);
     } catch (error) {
       const code = (error as { cause?: {code?:string} })?.cause?.code;
       if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) || code === 'UND_ERR_CONNECT_TIMEOUT') {
@@ -114,7 +114,7 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
   throw new SourceUnavailable(source);
 }
 
-async function limitedHtml(response: Response): Promise<string> {
+async function limitedHtml(response: SourceResponse): Promise<string> {
   if (Number(response.headers.get('content-length')) > MAX_HTML_BYTES) {
     await response.body?.cancel();
     throw new SourceUnavailable('Catalog');
