@@ -4,6 +4,15 @@ The app uses a GitHub Pages frontend and a separate backend. Keep private reader
 
 Implementation status: performance code is documented in [performance.md](performance.md), security controls in [security-operations.md](security-operations.md), and the Windows desktop target in [desktop.md](desktop.md). External cache provisioning, image-origin configuration, signing credentials, and live signed-update testing remain pending. The sections below retain the original recommendations and their verification goals.
 
+Verified on 2026-11-04:
+
+- Performance, security, and desktop changes were committed and pushed in separate stages. The deployed homepage returns live catalog content, with independently recoverable sections.
+- All 232 automated tests pass. Pages deployment, backend checks, native dependency checks, and the Windows app smoke test pass in GitHub Actions. npm audit reports zero findings; the two reviewed Rust warnings do not enter the Windows build graph.
+- The unsigned Windows installer is available from the successful run of the [Windows desktop workflow](https://github.com/hazavi/hanstream/actions/workflows/desktop.yml). The production executable was checked to exclude the CI debugging flag.
+- Library import/export, confirmation, invalid-file rejection, deletion, production script nonces, and theme interaction were exercised in a real browser. The compiled desktop app was also exercised locally in WebView2.
+
+Individual external video hosts can still fail or present their own verification prompts. A sampled primary embed failed in both Chrome and WebView2; an alternate rendered a video player. This does not establish that every upstream server plays successfully. Signed-update installation and recovery still require real signing credentials and an update host.
+
 ## Performance
 
 1. **Measure cold and warm loads separately.** Record homepage load, first visible poster, search response, and detail response on a phone with a slow connection. Record backend wake-up time separately from source reads. Render Free services sleep after 15 minutes without inbound traffic, so frontend optimization alone cannot remove the wake-up delay. Keep a clear loading state; consider an always-on plan only if that delay becomes unacceptable. See [Render's Free service limits](https://render.com/docs/free).

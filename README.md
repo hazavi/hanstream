@@ -58,7 +58,7 @@ The included `render.yaml` selects a Free Docker service. Set the four private s
 
 Use the [deployment guide](docs/deployment.md) for the Pages frontend and separate private backend. The included workflow publishes only the static frontend. Set the repository variable `API_BASE_URL` after deploying the backend.
 
-See [performance, security, and desktop app suggestions](docs/improvement-suggestions.md) for proposed follow-up work.
+See [performance, security, and desktop app suggestions](docs/improvement-suggestions.md) for implementation status, verification results, and remaining configuration.
 
 Implemented work is documented in [performance](docs/performance.md), [security operations](docs/security-operations.md), and [Windows desktop setup](docs/desktop.md). Run `npm run desktop:dev` or `npm run desktop:build -- --locked` after configuring the public desktop backend URL and native prerequisites.
 
