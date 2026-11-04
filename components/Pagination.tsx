@@ -18,7 +18,7 @@ export function Pagination({ page, basePath }: { page: number; basePath: string;
             Previous
           </Link>
         ) : (
-          <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-100/60 dark:bg-gray-800/30 border border-gray-200/40 dark:border-gray-700/40 text-sm font-medium faint select-none">
+          <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neutral-100/60 dark:bg-neutral-800/30 border border-neutral-200/40 dark:border-neutral-700/40 text-sm font-medium faint select-none">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>

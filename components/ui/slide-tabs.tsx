@@ -88,7 +88,7 @@ export function SlideTabs({ items = demoItems, value, defaultValue, onValueChang
         </li>;
       })}
       {trailing && <li className="slide-tabs-tools" onPointerEnter={() => { hovered.current=undefined; reset(); }} onFocusCapture={reset}>{trailing}</li>}
-      <m.li role="presentation" aria-hidden="true" className="slide-tabs-cursor" initial={false} animate={{ x: position.left, y: position.top, width: position.width, height: position.height, opacity: position.opacity }} transition={reduceMotion ? { duration: 0 } : { duration: .26, ease: [.22, 1, .36, 1] }} />
+      <m.li role="presentation" aria-hidden="true" className="slide-tabs-cursor" initial={false} animate={{ x: position.left, y: position.top, width: position.width, height: position.height, opacity: position.opacity }} transition={reduceMotion ? { duration: 0 } : { type: "tween", duration: .18, ease: "easeOut" }} />
     </ul>
   </LazyMotion>;
 }

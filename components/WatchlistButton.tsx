@@ -230,7 +230,7 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
           />
 
           {/* Dropdown */}
-          <div className="absolute bottom-full mb-2 right-0 z-50 backdrop-blur-xs bg-black/70 dark:min-w-44 rounded-lg shadow-2xl border border-white/20 dark:border-gray-700/50 overflow-hidden">
+          <div className="absolute bottom-full mb-2 right-0 z-50 backdrop-blur-xs bg-black/70 dark:min-w-44 rounded-lg shadow-2xl border border-white/20 dark:border-neutral-700/50 overflow-hidden">
             <div className="p-1">
               {WATCH_STATUSES.map(({ status, label, icon }) => (
                 <button
@@ -239,14 +239,14 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-all duration-150 ${
                     currentStatus === status
                       ? "bg-accent/20 text-accent"
-                      : "hover:bg-black/10 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300"
+                      : "hover:bg-black/10 dark:hover:bg-white/10 text-neutral-700 dark:text-neutral-300"
                   }`}
                 >
                   <div
                     className={`${
                       currentStatus === status
                         ? "text-accent"
-                        : "text-gray-500 dark:text-gray-400"
+                        : "text-neutral-500 dark:text-neutral-400"
                     }`}
                   >
                     {icon}
@@ -266,13 +266,13 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
 
               {existingItem && (
                 <>
-                  <div className="h-px bg-gray-200/50 dark:bg-gray-700/50 mx-1 my-1" />
+                  <div className="h-px bg-neutral-200/50 dark:bg-neutral-700/50 mx-1 my-1" />
                   <button
                     onClick={() => {
                       removeFromWatchlist(slug);
                       setIsOpen(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left text-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-all duration-150"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left text-neutral-500 hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-all duration-150"
                   >
                     <svg
                       className="w-4 h-4"
@@ -363,7 +363,7 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
                       <div className="rating-display">
                         <svg
                           className="w-4 h-4"
-                          fill="#fbbf24"
+                          fill="currentColor"
                           stroke="none"
                           viewBox="0 0 24 24"
                         >

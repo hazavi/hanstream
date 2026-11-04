@@ -31,7 +31,7 @@ function EpisodeCard({ episode, posters,slug }: { episode: DramaEpisode; posters
       <Artwork sources={future ? [] : [episode.image, ...posters]} alt={episode.title || label} placeholder={future ? "Upcoming" : undefined} fallbackLabel={future ? `E${episode.episode}` : undefined}/>
       <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
       <span className="absolute bottom-2 left-3 text-white text-xs font-semibold">S{String(episode.season || 1).padStart(2, "0")} E{String(episode.episode).padStart(2, "0")}</span>
-      {episode.finale && <span className="absolute top-2 left-2 rounded-md bg-blue-600 px-2 py-1 text-[10px] font-semibold text-white">Finale</span>}
+      {episode.finale && <span className="absolute top-2 left-2 rounded-md bg-neutral-600 px-2 py-1 text-[10px] font-semibold text-white">Finale</span>}
       {available && <span aria-hidden="true" className="absolute right-3 bottom-2 text-white"><Play size={18} fill="currentColor" aria-hidden="true"/></span>}
     </div>
     <div className="p-3 sm:p-4 space-y-2">

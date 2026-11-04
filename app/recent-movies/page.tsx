@@ -28,7 +28,7 @@ export default async function RecentMoviesPage({
             <h1 className="text-3xl md:text-4xl font-bold heading">
               Latest Asian Movies
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-neutral-600 dark:text-neutral-400">
               No movies available at the moment.
             </p>
           </div>
@@ -80,7 +80,7 @@ export default async function RecentMoviesPage({
           <h1 className="text-3xl md:text-4xl font-bold heading">
             Latest Asian Movies
           </h1>
-          <p className="text-red-600 dark:text-red-400">
+          <p className="text-neutral-600 dark:text-neutral-400">
             Failed to load recent movies. Please try again later.
           </p>
         </div>

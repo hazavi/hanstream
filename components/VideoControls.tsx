@@ -25,7 +25,7 @@ export function VideoControls({
   const nextEpNum = nextEpisode?.id.split("/").filter(Boolean).pop();
 
   return (
-    <div className="flex justify-end items-center gap-2">
+    <div className="episode-navigation flex justify-end items-center gap-2">
       {/* Previous Episode Button */}
       {prevEpisode && (
         <Link

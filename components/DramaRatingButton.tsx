@@ -46,7 +46,7 @@ export function DramaRatingButton({
         >
           <svg
             className="w-4 h-4"
-            fill="#fbbf24"
+            fill="currentColor"
             stroke="none"
             viewBox="0 0 24 24"
           >
@@ -147,7 +147,7 @@ export function DramaRatingButton({
                       <div className="rating-display">
                         <svg
                           className="w-4 h-4"
-                          fill="#fbbf24"
+                          fill="currentColor"
                           stroke="none"
                           viewBox="0 0 24 24"
                         >

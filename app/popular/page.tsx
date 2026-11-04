@@ -35,7 +35,7 @@ export default async function PopularPage({
         </div>
       ) : (
         <div className="glass-card p-10 text-center space-y-4 animate-fade-in">
-          <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-neutral-500/20 to-neutral-500/20 flex items-center justify-center">
             <svg
               className="w-8 h-8 text-accent"
               fill="none"

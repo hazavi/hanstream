@@ -74,7 +74,7 @@ export function TabletMenu() {
               <span className="text-lg font-bold text-primary">Settings</span>
               <button
                 onClick={closeMenu}
-                className="p-2 text-secondary hover:text-primary transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 text-secondary hover:text-primary transition-colors rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 aria-label="Close menu"
               >
                 <svg

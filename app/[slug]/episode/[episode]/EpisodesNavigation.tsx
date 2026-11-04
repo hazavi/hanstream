@@ -49,7 +49,7 @@ const EpisodeItem = memo(function EpisodeItem({
         <div className="flex items-center gap-1.5 min-w-0">
           {active && (
             <svg
-              className="w-4 h-4 text-blue-500 dark:text-accent flex-shrink-0"
+              className="w-4 h-4 text-neutral-500 dark:text-accent flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -64,7 +64,7 @@ const EpisodeItem = memo(function EpisodeItem({
           >
             <span
               className={`text-[10px] font-bold ${
-                active ? "text-blue-600 dark:text-accent" : "text-primary"
+                active ? "text-neutral-600 dark:text-accent" : "text-primary"
               }`}
             >
               {epNum?.replace(/^s\d+e/i, "")}
@@ -74,7 +74,7 @@ const EpisodeItem = memo(function EpisodeItem({
           <div className="flex flex-col min-w-0">
             <span
               className={`text-[10px] font-medium truncate ${
-                active ? "text-blue-600 dark:text-accent" : "text-primary"
+                active ? "text-neutral-600 dark:text-accent" : "text-primary"
               }`}
             >
               {formatEpisodeLabel(epNum || "")}
@@ -94,11 +94,11 @@ const EpisodeItem = memo(function EpisodeItem({
               className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase ${
                 e.type === "SUB"
                   ? active
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "bg-blue-500/10 text-blue-500"
+                    ? "bg-neutral-500/20 text-neutral-400"
+                    : "bg-neutral-500/10 text-neutral-500"
                   : active
-                  ? "bg-purple-500/20 text-purple-400"
-                  : "bg-purple-500/10 text-purple-500"
+                  ? "bg-neutral-500/20 text-neutral-400"
+                  : "bg-neutral-500/10 text-neutral-500"
               }`}
             >
               {e.type}

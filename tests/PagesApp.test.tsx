@@ -30,7 +30,7 @@ it("loads all homepage sections and the sidebar without homepage tabs", async ()
   vi.mocked(readBackend).mockResolvedValue({ home: { reviews: [], trending: [], starting: [], ending: [] }, recent: [], popular: [], hero: [{ full_title: "Previously featured" }], rankings: { lists: { airing: [], upcoming: [], popular: [] }, errors: {} } });
   render(<PagesApp view="home" />);
   expect(await screen.findByRole("heading", { name: "Latest Reviews" })).toBeInTheDocument();
-  for (const name of ["Trending This Week", "Shows Starting This Week", "Shows Ending This Week", "Airing Shows", "Upcoming Shows", "Most Popular Shows"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+  for (const name of ["Trending This Week", "Shows Starting This Week", "Shows Ending This Week", "Airing Shows", "Upcoming Shows"]) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
   expect(screen.queryByRole("tablist")).toBeNull();
   expect(screen.queryByTestId("homepage-carousel")).toBeNull();
   expect(readBackend).toHaveBeenCalledWith("/api/home", expect.any(AbortSignal));

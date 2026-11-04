@@ -194,7 +194,7 @@ export function ContinueWatching() {
                         Episode {item.currentEpisode}
                         {item.totalEpisodes && ` of ${item.totalEpisodes}`}
                       </div>
-                      <div className="text-gray-300 text-[12px] leading-tight mt-0.5">
+                      <div className="text-neutral-300 text-[12px] leading-tight mt-0.5">
                         {new Date(item.lastWatched).toLocaleDateString()}
                       </div>
                     </div>

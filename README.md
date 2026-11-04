@@ -1,6 +1,6 @@
 # HanStream
 
-An Asian drama app with episode playback, a browser-local watchlist, ratings, and viewing progress. The interface uses outlined navigation, sliding selectors, and flat panels in light and dark mode.
+An Asian drama app with episode playback, a browser-local watchlist, ratings, and viewing progress. The interface uses black, white, and neutral gray, with outlined navigation, sliding selectors, and flat panels in light and dark mode. Drama artwork and video retain their original colors.
 
 ## Develop
 
@@ -57,6 +57,8 @@ Personal watch data stays in the browser's local storage. Readable drama routes 
 The included `render.yaml` selects a Free Docker service. Set the four private source origins when Render prompts for them. After the service is live, run `npm run connect:backend --` followed by its public HTTPS URL to verify content, save GitHub's `API_BASE_URL`, and start the Pages workflow using your existing Git sign-in.
 
 Use the [deployment guide](docs/deployment.md) for the Pages frontend and separate private backend. The included workflow publishes only the static frontend. Set the repository variable `API_BASE_URL` after deploying the backend.
+
+See [performance, security, and desktop app suggestions](docs/improvement-suggestions.md) for proposed follow-up work.
 
 The optional private ARTWORK_SOURCE_URL enables a published-series-cover fallback for missing posters. Copy its value from the ignored local environment into your backend environment before deploying.
 

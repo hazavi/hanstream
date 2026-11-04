@@ -47,16 +47,16 @@ export function ConfirmationModal({
 
   const variantStyles = {
     danger: {
-      icon: "text-red-500",
-      confirmBtn: "bg-red-500 hover:bg-red-600 focus:ring-red-500",
+      icon: "text-neutral-500",
+      confirmBtn: "bg-neutral-500 hover:bg-neutral-600 focus:ring-neutral-500",
     },
     warning: {
-      icon: "text-yellow-500",
-      confirmBtn: "bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500",
+      icon: "text-neutral-500",
+      confirmBtn: "bg-neutral-500 hover:bg-neutral-600 focus:ring-neutral-500",
     },
     info: {
-      icon: "text-blue-500",
-      confirmBtn: "bg-blue-500 hover:bg-blue-600 focus:ring-blue-500",
+      icon: "text-neutral-500",
+      confirmBtn: "bg-neutral-500 hover:bg-neutral-600 focus:ring-neutral-500",
     },
   };
 
@@ -161,7 +161,7 @@ export function ConfirmationModal({
           <div className="flex gap-3 px-6 pb-6">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-primary surface hover:surface-hover rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-primary surface hover:surface-hover rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
             >
               {cancelText}
             </button>

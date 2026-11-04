@@ -43,7 +43,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
           <div className="p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-2">
             <h3
-              className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+              className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-neutral-600 dark:group-hover:text-neutral-400 transition-colors"
               title={d.title}
               style={{
                 whiteSpace: "nowrap",
@@ -54,8 +54,8 @@ export function DramaCard({ item, variant }: DramaCardProps) {
               {d.title}
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></div>
-              <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-neutral-500"></div>
+              <p className="text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400">
                 {formatRelativeTime(d.time)}
               </p>
             </div>
@@ -82,7 +82,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
         <div className="p-2 sm:p-3 md:p-4">
           <h3
-            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+            className="text-xs sm:text-sm font-semibold leading-tight truncate group-hover:text-neutral-600 dark:group-hover:text-neutral-400 transition-colors"
             title={p.title}
             style={{
               whiteSpace: "nowrap",

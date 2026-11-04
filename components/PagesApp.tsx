@@ -3,22 +3,19 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Artwork } from "@/components/Artwork";
 import { peekBackend, readBackend } from "@/lib/pages-client";
-import { catalogRoute, type CatalogTitle } from "@/lib/catalog";
 import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, SearchResponse, TopDramasResponse } from "@/lib/api-types";
 import { DramaDetails } from "./DramaDetails";
 import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
+import { HomepageHighlights, type HomepageHighlightsData } from "./HomepageHighlights";
 import { WatchPage } from "./WatchPage";
 
-type Section = "reviews" | "trending" | "starting" | "ending";
-type HomeData = { home: Record<Section, CatalogTitle[]>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"] };
+type HomeData = { home: HomepageHighlightsData; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"] };
 type CatalogData = { items: (RecentItem | PopularItem)[]; page: number; hasNext: boolean };
 type WatchData = { result: EpisodeResult; drama: DramaResponse["result"] };
 type View = "home" | "popular" | "recently-added" | "recent-movies" | "search" | "drama" | "watch";
-const labels: Record<Section, string> = { reviews: "Latest Reviews", trending: "Trending This Week", starting: "Shows Starting This Week", ending: "Shows Ending This Week" };
 
 function Cards({ items }: { items: (RecentItem | PopularItem)[] }) {
   return items.length ? <div className="homepage-grid">{items.map(item => "episode-link" in item ? <DramaCard key={item["episode-link"]} item={item} variant="recent" /> : <DramaCard key={item["detail-link"]} item={item} variant="popular" />)}</div> : <p className="source-empty">No dramas are listed right now.</p>;
@@ -28,10 +25,7 @@ function Home({ data }: { data: HomeData }) {
     <div className="flex-1 min-w-0 space-y-8 sm:space-y-12 animate-fade-in">
       <ContinueWatching />
       {([{ title: "Latest Episodes", href: "/recently-added", items: data.recent }, { title: "Popular Dramas", href: "/popular", items: data.popular }]).map(section => <section key={section.href} className="space-y-4 sm:space-y-6"><div className="flex items-center justify-between"><h2 className="text-xl sm:text-2xl font-bold heading">{section.title}</h2><Link href={section.href} className="glass-btn text-sm">View all</Link></div><Cards items={section.items} /></section>)}
-      {(Object.keys(labels) as Section[]).map(section => <section key={section} className="space-y-4 sm:space-y-6"><h2 className="text-xl sm:text-2xl font-bold heading">{labels[section]}</h2>
-        {data.home[section].length ? <div className="homepage-grid">{data.home[section].map(item => <article key={`${catalogRoute(item)}-${item.date}`} className="glass-card rounded-xl sm:rounded-2xl overflow-hidden card-hover"><Link href={catalogRoute(item)} className="block group"><div className="aspect-[4/5] relative surface overflow-hidden"><Artwork sources={[item.image]} alt={item.title} title={item.title} year={item.year} /></div><div className="p-3 space-y-1"><h3 className="text-sm font-semibold text-primary line-clamp-2">{item.title}</h3>{item.note && <p className="text-xs text-secondary line-clamp-2">{item.note}</p>}{section === "reviews" && item.date && <p className="text-xs text-secondary">{new Date(item.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/Copenhagen" })}</p>}</div></Link></article>)}</div> : <p className="source-empty">No published entries are listed for this week.</p>}
-      </section>)}
-    </div><div className="w-full lg:w-80 xl:w-96 shrink-0"><TopAiringSection result={data.rankings} /></div>
+    </div><div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-5"><TopAiringSection result={data.rankings} /><HomepageHighlights home={data.home} /></div>
   </div>;
 }
 export default function PagesApp({ view }: { view: View }) {
