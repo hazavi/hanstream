@@ -44,3 +44,4 @@ describe('private source configuration', () => {
     await expect(readHtml('https://stream.example/')).rejects.toThrow('temporarily unavailable');
   });
 });
+vi.mock('undici', async original => ({ ...(await original<typeof import('undici')>()), fetch: (...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args) }));

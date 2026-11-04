@@ -142,3 +142,4 @@ describe("Source URL and routing boundaries", () => {
     expect(request).toHaveBeenCalledTimes(3);
   });
 });
+vi.mock('undici', async original => ({ ...(await original<typeof import('undici')>()), fetch: (...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args) }));
