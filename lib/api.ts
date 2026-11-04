@@ -10,6 +10,7 @@ import { findPublishedDetail } from './cover-reader';
 import { validDramaSlug, validEpisodeId, validSearchQuery } from './request-validation';
 import { createKeyedStaleCache } from './runtime-cache';
 import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
+import { persistentLoader } from './persistent-cache';
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -150,8 +151,12 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
     tags: primary?.tags?.length ? primary.tags : genres, genres, cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable, refreshPending:Boolean(primary?.refreshPending || castRefreshNeeded),
   } };
 }
-const cachedDrama = createKeyedStaleCache(async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => detailNeedsRefresh(value) ? 15_000 : 300_000, 100, value => !detailNeedsRefresh(value));
-export const fetchDrama = cache((slug: string) => cachedDrama(slug));
+const loadPersistentDrama = persistentLoader('detail', async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => Boolean(value?.result?.title && !detailNeedsRefresh(value)));
+const cachedDrama = createKeyedStaleCache(loadPersistentDrama, value => detailNeedsRefresh(value) ? 15_000 : 300_000, 100, value => !detailNeedsRefresh(value));
+export const fetchDrama = cache(async (slug: string) => {
+  if (!validDramaSlug(slug)) throw new Error('Invalid drama identifier');
+  return cachedDrama(slug);
+});
 
 export async function fetchEpisode(slug: string, episode: string): Promise<EpisodeResponse> {
   if (!validEpisodeId(episode)) throw new Error('Invalid episode identifier');

@@ -14,7 +14,8 @@
     "preview:pages": "node scripts/preview-pages.mjs",
     "connect:backend": "node scripts/connect-backend.mjs",
     "build:backend": "node scripts/build-backend.mjs",
-    "dev:turbo": "node scripts/dev.mjs --turbopack"
+    "dev:turbo": "node scripts/dev.mjs --turbopack",
+    "measure:performance": "node scripts/measure-performance.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.17",
@@ -27,16 +28,21 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^14.9.1",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.67.0",
     "next": "15.5.28",
     "react": "19.1.10",
     "react-dom": "19.1.10",
     "react-player": "^3.4.0",
+    "redis": "^6.3.1",
+    "sharp": "^0.35.5",
     "tailwind-merge": "^3.7.0",
+    "undici": "^8.12.3",
     "video.js": "^8.23.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

@@ -1,9 +1,20 @@
 import { act, fireEvent, render, screen, cleanup } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import PagesApp from "../components/PagesApp";
 import { readBackend } from "../lib/pages-client";
 
 const location = vi.hoisted(() => ({ query: "" }));
+const chunks = vi.hoisted(() => [] as Array<() => Promise<void>>);
+// UI tests preload route chunks; production builds check the actual split bundles.
+vi.mock('next/dynamic', async () => {
+  const { createElement } = await import('react');
+  return { default: (load: () => Promise<React.ComponentType<Record<string, unknown>>>) => {
+    let Component: React.ComponentType<Record<string, unknown>>;
+    chunks.push(async () => { Component = await load(); });
+    return (props: Record<string, unknown>) => createElement(Component, props);
+  } };
+});
+beforeAll(async () => { await Promise.all(chunks.map(load => load())); });
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(location.query) }));
 vi.mock("next/link", () => ({ default: ({ children, href, prefetch: _prefetch, ...props }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a href={href} {...props}>{children}</a> }));
 vi.mock("next/image", () => ({ default: ({ fill: _fill, priority: _priority, ...props }: React.ComponentProps<"img"> & { fill?: boolean; priority?: boolean }) => <img {...props} /> }));
@@ -18,7 +29,7 @@ it('recovers richer details once without replacing visible content with a loadin
   vi.useFakeTimers();location.query='id=drama-recovery--2026';
   vi.mocked(readBackend).mockResolvedValueOnce({result:{title:'Recovery',description:'Initial summary',image:'https://pictures.example/poster.jpg',refreshPending:true}}).mockResolvedValueOnce({result:{title:'Recovery',description:'Complete summary',image:'https://pictures.example/poster.jpg'}});
   render(<PagesApp view="drama"/>);
-  await act(async()=>{});
+  await act(async () => {});
   expect(screen.getByText('Initial summary')).toBeInTheDocument();
   await act(()=>vi.advanceTimersByTimeAsync(16000));
   expect(screen.getByText('Complete summary')).toBeInTheDocument();

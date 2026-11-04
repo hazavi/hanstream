@@ -1,6 +1,7 @@
 import "server-only";
 import { load } from "cheerio";
 import { getSourceConfig, isSourceRedirect } from "./server-config.mjs";
+import { count } from './diagnostics';
 
 export const cleanText = (value: string) => value.replace(/\s+/g, " ").trim();
 
@@ -33,9 +34,10 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 3500)
   const url = new URL(value);
   if (url.protocol !== 'https:' || !getSourceConfig().allowedOrigins.includes(url.origin) || url.username || url.password || url.port) throw new Error('Invalid source URL');
   const saved = pages.get(url.href);
-  if (revalidate > 0 && saved && saved.expires > Date.now()) return saved.html;
+  if (revalidate > 0 && saved && saved.expires > Date.now()) { count('html.hit'); return saved.html; }
   const existing = pending.get(url.href);
   if (existing) return existing;
+  count('html.miss');
   if (pending.size >= MAX_PENDING_READS) {
     if (saved) return saved.html;
     throw new SourceUnavailable('Catalog');
@@ -45,6 +47,7 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 3500)
     if (pages.size > 80) pages.delete(pages.keys().next().value!);
     return html;
   }).catch(error => {
+    count('html.failure');
     if (revalidate > 0 && saved) return saved.html;
     throw error instanceof SourceUnavailable ? error : new SourceUnavailable('Catalog');
   }).finally(() => pending.delete(url.href));

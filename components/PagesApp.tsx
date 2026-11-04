@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { peekBackend, readBackend } from "@/lib/pages-client";
 import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, SearchResponse, TopDramasResponse } from "@/lib/api-types";
-import { DramaDetails } from "./DramaDetails";
 import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
 import { HomepageHighlights, type HomepageHighlightsData } from "./HomepageHighlights";
-import { WatchPage } from "./WatchPage";
+const DramaDetails = dynamic(() => import('./DramaDetails').then(module => module.DramaDetails), { loading: () => <p role="status">Loading drama details...</p> });
+const WatchPage = dynamic(() => import('./WatchPage').then(module => module.WatchPage), { loading: () => <p role="status">Loading episode...</p> });
 
 type HomeData = { home: HomepageHighlightsData; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"] };
 type CatalogData = { items: (RecentItem | PopularItem)[]; page: number; hasNext: boolean };
