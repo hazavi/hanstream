@@ -25,8 +25,8 @@ async function walk(directory) {
             if (!scriptPolicy.includes(`'sha256-${hash}'`)) throw new Error(`Unapproved inline script in ${relative}`);
           });
         }
-        if (/(?:STREAM_SOURCE_URL|METADATA_SOURCE_URL|EDITORIAL_SOURCE_URL|DETAILS_SOURCE_URL|CATALOG_SOURCE_URL|MEDIA_SOURCE_URL|ARTWORK_SOURCE_URL|REFERENCE_SOURCE_URL|POSTER_SEARCH_URLS|SIMKL_CLIENT_ID)/.test(content)) throw new Error(`Private configuration reference in ${relative}`);
-        for (const name of ["STREAM_SOURCE_URL", "METADATA_SOURCE_URL", "EDITORIAL_SOURCE_URL", "DETAILS_SOURCE_URL", "CATALOG_SOURCE_URL", "MEDIA_SOURCE_URL", "ARTWORK_SOURCE_URL", "REFERENCE_SOURCE_URL", "POSTER_SEARCH_URLS"]) {
+        if (/(?:STREAM_SOURCE_URL|METADATA_SOURCE_URL|EDITORIAL_SOURCE_URL|DETAILS_SOURCE_URL|CATALOG_SOURCE_URL|MEDIA_SOURCE_URL|ARTWORK_SOURCE_URL|REFERENCE_SOURCE_URL|POSTER_SEARCH_URLS|SIMKL_CLIENT_ID|CACHE_URL|DIAGNOSTICS_TOKEN|IMAGE_ORIGINS|TAURI_SIGNING_PRIVATE_KEY)/.test(content)) throw new Error(`Private configuration reference in ${relative}`);
+        for (const name of ["STREAM_SOURCE_URL", "METADATA_SOURCE_URL", "EDITORIAL_SOURCE_URL", "DETAILS_SOURCE_URL", "CATALOG_SOURCE_URL", "MEDIA_SOURCE_URL", "ARTWORK_SOURCE_URL", "REFERENCE_SOURCE_URL", "POSTER_SEARCH_URLS", "CACHE_URL", "DIAGNOSTICS_TOKEN", "IMAGE_ORIGINS", "TAURI_SIGNING_PRIVATE_KEY"]) {
           const value = process.env[name];
           if (value && content.includes(value)) throw new Error(`Private configuration value in ${relative}`);
         }

@@ -21,6 +21,7 @@
 /.hanstream-dev.lock
 /out/
 /.pages-build/
+/.tools/
 /data/
 
 # production

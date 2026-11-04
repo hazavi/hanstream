@@ -43,6 +43,9 @@ export default function SiteImage({ src, ...props }: ImageProps) {
 await cp(path.join(root, "app/globals.css"), path.join(stage, "app/globals.css"));
 await cp(path.join(root, "app/outline.css"), path.join(stage, "app/outline.css"));
 const layout = adapt(await readFile(path.join(root, "app/layout.tsx"), "utf8"))
+  .replace('import { headers } from "next/headers";', '')
+  .replace('export default async function RootLayout', 'export default function RootLayout')
+  .replace("const nonce = (await headers()).get('x-nonce') || undefined;", 'const nonce = undefined;')
   .replace('icon: "/favicon.ico"', `icon: ${JSON.stringify(`${basePath}/favicon.ico`)}`)
   .replace('metadataBase: new URL("https://hanstream.site"),', "");
 await writeFile(path.join(stage, "app/layout.tsx"), layout);

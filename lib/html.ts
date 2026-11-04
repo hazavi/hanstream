@@ -2,6 +2,8 @@ import "server-only";
 import { load } from "cheerio";
 import { getSourceConfig, isSourceRedirect } from "./server-config.mjs";
 import { count } from './diagnostics';
+import { publicDispatcher } from './outbound';
+import type { Dispatcher } from 'undici';
 
 export const cleanText = (value: string) => value.replace(/\s+/g, " ").trim();
 
@@ -65,10 +67,12 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
     if ((unavailableUntil.get(url.origin) || 0) > Date.now()) throw new SourceUnavailable(source);
     let response: Response;
     try {
-      response = await fetch(url.href, {
+      const options: RequestInit & { dispatcher: Dispatcher } = {
+        dispatcher: publicDispatcher,
         headers: { Accept: "text/html", "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
         cache: 'no-store', redirect: "manual", signal: AbortSignal.timeout(timeout),
-      });
+      };
+      response = await fetch(url.href, options);
     } catch (error) {
       const code = (error as { cause?: {code?:string} })?.cause?.code;
       if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) || code === 'UND_ERR_CONNECT_TIMEOUT') {

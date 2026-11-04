@@ -27,7 +27,9 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
       - run: npm ci
-      - run: npm test -- --run
+      - run: npm run check:secrets
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm test -- --run --maxWorkers=2
       - name: Export frontend
         run: npm run build:pages
         env:

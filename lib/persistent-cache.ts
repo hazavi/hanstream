@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { createClient } from 'redis';
 import { count } from './diagnostics';
 
-type Store = { get(key: string): Promise<string | null>; set(key: string, value: string, options: { EX: number }): Promise<unknown> };
+type Store = { get(key: string): Promise<string | null>; set(key: string, value: string, options: { EX: number }): Promise<unknown>; eval(script: string, options: { keys: string[]; arguments: string[] }): Promise<unknown> };
 let connection: Promise<Store | undefined> | undefined;
 let cooldown = 0;
 const MAX_BYTES = 2_000_000;
@@ -25,6 +25,12 @@ async function bounded<T>(task: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try { return await Promise.race([task, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Cache timeout')), 800); })]); }
   finally { clearTimeout(timer); }
+}
+
+export async function cacheCommand<T>(run: (client: Store) => Promise<T>): Promise<T | undefined> {
+  const client = await store();
+  if (!client) return undefined;
+  try { return await bounded(run(client)); } catch { count('cache.failure'); return undefined; }
 }
 
 /** Cache only assembled metadata, never stream responses or private configuration. */

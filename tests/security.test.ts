@@ -34,16 +34,26 @@ it.each([
   expect(lookup(path)).toBeTruthy();
 });
 
-it('rejects writes and unapproved origins while preserving allowed CORS and preflight', () => {
+it('rejects writes and unapproved origins while preserving allowed CORS and preflight', async () => {
   vi.stubEnv('FRONTEND_ORIGINS', 'https://site.example');
   const request = (method: string, origin: string, path = '/api/home') => new NextRequest('https://backend.example' + path, { method, headers: { origin } });
-  expect(middleware(request('POST', 'https://site.example')).status).toBe(405);
-  expect(middleware(request('GET', 'https://site.example.evil.test')).status).toBe(403);
-  expect(middleware(request('GET', 'https://site.example', '/api/search?q=' )).status).toBe(400);
-  const cors = middleware(request('GET', 'https://site.example'));
+  expect((await middleware(request('POST', 'https://site.example'))).status).toBe(405);
+  expect((await middleware(request('GET', 'https://site.example.evil.test'))).status).toBe(403);
+  expect((await middleware(request('GET', 'https://site.example', '/api/search?q=' ))).status).toBe(400);
+  const cors = await middleware(request('GET', 'https://site.example'));
   expect(cors.headers.get('access-control-allow-origin')).toBe('https://site.example');
   expect(cors.headers.get('vary')).toContain('Origin');
-  expect(middleware(request('OPTIONS', 'https://site.example', '/api/search')).status).toBe(204);
+  expect((await middleware(request('OPTIONS', 'https://site.example', '/api/search'))).status).toBe(204);
+});
+
+it('replaces an untrusted inbound nonce with a new per-response nonce and prevents HTML caching', async () => {
+  const request = new NextRequest('https://backend.example/profile', { headers: { 'x-nonce': 'attacker-controlled' } });
+  const first = await middleware(request); const second = await middleware(request);
+  const policy = first.headers.get('content-security-policy');
+  expect(policy).toMatch(/nonce-[a-f0-9]{32}/);
+  expect(policy).not.toContain('attacker-controlled'); expect(policy).not.toMatch(/script-src[^;]*unsafe-inline/);
+  expect(second.headers.get('content-security-policy')).not.toBe(policy);
+  expect(first.headers.get('cache-control')).toBe('private, no-store');
 });
 
 it('restricts production policy without preventing the configured public API or video frames', () => {

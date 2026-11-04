@@ -15,7 +15,9 @@
     "connect:backend": "node scripts/connect-backend.mjs",
     "build:backend": "node scripts/build-backend.mjs",
     "dev:turbo": "node scripts/dev.mjs --turbopack",
-    "measure:performance": "node scripts/measure-performance.mjs"
+    "measure:performance": "node scripts/measure-performance.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:types": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.17",
