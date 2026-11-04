@@ -1,4 +1,7 @@
 /* Shared outline language for navigation, tabs and browsing surfaces. */
+.loading-placeholder { background: var(--muted); border-radius: 6px; animation: loading-pulse 1.6s ease-in-out infinite; }
+@keyframes loading-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .site-shell .loading-placeholder { animation: none !important; opacity: .7; } }
 .site-shell {
   --highlight: #000000;
   --primary: #111111;

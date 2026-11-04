@@ -5,9 +5,11 @@ import Image from "next/image";
 import { useProfile } from "@/lib/profile";
 import { ProfileTransfer } from '@/components/ProfileTransfer';
 import { DesktopUpdates } from '@/components/DesktopUpdates';
+import { PageSkeleton } from '@/components/PageSkeleton';
 
 export default function ProfilePage() {
   const { profile, removeFromWatchlist } = useProfile();
+  if (!profile) return <PageSkeleton view="profile" />;
   return <main className="mx-auto max-w-6xl space-y-8">
     <div className="glass-card p-6 sm:p-8">
       <h1 className="heading text-3xl">My Library</h1>

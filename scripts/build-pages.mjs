@@ -18,13 +18,16 @@ await mkdir(path.join(stage, "app"), { recursive: true });
 await mkdir(path.join(stage, "lib"));
 await mkdir(path.join(stage, "components"));
 await cp(path.join(root, "public"), path.join(stage, "public"), { recursive: true });
-const adapt = text => text.replaceAll('from "next/link"', 'from "@/lib/site-link"').replaceAll('from "next/image"', 'from "@/lib/site-image"').replaceAll('from "@/lib/api"', 'from "@/lib/api-types"').replaceAll('from "../lib/api"', 'from "../lib/api-types"').replaceAll('pathname.includes("/episode/")', 'pathname.includes("/watch")');
+const adapt = text => text.replace(/from (["'])next\/link\1/g, 'from "@/lib/site-link"').replace(/from (["'])next\/navigation\1/g, 'from "@/lib/site-navigation"').replace(/from (["'])next\/image\1/g, 'from "@/lib/site-image"').replaceAll('from "@/lib/api"', 'from "@/lib/api-types"').replaceAll('from "../lib/api"', 'from "../lib/api-types"').replaceAll('pathname.includes("/episode/")', 'pathname.includes("/watch")');
 const excluded = new Set(["Pagination.tsx", "VideoPlayer.tsx"]);
 for (const name of await readdir(path.join(root, "components"))) {
   if (!name.endsWith(".tsx") || excluded.has(name)) continue;
   await writeFile(path.join(stage, "components", name), adapt(await readFile(path.join(root, "components", name), "utf8")));
 }
 await cp(path.join(root,"components/ui"),path.join(stage,"components/ui"),{recursive:true});
+for (const name of await readdir(path.join(stage, 'components/ui'))) {
+  if (name.endsWith('.tsx')) await writeFile(path.join(stage,'components/ui',name),adapt(await readFile(path.join(stage,'components/ui',name),'utf8')));
+}
 for (const name of ["detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "profile-transfer.ts", "request-validation.ts", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
 await writeFile(path.join(stage, "lib/api-client.ts"), 'export { fetchSearchClient } from "./pages-client";\n');
 await writeFile(path.join(stage, "lib/site-link.tsx"), `"use client";
@@ -32,7 +35,17 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { pagesRoute } from "./pages-routes";
 export default function SiteLink({ href, ...props }: ComponentProps<typeof Link>) {
-  return <Link {...props} href={typeof href === "string" ? pagesRoute(href) : href} />;
+  return <Link {...props} prefetch={false} href={typeof href === "string" ? pagesRoute(href) : href} />;
+}
+`);
+await writeFile(path.join(stage, 'lib/site-navigation.ts'), `"use client";
+import {useRouter as useNextRouter} from "next/navigation";
+import {useMemo} from "react";
+import {pagesRoute} from "./pages-routes";
+export {usePathname,useSearchParams} from "next/navigation";
+export function useRouter() {
+  const router=useNextRouter();
+  return useMemo(()=>({...router,push:(href:string,options?:Parameters<typeof router.push>[1])=>router.push(pagesRoute(href),options),replace:(href:string,options?:Parameters<typeof router.replace>[1])=>router.replace(pagesRoute(href),options),prefetch:(href:string,options?:Parameters<typeof router.prefetch>[1])=>router.prefetch(pagesRoute(href),options)}),[router]);
 }
 `);
 await writeFile(path.join(stage, "lib/site-image.tsx"), `"use client";
@@ -55,9 +68,11 @@ for (const route of ["home", "popular", "recently-added", "recent-movies", "sear
   await mkdir(directory, { recursive: true });
   const content = route === "profile" ? adapt(await readFile(path.join(root, "app/profile/page.tsx"), "utf8")) : `import { Suspense } from "react";
 import PagesApp from "@/components/PagesApp";
-export default function Page() { return <Suspense fallback={<p role="status">Loading dramas...</p>}><PagesApp view="${route}" /></Suspense>; }
+import {PageSkeleton} from "@/components/PageSkeleton";
+export default function Page() { return <Suspense fallback={<PageSkeleton view="${route}" />}><PagesApp view="${route}" /></Suspense>; }
 `;
   await writeFile(path.join(directory, "page.tsx"), content);
+  await writeFile(path.join(directory, 'loading.tsx'), `import {PageSkeleton} from "@/components/PageSkeleton"; export default function Loading(){return <PageSkeleton view="${route}"/>;}`);
 }
 await cp(path.join(root, "postcss.config.mjs"), path.join(stage, "postcss.config.mjs"));
 await writeFile(path.join(stage, "package.json"), JSON.stringify({ name: "hanstream-pages", private: true, dependencies: { next: "*", react: "*", "react-dom": "*" } }));

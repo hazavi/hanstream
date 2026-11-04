@@ -10,8 +10,9 @@ import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
 import { HomepageHighlights, type HomepageHighlightsData } from "./HomepageHighlights";
-const DramaDetails = dynamic(() => import('./DramaDetails').then(module => module.DramaDetails), { loading: () => <p role="status">Loading drama details...</p> });
-const WatchPage = dynamic(() => import('./WatchPage').then(module => module.WatchPage), { loading: () => <p role="status">Loading episode...</p> });
+import { PageSkeleton } from './PageSkeleton';
+const DramaDetails = dynamic(() => import('./DramaDetails').then(module => module.DramaDetails), { loading: () => <PageSkeleton view="drama" /> });
+const WatchPage = dynamic(() => import('./WatchPage').then(module => module.WatchPage), { loading: () => <PageSkeleton view="watch" /> });
 
 type HomeData = { home: HomepageHighlightsData; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse["result"]; partial?: boolean };
 type CatalogData = { items: (RecentItem | PopularItem)[]; page: number; hasNext: boolean };
@@ -52,7 +53,7 @@ export default function PagesApp({ view }: { view: View }) {
   }, [route, retry, view, slug, episode, search]);
   if ((view === "drama" || view === "watch") && !slug || view === "watch" && !episode) return <p className="glass-card p-6">Choose a drama from <Link href="/" className="underline">the homepage</Link>.</p>;
   if (view === "search" && !search) return <p className="glass-card p-6">Enter a drama title in the search bar.</p>;
-  if (state.route !== route || !state.data && !state.error) return <div role="status" className="space-y-4"><p className="text-secondary">Loading dramas...</p><div className="homepage-grid">{Array.from({ length: 6 }, (_, index) => <div key={index} className="aspect-[4/5] surface rounded-2xl animate-pulse" />)}</div></div>;
+  if (state.route !== route || !state.data && !state.error) return <PageSkeleton view={view} />;
   if (state.error) return <div role="alert" className="glass-card p-6 space-y-4"><p>{state.error}</p><button className="glass-btn" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
   if (view === "home") return <Home data={state.data as HomeData} />;
   if (view === "drama") { const detail = (state.data as DramaResponse).result; return detail ? <DramaDetails detail={detail} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>; }

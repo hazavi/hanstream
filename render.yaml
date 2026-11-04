@@ -27,4 +27,6 @@ services:
       - key: POSTER_SEARCH_URLS
         sync: false
       - key: FRONTEND_ORIGINS
-        value: https://hazavi.github.io
+        value: https://hanstream-backend.onrender.com
+      - key: SITE_URL
+        value: https://hanstream-backend.onrender.com

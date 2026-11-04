@@ -1,79 +1,23 @@
-# Publish on GitHub Pages
+﻿# Deploy on Render
 
-The frontend is exported to `out/`. Live metadata and playback are read by a separate Node backend. The frontend contains the public backend address; private source origins belong only in the backend environment.
+The full Next.js website runs at https://hanstream-backend.onrender.com/. Its pages and read-only catalog routes share one origin. GitHub Pages is no longer used.
 
-## 1. Deploy the backend
+## Service configuration
 
-### Render Free
+The existing Docker web service uses the repository's `Dockerfile` and `render.yaml`, on the Free plan. Source origins stay in Render's private environment and the ignored local `.env.local` file. Keep all private reader settings out of `NEXT_PUBLIC_` variables.
 
-Push `render.yaml` and the deployment scripts to GitHub, then open [Deploy the backend on Render](https://render.com/deploy?repo=https://github.com/hazavi/hanstream). Sign in and connect the `hazavi/hanstream` repository if prompted. The Blueprint defines a **Free** Docker web service in Frankfurt; confirm the Free plan before creating it. It creates no database or paid disk.
+Set `SITE_URL` and `FRONTEND_ORIGINS` to the public Render origin. The desktop app's exact `https://tauri.localhost` origin is also permitted. `/api/health` reports readiness without exposing source configuration.
 
-Render prompts for `STREAM_SOURCE_URL`, `METADATA_SOURCE_URL`, `EDITORIAL_SOURCE_URL`, and `DETAILS_SOURCE_URL`. Copy their values from your local `.env.local` into Render's private environment fields. Their values are not stored in `render.yaml`. The Blueprint sets `FRONTEND_ORIGINS=https://hazavi.github.io` and uses `/api/health` for readiness. A 503 health response means the required source configuration is missing or invalid.
+Pushes to `master` deploy through Render's Git integration. The security workflow builds the standalone application, checks types and dependencies, and verifies the native dependency graph. There is no Pages export deployment.
 
-For the richer detail and watch pages, also copy `CATALOG_SOURCE_URL`, `MEDIA_SOURCE_URL`, `ARTWORK_SOURCE_URL`, `REFERENCE_SOURCE_URL`, and `POSTER_SEARCH_URLS` from the ignored local `.env.local` into the backend's private environment. They enable the alternative show/episode guide, official trailers, poster recovery, and broadcaster metadata. An existing Render service needs these reader settings added before deploying this update; pushing code does not upload the ignored environment file. Keep all source settings server-only.
+## Local builds
 
-When Render reports the service is live, copy its public HTTPS origin from the service dashboard. From this checkout, run `npm run connect:backend --` followed by that URL. The command checks health, CORS access from GitHub Pages, and actual homepage content before changing GitHub. It then saves `API_BASE_URL` as a repository variable and starts a new **Deploy GitHub Pages** workflow on the default branch, using your existing Git credential manager sign-in. No Render API token is required for this command. The frontend remains on GitHub Pages.
+Run `npm run dev` for development. Run `npm run build:backend` to produce the standalone server used by Docker. Stop a local production preview before rebuilding its files on Windows.
 
-Render's Free services sleep after 15 minutes without traffic and may take about a minute to wake. The backend also reloads its in-memory catalogs after a restart. See [Render's free service limits](https://render.com/docs/free).
+The desktop app uses an isolated static frontend export plus the public Render catalog address. That export is packaged inside the installer and is not a GitHub Pages website. See [desktop setup](desktop.md).
 
-### Other Docker hosts
+## Caching and limits
 
-Build the included `Dockerfile` on a host that supports Node containers and public HTTPS. The service listens on `PORT` (default 3000), and `/api/health` is its health check.
+The server keeps bounded HTML and assembled metadata caches. Browser and desktop caches reuse successful responses; expiring playback URLs must be refreshed. Render Free can sleep after idle, so its first request can still need a wake-up. Local caching does not turn that hosting plan into an always-on service.
 
-Set these private environment variables on that service, using the values from your local `.env.local`:
-
-- `STREAM_SOURCE_URL`
-- `METADATA_SOURCE_URL`
-- `EDITORIAL_SOURCE_URL`
-- `DETAILS_SOURCE_URL`
-- `CATALOG_SOURCE_URL`
-- `MEDIA_SOURCE_URL`
-- `ARTWORK_SOURCE_URL`
-- `REFERENCE_SOURCE_URL`
-- `POSTER_SEARCH_URLS`
-- `FRONTEND_ORIGINS=https://hazavi.github.io`
-
-`FRONTEND_ORIGINS` accepts comma-separated exact origins without paths or trailing slashes. Add the custom domain's origin if you later use one.
-
-For a local container check:
-
-```sh
-docker build -t hanstream-backend .
-docker run --rm --env-file .env.local -p 3000:3000 hanstream-backend
-```
-
-Environment files and the `data/` directory are excluded from the Docker build context. The image uses non-secret build origins; runtime variables supply the real configuration. Keep the backend source and environment private, and expose its HTTPS service. No catalog files or sync commands are required. The backend loads live HTML and keeps its catalogs in process memory. Drama details and standard playback routes load without waiting for the historical index. Nonstandard episode routes may start a background index, with the player request waiting at most 1.5 seconds for it. Archived catalogs and broad playback searches can still require a full index. A cold start depends on the sources being available.
-
-## 2. Configure GitHub
-
-In the repository's **Settings → Secrets and variables → Actions → Variables**, add `API_BASE_URL` with the backend's public HTTPS origin. Use no path, query, username, or password.
-
-In **Settings → Pages**, select **GitHub Actions** as the build source. Push these changes to `master` or `main`, or run **Deploy GitHub Pages** manually from Actions. The workflow runs tests, exports only the frontend, checks its contents, and deploys the Pages artifact.
-
-The build job needs `pages: read` for `actions/configure-pages`; the deployment job separately has `pages: write` and `id-token: write`. If configuration reports `Get Pages site failed: Not Found`, check that the workflow includes the build permission and that the Pages build source is GitHub Actions. Do not add `enablement: true` with the default workflow token: that option requires a separate token with permission to manage Pages settings.
-
-With the current repository name, the frontend will be at `https://hazavi.github.io/hanstream/`. The workflow gets the base path from GitHub, so repository Pages and a custom domain use the correct asset paths.
-
-The frontend can be published before `API_BASE_URL` is set. The build prints a notice, and browsing pages show a connection message until the backend is configured. The device-local library remains available. After setting `API_BASE_URL`, start a new **Deploy GitHub Pages** run to rebuild the frontend with that address and enable live listings and playback. An invalid non-empty URL still fails validation. Do not add source origins or credentials as public build variables.
-
-## Local verification
-
-In PowerShell, with the backend running on port 3000:
-
-```powershell
-$env:NEXT_PUBLIC_API_BASE_URL = 'http://localhost:3000'
-$env:PAGES_BASE_PATH = '/hanstream'
-npm run build:pages
-node scripts/verify-pages.mjs
-npm run preview:pages
-```
-
-Open `http://localhost:4173/hanstream/`. For the local frontend, include `http://localhost:4173` in the backend's `FRONTEND_ORIGINS` and restart the backend after changing it.
-
-Drama and episode URLs use `/drama/?id=...` and `/watch/?id=...&episode=...`, allowing refreshes and direct visits on static hosting. Watchlists and progress stay in the browser. Stream addresses must reach the browser to play; private environment variables keep source configuration out of the static build, but cannot conceal a requested player's address from browser developer tools. No catalog files are tracked or packaged. Files committed in older Git revisions remain in that history until it is explicitly rewritten.
-
-Build the regular server app with `npm run build`, or the container-ready standalone output with `npm run build:backend`.
-
-The production dependency audit passes. The development lint dependency chain currently has 14 moderate advisories involving glob pattern parsing; npm proposes incompatible lint-tool downgrades to remove them. Those packages are not exposed by the exported frontend. Recheck `npm audit` when updating the lint tooling.
-
-The backend sends security headers from `next.config.ts`. The Pages build adds a script-hash CSP to every exported HTML file and verifies those hashes before deployment. GitHub Pages cannot apply the backend's custom response headers; see [security controls](security.md) for the difference. Redeploy both builds to apply these changes; no additional secrets are needed.
+Images use bounded recovery and caching. A genuinely unpublished poster uses a placeholder instead of repeated failing requests. Private source configuration and library data never belong in public deployment artifacts.
