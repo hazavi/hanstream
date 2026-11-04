@@ -7,6 +7,7 @@ rust-version = "1.77.2"
 
 [features]
 signed-updates = ["dep:tauri-plugin-updater"]
+automation = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -1,16 +1,17 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 
-const address = process.env.DESKTOP_DEBUG_URL || 'http://127.0.0.1:9223';
+const addresses = [...new Set([process.env.DESKTOP_DEBUG_URL || 'http://localhost:9223', 'http://127.0.0.1:9223', 'http://[::1]:9223'])];
 const started = Date.now();
 let browser;
 let lastError = '';
 while (!browser && Date.now() - started < 90_000) {
   try {
+    const address = addresses[Math.floor((Date.now() - started) / 1000) % addresses.length];
     const targets = await (await fetch(new URL('/json/list', address), { signal: AbortSignal.timeout(2000) })).json();
     if (!targets.some(target => target.type === 'page' && target.url.startsWith('https://tauri.localhost'))) throw new Error('Waiting for app document');
     browser = await chromium.connectOverCDP(address, { timeout: 5000 });
-  } catch (error) { lastError = error.message; await new Promise(resolve => setTimeout(resolve, 1000)); }
+  } catch (error) { lastError = `${error.message} (${error.cause?.code || error.code || 'starting'})`; await new Promise(resolve => setTimeout(resolve, 1000)); }
 }
 assert.ok(browser, `Desktop WebView2 was not ready: ${lastError}`);
 try {

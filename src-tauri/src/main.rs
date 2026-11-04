@@ -9,7 +9,7 @@ fn main() {
 
     builder
         .setup(|app| {
-            tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
+            let window = tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
                 .on_navigation(|url| {
                     (url.scheme() == "https" && url.host_str() == Some("tauri.localhost") && url.port().is_none())
                         || (url.scheme() == "tauri" && url.host_str() == Some("localhost"))
@@ -22,8 +22,13 @@ fn main() {
                             || url.as_str().starts_with("blob:tauri://localhost/")
                     }
                     _ => true,
-                })
-                .build()?;
+                });
+            // CI builds this separate harness; installers never enable this feature.
+            #[cfg(feature = "automation")]
+            let window = window.additional_browser_args(
+                "--remote-debugging-port=9223 --remote-debugging-address=127.0.0.1 --disable-gpu",
+            );
+            window.build()?;
             Ok(())
         })
         .run(tauri::generate_context!())

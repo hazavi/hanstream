@@ -22,7 +22,7 @@ Open **My Library**, choose **Export library**, then import the file into the ot
 
 The default main-window capability grants no native commands. Filesystem, shell, arbitrary native network access, new windows, and device permission requests are not enabled. External top-level navigation is blocked; media stays inside the existing sandboxed iframe. Downloads are blocked except blobs created by the local app, used for explicit library export. The native window loads packaged assets rather than an arbitrary remote website. See [Tauri capabilities](https://v2.tauri.app/security/capabilities/).
 
-CI enables a loopback WebView2 debugging port only while testing its process. That flag is not in the shipped configuration. Frontend script hashes and the desktop CSP restrict scripts and allow only the configured backend and Tauri's IPC transport for connections.
+CI builds a separate `automation` feature executable with a loopback-only WebView2 debugging port and GPU acceleration disabled. That test executable stays in the runner's temporary directory. The workflow restores the ordinary production executable before uploading artifacts, and the installer is built before the automation feature. Production builds never enable this test feature. Frontend script hashes and the desktop CSP restrict scripts and allow only the configured backend and Tauri's IPC transport for connections.
 
 ## Signed releases and updates
 
