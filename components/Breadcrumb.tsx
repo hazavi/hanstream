@@ -36,7 +36,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
           )}
 
           {index < items.length - 1 && (
-            <ChevronRight size={14} className="text-tertiary" aria-hidden="true"/>
+            <ChevronRight size={14} className="breadcrumb-separator" strokeWidth={2} aria-hidden="true"/>
           )}
         </div>
       ))}

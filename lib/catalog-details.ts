@@ -65,7 +65,7 @@ export const findCatalogArtwork = createKeyedCache<string | undefined>(async key
   try {
     return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
   } catch { return undefined; }
-});
+}, 900_000, 100, 5000);
 export async function searchAsianCatalog(query: string) {
   const rows = await searchCatalogTitles(query);
   const known = rows.filter(item => item.country && asian(item.country));

@@ -11,7 +11,7 @@ import { findCatalogDetails } from "./catalog-details";
 import { findReferenceDetail } from './reference-reader';
 
 const BASE = getSourceConfig().detailsOrigin;
-export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; aliases?: string[]; cast?: DramaCast[]; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer };
+export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; aliases?: string[]; cast?: DramaCast[]; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer; refreshPending?: boolean };
 export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean; overview?: string; upcoming?: boolean };
 
 function imageUrl(value: string | undefined, base: string): string | undefined {
@@ -165,17 +165,20 @@ const publicCatalog = createKeyedCache<CatalogTitle[]>(async kind => {
 const getPublicCatalog = (movie: boolean) => publicCatalog(movie ? 'movies' : 'tv');
 
 export async function findDramaDetails(title: string, year?: number, movie = false): Promise<DetailRecord | null> {
-  if (!movie && getSourceConfig().catalogOrigin) {
+  if (!movie) {
+    let catalogPending = Boolean(getSourceConfig().catalogOrigin);
+    const catalog = catalogPending ? findCatalogDetails(title, year).then(record => record && (record.country ? isAsianCountry(record.country) : /Korean|Japanese|Chinese|Mandarin|Cantonese|Thai|Vietnamese|Tagalog|Filipino|Malay|Indonesian|Hindi|Tamil|Telugu/i.test(String(record.meta.Language || ''))) ? record : null).catch(() => null).finally(()=>{catalogPending=false;}) : Promise.resolve(null);
+    const reference = findReferenceDetail(title, year).catch(() => null);
+    // Give the episode guide a short head start; a slow host never delays starting its fallback.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const preferred = await Promise.race([catalog, new Promise<null>(resolve => { timer=setTimeout(()=>resolve(null),1200); })]).finally(()=>clearTimeout(timer));
+    if (preferred) return preferred;
     try {
-      const record = await findCatalogDetails(title, year);
-      if (record && (record.country ? isAsianCountry(record.country) : /Korean|Japanese|Chinese|Mandarin|Cantonese|Thai|Vietnamese|Tagalog|Filipino|Malay|Indonesian|Hindi|Tamil|Telugu/i.test(String(record.meta.Language || "")))) return record;
-    } catch { /* Other configured readers can still supply a matching title. */ }
+      const first = await Promise.any([catalog, reference].map(task => task.then(record => { if (record) return record; throw new Error('No matching details'); })));
+      return catalogPending ? {...first,refreshPending:true} : first;
+    } catch { /* The public detail search can still supply this title. */ }
   }
   let candidates: CatalogTitle[] = [];
-  if (!movie) {
-    const reference = await findReferenceDetail(title, year);
-    if (reference) return reference;
-  }
   try { candidates = parseDetailSearch(await readHtml(`${BASE}/search/?type=${movie ? "movies" : "tv"}&q=${encodeURIComponent(title)}`, 3600)); }
   catch { /* The server-rendered public catalog can still be accessible. */ }
   const matchesTitle = (item: CatalogTitle) => item.movie === movie && normalizeTitle(item.title) === normalizeTitle(title) && (!year || !item.year || item.year === year);

@@ -45,5 +45,5 @@ const lookup = createKeyedCache<string | undefined>(async serialized => {
     }
   } finally { const next = waiting.shift(); if (next) next(); else active--; }
   return undefined;
-}, 86_400_000, 300);
+}, 86_400_000, 300, 5000);
 export function findPortrait(name:string,key?:string) { return lookup(JSON.stringify({name,key})); }

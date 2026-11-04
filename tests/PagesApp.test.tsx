@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, cleanup } from "@testing-library/react";
+import { act, fireEvent, render, screen, cleanup } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import PagesApp from "../components/PagesApp";
 import { readBackend } from "../lib/pages-client";
@@ -7,12 +7,24 @@ const location = vi.hoisted(() => ({ query: "" }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(location.query) }));
 vi.mock("next/link", () => ({ default: ({ children, href, prefetch: _prefetch, ...props }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a href={href} {...props}>{children}</a> }));
 vi.mock("next/image", () => ({ default: ({ fill: _fill, priority: _priority, ...props }: React.ComponentProps<"img"> & { fill?: boolean; priority?: boolean }) => <img {...props} /> }));
-vi.mock("../lib/pages-client", () => ({ readBackend: vi.fn() }));
+vi.mock("../lib/pages-client", () => ({ readBackend: vi.fn(), peekBackend: vi.fn() }));
 vi.mock("../components/ContinueWatching", () => ({ ContinueWatching: () => null }));
 vi.mock("../components/WatchlistButton", () => ({ WatchlistButton: () => null }));
 vi.mock("../components/DramaRatingButton", () => ({ DramaRatingButton: () => null }));
 vi.mock("../components/EpisodeProgressTracker", () => ({ EpisodeProgressTracker: () => null }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); location.query = ""; });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); location.query = ""; });
+
+it('recovers richer details once without replacing visible content with a loading screen', async () => {
+  vi.useFakeTimers();location.query='id=drama-recovery--2026';
+  vi.mocked(readBackend).mockResolvedValueOnce({result:{title:'Recovery',description:'Initial summary',image:'https://pictures.example/poster.jpg',refreshPending:true}}).mockResolvedValueOnce({result:{title:'Recovery',description:'Complete summary',image:'https://pictures.example/poster.jpg'}});
+  render(<PagesApp view="drama"/>);
+  await act(async()=>{});
+  expect(screen.getByText('Initial summary')).toBeInTheDocument();
+  await act(()=>vi.advanceTimersByTimeAsync(16000));
+  expect(screen.getByText('Complete summary')).toBeInTheDocument();
+  expect(readBackend).toHaveBeenLastCalledWith('/api/drama/drama-recovery--2026',expect.any(AbortSignal),{fresh:true,sameOrigin:true});
+  expect(readBackend).toHaveBeenCalledTimes(2);
+});
 
 it("loads all homepage sections and the sidebar without homepage tabs", async () => {
   vi.mocked(readBackend).mockResolvedValue({ home: { reviews: [], trending: [], starting: [], ending: [] }, recent: [], popular: [], hero: [{ full_title: "Previously featured" }], rankings: { lists: { airing: [], upcoming: [], popular: [] }, errors: {} } });

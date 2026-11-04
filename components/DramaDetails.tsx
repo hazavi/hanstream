@@ -1,15 +1,17 @@
 "use client";
 
 import { Artwork } from "./Artwork";
+import { useEffect, useRef, useState } from 'react';
 import Link from "next/link";
-import type { DramaDetail, DramaEpisode } from "@/lib/api-types";
+import type { DramaDetail, DramaEpisode, DramaResponse } from "@/lib/api-types";
+import { detailNeedsRefresh, mergeDramaResponse } from '@/lib/detail-cache';
+import { readBackend } from '@/lib/pages-client';
 import { Play } from 'lucide-react';
 import { DramaMedia } from './DramaMedia';
 import { Breadcrumb } from "./Breadcrumb";
 import { DescriptionSection } from "./DescriptionSection";
 import { WatchlistButton } from "./WatchlistButton";
 import { DramaRatingButton } from "./DramaRatingButton";
-import { EpisodeWatchedButton } from './EpisodeWatchedButton';
 import { canonicalEpisode, useEpisodeHistory } from '@/lib/profile';
 
 
@@ -40,10 +42,25 @@ function EpisodeCard({ episode, posters,slug }: { episode: DramaEpisode; posters
   </>;
   const classes = `block overflow-hidden glass-card rounded-xl ${available ? "card-hover group" : ""} ${watched?'is-watched episode-card-watched':''}`;
   const accessibleName = `${(episode.season || 1) > 1 ? `Season ${episode.season}, ` : ""}${label}${episode.title ? `: ${episode.title}` : ""}`;
-  return <article aria-label={available?undefined:accessibleName} className={classes}>{available?<Link href={episode.episode_link} aria-label={accessibleName} prefetch={false}>{content}</Link>:content}{!future&&<div className="px-3 pb-3"><EpisodeWatchedButton slug={slug} episode={id}/></div>}</article>;
+  return <article aria-label={available?undefined:accessibleName} className={classes}>{available?<Link href={episode.episode_link} aria-label={accessibleName} prefetch={false}>{content}</Link>:content}</article>;
 }
 
-export function DramaDetails({ detail, slug }: { detail: DramaDetail; slug: string }) {
+export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDetail; slug: string }) {
+  const [recovered, setRecovered] = useState<{initial:DramaDetail;slug:string;detail:DramaDetail}>();
+  const attempted = useRef('');
+  const detail = recovered?.slug===slug && recovered.initial===initialDetail ? recovered.detail : initialDetail;
+  useEffect(() => {
+    if (!detailNeedsRefresh({result:initialDetail}) || attempted.current===slug) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      attempted.current=slug;
+      readBackend<DramaResponse>(`/api/drama/${encodeURIComponent(slug)}`,controller.signal,{fresh:true,sameOrigin:true}).then(data=>{
+        const merged=mergeDramaResponse({result:initialDetail},data).result;
+        if(merged && !controller.signal.aborted)setRecovered({initial:initialDetail,slug,detail:merged});
+      }).catch(()=>{});
+    },16000);
+    return ()=>{controller.abort();clearTimeout(timer);};
+  },[initialDetail,slug]);
   const title = detail.title || "Drama";
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
   const recovery = `${base}/api/artwork?${new URLSearchParams({ title, ...(Number(detail.meta?.Released) ? { year: String(detail.meta?.Released) } : {}) })}`;

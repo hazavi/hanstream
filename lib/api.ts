@@ -8,6 +8,8 @@ import { getSourceConfig } from "./server-config.mjs";
 import { searchAsianCatalog } from "./catalog-details";
 import { findPublishedDetail } from './cover-reader';
 import { validDramaSlug, validEpisodeId, validSearchQuery } from './request-validation';
+import { createKeyedStaleCache } from './runtime-cache';
+import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -55,7 +57,7 @@ export async function fetchSearch(query: string, page = 1): Promise<SearchRespon
   return { results: [...rows.values()] };
 }
 
-export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => {
+async function loadDrama(slug: string): Promise<DramaResponse> {
   if (!validDramaSlug(slug)) throw new Error('Invalid drama identifier');
   const identity = parseCatalogRoute(slug);
   let item: DetailRecord | null = null;
@@ -80,8 +82,18 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   const movie = item?.movie ?? identity?.movie ?? false;
   const year = item?.year ?? identity?.year;
   let published: Awaited<ReturnType<typeof findPublishedDetail>> = null;
+  let castPending = false;
+  let castRefreshNeeded = false;
   if (!movie && !primary?.cast?.length && !alternative?.cast?.length && identity) {
-    try { published = await findPublishedDetail(JSON.stringify({title:primary?.title || identity.title,year})); }
+    try {
+      castPending = true;
+      const lookup = findPublishedDetail(JSON.stringify({title:primary?.title || identity.title,year})).finally(()=>{castPending=false;});
+      if (item?.overview) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        published = await Promise.race([lookup, new Promise<null>(resolve => { timer=setTimeout(()=>resolve(null),1200); })]).finally(()=>clearTimeout(timer));
+        castRefreshNeeded = castPending;
+      } else published = await lookup;
+    }
     catch { /* Existing details still render if another catalog is unavailable. */ }
     if(published) item = item ? {...item,meta:{...published.meta,...item.meta},overview:item.overview || published.overview} : published;
   }
@@ -135,9 +147,11 @@ export const fetchDrama = cache(async (slug: string): Promise<DramaResponse> => 
   });
   return { result: { title, image: artwork.image, description: item?.overview, other_names: item?.otherNames,
     meta: item?.meta || (year ? { Released: year } : {}), episodes,
-    tags: primary?.tags?.length ? primary.tags : genres, genres, cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable,
+    tags: primary?.tags?.length ? primary.tags : genres, genres, cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable, refreshPending:Boolean(primary?.refreshPending || castRefreshNeeded),
   } };
-});
+}
+const cachedDrama = createKeyedStaleCache(async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => detailNeedsRefresh(value) ? 15_000 : 300_000, 100, value => !detailNeedsRefresh(value));
+export const fetchDrama = cache((slug: string) => cachedDrama(slug));
 
 export async function fetchEpisode(slug: string, episode: string): Promise<EpisodeResponse> {
   if (!validEpisodeId(episode)) throw new Error('Invalid episode identifier');
@@ -187,7 +201,7 @@ export const fetchHotSeriesCached = fetchHotSeries;
 export const fetchDramaCached = fetchDrama;
 export const fetchEpisodeCached = fetchEpisode;
 export const fetchSearchCached = fetchSearch;
-export function clearCache() { /* Next.js manages HTML page revalidation. */ }
+export function clearCache() { cachedDrama.clear(); }
 export function clearCacheByPattern(_pattern: string) { /* Next.js manages HTML page revalidation. */ }
 export async function preloadHomeData() { await Promise.allSettled([fetchRecent(), fetchPopular()]); }
 export async function batchRequests<T>(requests: (() => Promise<T>)[], batchSize = 3): Promise<T[]> {

@@ -58,6 +58,15 @@ it('remeasures the selected tab when fonts or responsive layout change its width
   expect(container.querySelector('.slide-tabs-cursor')).toHaveAttribute('data-width','94');
 });
 
+it('keeps the hovered target through a resize instead of snapping to the selected tab', () => {
+  const {container}=render(<SlideTabs items={items}/>);
+  fireEvent.pointerEnter(screen.getByRole('tab',{name:'Cast'}),{pointerType:'mouse'});
+  castWidth=94;
+  act(()=>resized());
+  expect(container.querySelector('.slide-tabs-cursor')).toHaveAttribute('data-left','106');
+  expect(container.querySelector('.slide-tabs-cursor')).toHaveAttribute('data-width','94');
+});
+
 it('renders real navigation links and follows the route selected by its parent', () => {
   const links=[{value:'/',label:'Home',href:'/'},{value:'/popular',label:'Popular',href:'/popular'}];
   const {rerender}=render(<SlideTabs mode="navigation" items={links} value="/"/>);

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from "vitest";
-import { createRuntimeCache, createKeyedCache } from "../lib/runtime-cache";
+import { createRuntimeCache, createKeyedCache, createKeyedStaleCache } from "../lib/runtime-cache";
 
 afterEach(() => { vi.useRealTimers(); });
 
@@ -14,6 +14,30 @@ it("coalesces concurrent cold requests and caches only the loaded result", async
   expect(await two).toEqual(["live title"]);
   expect(await read()).toEqual(["live title"]);
   expect(load).toHaveBeenCalledTimes(1);
+});
+
+it('shares assembled detail reads, preserves stale success, and can reset between sessions', async () => {
+  vi.useFakeTimers();
+  const load=vi.fn().mockResolvedValueOnce({title:'Published detail'}).mockRejectedValueOnce(new Error('source outage')).mockResolvedValueOnce({title:'Recovered detail'});
+  const read=createKeyedStaleCache(load,1000);
+  const [one,two]=await Promise.all([read('show'),read('show')]);
+  expect(one).toBe(two); expect(load).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(1001);
+  expect(await read('show')).toEqual(one);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(await read('show')).toEqual(one);
+  read.clear(); expect(await read('show')).toEqual({title:'Recovered detail'});
+});
+
+it('waits for a partial detail to recover after its short expiry instead of serving it stale', async () => {
+  vi.useFakeTimers();
+  let finish!: (value:{complete:boolean})=>void;
+  const load=vi.fn().mockResolvedValueOnce({complete:false}).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+  const read=createKeyedStaleCache<{complete:boolean}>(load,value=>value.complete?300_000:1000,100,value=>value.complete);
+  await read('show'); await vi.advanceTimersByTimeAsync(1001);
+  let done=false; const refreshed=read('show').then(value=>{done=true;return value;});
+  expect(done).toBe(false); finish({complete:true});
+  expect(await refreshed).toEqual({complete:true});
 });
 
 it("refreshes expired live data in the background and retains it during an outage", async () => {

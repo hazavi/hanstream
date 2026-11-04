@@ -10,5 +10,5 @@ export async function GET(request: Request) {
     const image = await Promise.race([findCatalogArtwork(JSON.stringify({ title, year, secondary: query.get('secondary') === '1' })), new Promise<undefined>(resolve => {timer=setTimeout(()=>resolve(undefined),5500);})]).finally(()=>clearTimeout(timer));
     if (image && image.startsWith('https://')) return NextResponse.redirect(image, { status: 307, headers: { 'Cache-Control': 'public, max-age=3600' } });
   } catch { /* A poster miss should not affect the rest of the page. */ }
-  return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'public, max-age=30' } });
+  return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 }

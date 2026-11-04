@@ -10,5 +10,5 @@ export async function GET(request: Request) {
     const image = await Promise.race([findPortrait(name,key), new Promise<undefined>(resolve => {timer=setTimeout(()=>resolve(undefined),5500);})]).finally(()=>clearTimeout(timer));
     if (image) return NextResponse.redirect(image, { status:307, headers:{'Cache-Control':'public, max-age=86400'} });
   } catch { /* Missing portraits never block the detail page. */ }
-  return new NextResponse(null, {status:404, headers:{'Cache-Control':'public, max-age=30'}});
+  return new NextResponse(null, {status:404, headers:{'Cache-Control':'no-store'}});
 }

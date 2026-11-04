@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Artwork } from "@/components/Artwork";
-import { readBackend } from "@/lib/pages-client";
+import { peekBackend, readBackend } from "@/lib/pages-client";
 import { catalogRoute, type CatalogTitle } from "@/lib/catalog";
 import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, SearchResponse, TopDramasResponse } from "@/lib/api-types";
 import { DramaDetails } from "./DramaDetails";
@@ -42,13 +42,16 @@ export default function PagesApp({ view }: { view: View }) {
   const page = Math.max(1, Math.floor(Number(query.get("page")) || 1));
   const kind = view === "popular" ? "popular" : view === "recent-movies" ? "movies" : "recent";
   const route = view === "home" ? "/api/home" : view === "drama" ? `/api/drama/${encodeURIComponent(slug)}` : view === "watch" ? `/api/episode/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}` : view === "search" ? `/api/search?q=${encodeURIComponent(search)}&page=${page}` : `/api/catalog?kind=${kind}&page=${page}`;
-  const [state, setState] = useState<{ route: string; data?: unknown; error?: string }>({ route: "" });
+  const [state, setState] = useState<{ route: string; data?: unknown; error?: string }>(()=>({ route, data:peekBackend(route) }));
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     if ((view === "drama" || view === "watch") && !slug || view === "watch" && !episode || view === "search" && !search) return;
     const controller = new AbortController();
-    setState({ route });
-    readBackend(route, controller.signal).then(data => { if (!controller.signal.aborted) setState({ route, data }); }).catch(error => { if (!controller.signal.aborted) setState({ route, error: error.message }); });
+    setState({ route, data:peekBackend(route) });
+    readBackend(route, controller.signal).then(data => {
+      if (controller.signal.aborted) return;
+      setState({ route, data });
+    }).catch(error => { if (!controller.signal.aborted) setState(current => current.route===route && current.data ? current : { route, error: error.message }); });
     return () => controller.abort();
   }, [route, retry, view, slug, episode, search]);
   if ((view === "drama" || view === "watch") && !slug || view === "watch" && !episode) return <p className="glass-card p-6">Choose a drama from <Link href="/" className="underline">the homepage</Link>.</p>;

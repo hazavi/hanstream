@@ -75,7 +75,6 @@
 .episode-icon-button:focus-visible, .watch-episode:focus-visible, .episode-select:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .watch-episode-link { display: flex; gap: .6rem; min-width: 0; flex: 1; text-decoration: none; }
 .watch-episode.is-watched:not(.is-current), .glass-card.episode-card-watched, .dark .glass-card.episode-card-watched { border-color: #24645d; }
-.episode-watched-button.is-watched { color: #40ba9e; }
 @media (min-width: 1024px) {
   .watch-layout { grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr); gap: 1.25rem; }
   .episode-panel { height: var(--watch-frame-height, 420px); max-height: none; }

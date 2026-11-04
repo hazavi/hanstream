@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchDrama, fetchEpisode, fetchSearch, fetchRecent, fetchPopularSeries } from "../lib/api";
+import { clearCache, fetchDrama, fetchEpisode, fetchSearch, fetchRecent, fetchPopularSeries } from "../lib/api";
 import { findDramaDetails, getDetailEpisodes } from "../lib/details";
 import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "../lib/playback";
 import { enrichArtwork, getMetadataList, searchMetadata, findMetadata } from "../lib/metadata";
@@ -14,6 +14,7 @@ const title = { sourceName: "Fixture catalog", title: "Fixture Drama", year: 202
 describe("HTML source data mapping", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    clearCache();
     vi.mocked(findMetadata).mockResolvedValue(null);
     vi.mocked(enrichArtwork).mockImplementation(async items => items);
     vi.mocked(findDramaDetails).mockResolvedValue(title);

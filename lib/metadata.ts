@@ -94,10 +94,8 @@ export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise
     }
   }));
   // Render listings promptly; lazy image requests reuse the ongoing cached lookups.
-  if (items.length > 1) {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    await Promise.race([enrichment, new Promise<void>(resolve => { timer = setTimeout(resolve, 1000); })]).finally(() => clearTimeout(timer));
-  } else await enrichment;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([enrichment, new Promise<void>(resolve => { timer = setTimeout(resolve, items.length > 1 ? 1000 : 500); })]).finally(() => clearTimeout(timer));
   return [...result];
 }
 

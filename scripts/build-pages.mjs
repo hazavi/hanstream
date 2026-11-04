@@ -24,7 +24,7 @@ for (const name of await readdir(path.join(root, "components"))) {
   await writeFile(path.join(stage, "components", name), adapt(await readFile(path.join(root, "components", name), "utf8")));
 }
 await cp(path.join(root,"components/ui"),path.join(stage,"components/ui"),{recursive:true});
-for (const name of ["embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
+for (const name of ["detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
 await writeFile(path.join(stage, "lib/api-client.ts"), 'export { fetchSearchClient } from "./pages-client";\n');
 await writeFile(path.join(stage, "lib/site-link.tsx"), `"use client";
 import Link from "next/link";

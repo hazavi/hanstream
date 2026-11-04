@@ -5,7 +5,9 @@ import { Search, ArrowRight, LoaderCircle } from "lucide-react";
 import { fetchSearchClient } from "@/lib/api-client";
 import type { SearchResultItem } from "@/lib/api-types";
 import { Artwork } from "./Artwork";
-export function SearchBar() {
+export function SearchBar({ compact = false }: { compact?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchResultItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -16,6 +18,7 @@ export function SearchBar() {
   const container = useRef<HTMLDivElement>(null);
   const listId = useId();
   const router = useRouter();
+  useEffect(() => { if (compact && expanded) input.current?.focus(); }, [compact, expanded]);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -32,17 +35,19 @@ export function SearchBar() {
     return () => { active = false; controller.abort(); clearTimeout(timer); };
   }, [query]);
   useEffect(() => {
-    const close = (event: MouseEvent) => { if (!container.current?.contains(event.target as Node)) setOpen(false); };
-    const shortcut = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); input.current?.focus(); } };
+    const close = (event: MouseEvent) => { if (!container.current?.contains(event.target as Node)) { setOpen(false); setExpanded(false); } };
+    const shortcut = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); if (compact) setExpanded(true); input.current?.focus(); } };
     document.addEventListener("mousedown", close); window.addEventListener("keydown", shortcut);
     return () => { document.removeEventListener("mousedown", close); window.removeEventListener("keydown", shortcut); };
-  }, []);
-  const search = () => { if (query.trim()) { router.push("/search?q=" + encodeURIComponent(query.trim())); setOpen(false); setQuery(''); input.current?.blur(); } };
-  const choose = (item: SearchResultItem) => { router.push(item["detail-link"]); setOpen(false); setQuery(""); input.current?.blur(); };
-  return <div ref={container} className="relative">
+  }, [compact]);
+  const search = () => { if (query.trim()) { router.push("/search?q=" + encodeURIComponent(query.trim())); setOpen(false); setExpanded(false); setQuery(''); input.current?.blur(); } };
+  const choose = (item: SearchResultItem) => { router.push(item["detail-link"]); setOpen(false); setExpanded(false); setQuery(""); input.current?.blur(); };
+  return <div ref={container} className={compact ? "compact-search" : "relative"}>
+    {compact && <button ref={trigger} type="button" className="outline-icon-button" aria-label="Open drama search" aria-expanded={expanded} aria-controls={listId+'-search'} onClick={() => setExpanded(value=>!value)}><Search size={17} aria-hidden="true"/></button>}
+    <div id={listId+'-search'} className={compact ? 'search-popover' : undefined} hidden={compact && !expanded}>
     <form className="search-bar" onSubmit={event => { event.preventDefault(); search(); }}><div className="relative flex items-center">
       <input ref={input} type="text" role="combobox" maxLength={160} aria-label="Search dramas" aria-autocomplete="list" aria-controls={listId} aria-expanded={open} aria-busy={loading} aria-activedescendant={selected >= 0 ? listId + '-' + selected : undefined} placeholder="Search dramas..." className="search-input w-full pr-28" autoComplete="off" value={query} onChange={event => { setQuery(event.target.value); setSelected(-1); }} onKeyDown={event => {
-        if (event.key === "Escape") { setOpen(false); setSelected(-1); input.current?.blur(); }
+        if (event.key === "Escape") { setOpen(false); setExpanded(false); setSelected(-1); input.current?.blur(); trigger.current?.focus(); }
         if (open && event.key === "ArrowDown") { event.preventDefault(); setSelected(value => Math.min(suggestions.length - 1, value + 1)); }
         if (open && event.key === "ArrowUp") { event.preventDefault(); setSelected(value => Math.max(-1, value - 1)); }
         if (open && event.key === "Enter" && selected >= 0 && suggestions[selected]) { event.preventDefault(); choose(suggestions[selected]); }
@@ -55,5 +60,6 @@ export function SearchBar() {
       {loading ? <p role="status" className="p-4 text-sm text-secondary">Searching dramas...</p> : error ? <p role="status" className="p-4 text-sm text-secondary">{error}</p> : !suggestions.length ? <p role="status" className="p-4 text-sm text-secondary">No dramas found.</p> : null}
       <ul id={listId} role="listbox" aria-label="Drama suggestions">{!loading && suggestions.map((item, index) => <li key={item["detail-link"]} id={listId + '-' + index} role="option" aria-selected={selected === index} onMouseDown={event => event.preventDefault()} onClick={() => choose(item)} className={"search-dropdown-item flex items-center gap-3 p-3 cursor-pointer " + (selected === index ? "surface" : "")}><div className="relative w-9 aspect-[2/3] rounded-md overflow-hidden shrink-0"><Artwork sources={[item.image]} alt=""/></div><span className="text-sm font-medium flex-1">{item.title}</span><ArrowRight size={14} aria-hidden="true"/></li>)}</ul>
     </div>}
+    </div>
   </div>;
 }
