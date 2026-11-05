@@ -7,10 +7,10 @@ import type { RecentItem, PopularItem, TopDramasResponse } from './api-types';
 import {mergeHomeData} from './home-data';
 
 type HomeData = { home: Awaited<ReturnType<typeof getHomepage>>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse['result']; partial: boolean };
+type Slot<T> = { result?: PromiseSettledResult<T> };
 
 /** Share one successful homepage refresh across simultaneous browser requests. */
 const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
-  type Slot<T>={result?:PromiseSettledResult<T>};
   const home:Slot<Awaited<ReturnType<typeof getHomepage>>>={};
   const recent:Slot<Awaited<ReturnType<typeof fetchRecent>>>={};
   const popular:Slot<Awaited<ReturnType<typeof fetchPopular>>>={};
@@ -25,7 +25,7 @@ const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
       recent:recent.result?.status==='fulfilled'?recent.result.value.results.slice(0,12):previous?.recent || [],
       popular:popular.result?.status==='fulfilled'?popular.result.value.results.slice(0,12):previous?.popular || [],
       rankings:result,
-      partial:states.some(state=>!state || state.status==='rejected') || Object.keys(result.errors||{}).length>0,
+      partial:states.some(state=>!state || state.status==='rejected') || Object.keys(result.errors||{}).length>0 || home.result?.status==='fulfilled' && home.result.value.reviews?.length===0,
     });
   }
   function observe<T>(request:Promise<T>,slot:Slot<T>) {

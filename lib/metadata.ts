@@ -31,7 +31,7 @@ const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
   const first=mergeCalendar(base,items);
   if(!first.titles.length)throw new Error('Drama metadata is temporarily unavailable.');
   return first;
-}, value=>value.titles.length?900_000:15_000);
+}, value => value.titles.length && value.editorial.reviews.length ? 900_000 : 15_000);
 
 export const getMetadata = cache(liveMetadata);
 async function datedMetadata() {
