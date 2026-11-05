@@ -29,3 +29,5 @@ Editorial lists also read the publisher's public RSS feed. It supplies dated epi
 `PLAYBACK_EXCLUDED_ORIGINS` removes configured player origins from both the default player and server choices. A player family flagged by the browser's unsafe-site protection was excluded from the deployed configuration and the desktop navigation allowlist. SmartScreen remains enabled. Old server preferences are reset for the revised server list.
 
 Watch pages retry incomplete or failed detail reads twice in the background, without remounting the player. This lets completed metadata fill in episode navigation after the initial playback response. Generated missing-image responses are no longer remembered as successful posters; image recovery includes a bounded retry after the short negative cache expires.
+
+Published calendar dates start loading before optional filter discovery, so an unavailable filter page cannot delay those date reads or leave them competing with later poster fallbacks for the reader pool.

@@ -49,8 +49,14 @@ export function parseFilteredShows(html:string,base:string,kind:'airing'|'upcomi
 const lookup=createKeyedCache<CalendarTitle[]>(async yearKey=>{
   const year=Number(yearKey),{artworkOrigin,catalogOrigin}=getSourceConfig();
   const records:CalendarTitle[]=[];
-  const tasks: { role: 'calendar-index' | 'calendar-filter'; read: ()=>Promise<CalendarTitle[]> }[]=[];
-  if(artworkOrigin)for(const releaseYear of [year,year+1])tasks.push({role:'calendar-index',read:async()=>parseCalendarTitles(await readHtml(`${artworkOrigin}/wiki/${releaseYear}_in_South_Korean_television`,1800),artworkOrigin,releaseYear)});
+  const tasks: { role: 'calendar-filter'; read: ()=>Promise<CalendarTitle[]> }[]=[];
+  // Start published dates before optional filter discovery and poster lookups can occupy the reader pool.
+  const indexReads = artworkOrigin ? [year,year+1].map(async releaseYear => {
+    try {
+      const items=parseCalendarTitles(await readHtml(`${artworkOrigin}/wiki/${releaseYear}_in_South_Korean_television`,1800),artworkOrigin,releaseYear);
+      records.push(...items);observeReader('calendar-index',items.length);
+    } catch { observeReader('calendar-index',null); }
+  }) : [];
   if(catalogOrigin){
     try{
       const $=load(await readHtml(`${catalogOrigin}/shows`,3600));
@@ -65,7 +71,7 @@ const lookup=createKeyedCache<CalendarTitle[]>(async yearKey=>{
       }
     }catch{observeReader('calendar-discovery',null);}
   }
-  let next=0;await Promise.all([0,1,2].map(async()=>{while(next<tasks.length){const task=tasks[next++];try{const items=await task.read();records.push(...items);observeReader(task.role,items.length);}catch{observeReader(task.role,null);}}}));
+  let next=0;await Promise.all([...indexReads,...[0,1,2].map(async()=>{while(next<tasks.length){const task=tasks[next++];try{const items=await task.read();records.push(...items);observeReader(task.role,items.length);}catch{observeReader(task.role,null);}}})]);
   const unique=new Map<string,CalendarTitle>();
   for(const item of records){const key=normalizeTitle(item.title);const old=unique.get(key);unique.set(key,old?{...old,...item,year:old.year||item.year,startDate:old.startDate||item.startDate,endDate:old.endDate||item.endDate,image:item.image==='/file.svg'?old.image:item.image,meta:{...old.meta,...item.meta}}:item);}
   if(!unique.size)throw new Error('Published calendar is temporarily unavailable.');
