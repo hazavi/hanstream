@@ -16,11 +16,13 @@ Homepage and detail responses include a `Server-Timing` duration. In-process dia
 
 ## Optional persistent metadata cache
 
-Set the backend-only `CACHE_URL` to a Redis-compatible connection URL using `rediss://`. Local development also permits `redis://localhost` or `redis://127.0.0.1`. Leave it empty to use existing memory caches. Keep it server-only.
+Set the backend-only `CACHE_URL` to a Redis-compatible connection URL using `rediss://`. Local development also permits `redis://localhost` or `redis://127.0.0.1`. Leave it empty to use existing memory caches. Keep it server-only. On Render, `RENDER=true` and an exact `CACHE_PRIVATE_HOST` permit that private hostname on port 6379 over `redis://`; this exception does not permit public plaintext caches.
 
 Only assembled homepage data and complete drama metadata are stored. Keys are hashes, isolated by source configuration, with a one-day maximum lifetime and a 2 MB record cap. Fresh records avoid source reads after a restart; stale records return immediately while one refresh runs. Failed refreshes keep the saved record. Playback responses and expiring stream URLs are excluded. Connections and commands have short deadlines; an unavailable store falls back to live readers.
 
-No external cache has been provisioned or configured yet. Choose a store with the durability required for your deployment; enabling a non-persistent Redis service alone does not guarantee survival of its own restart.
+The deployed backend now uses a Free Render Key Value instance (Valkey) in the same workspace and Frankfurt region. External cache access is disabled. Successful catalog data can survive a backend restart or redeploy, but the Free cache loses its contents if the cache itself restarts. Local SQLite remains the desktop library store. See [Render Key Value](https://render.com/docs/key-value).
+
+Completed homepage results that arrive after the response budget are also saved to the shared cache. Partial snapshots never replace its last complete record. The cache was initialized from current verified source HTML, with no catalog JSON committed to the repository.
 
 The Redis command queue is capped at 100. A timed-out command destroys its connection and starts a one-minute cooldown, so repeated requests cannot leave an unbounded queue behind a stalled cache server.
 

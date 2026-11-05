@@ -16,6 +16,8 @@ If hosting must stay free, a Cloudflare Worker with Workers KV in front of the r
 
 A Cloudflare gateway needs an account, KV namespace, and public endpoint before changing the desktop API address. It has not been deployed by this patch. Neither KeyDB nor Cloudflare can make an external video host accept a rejected embed.
 
+The deployed Free alternative is Render Key Value (Valkey), using the existing Redis-compatible integration. It retains successful metadata across backend restarts and serves a saved snapshot before source refreshes. It does not remove Render Free's wake-up delay and cannot retain data through its own cache restart. Its external access is disabled; only the configured private endpoint is used by the backend. Library saves remain in local SQLite.
+
 ## Further fixes in 1.0.2
 
 The reported player loaded real video when tested as an independent browser page; its iframe integration was incompatible with the app sandbox. Desktop playback now uses an unprivileged native child view with restricted navigation and no library bridge. The page layout and episode list remain in the main app. The website sandbox is unchanged.

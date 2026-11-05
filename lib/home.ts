@@ -30,7 +30,7 @@ const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
   }
   function observe<T>(request:Promise<T>,slot:Slot<T>) {
     return request.then(value=>{slot.result={status:'fulfilled',value};},reason=>{slot.result={status:'rejected',reason};}).then(()=>{
-      if(delivered){try{getHomeData.prime(snapshot());}catch{/* Keep the last available snapshot. */}}
+      if(delivered){try{const data=snapshot();getHomeData.prime(data);void loadHome.remember('home',data);}catch{/* Keep the last available snapshot. */}}
     });
   }
   const tasks=[observe(getHomepage(),home),observe(fetchRecent(),recent),observe(fetchPopular(),popular),observe(fetchPopularSeries(),rankings)];
