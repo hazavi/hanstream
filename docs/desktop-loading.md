@@ -15,3 +15,13 @@ KeyDB is a Redis-compatible cache, not a replacement application host. The app's
 If hosting must stay free, a Cloudflare Worker with Workers KV in front of the read-only catalog endpoints is a suitable next step. It can serve a previously cached catalog independently of Render, then refresh it in the background. Cache only successful public catalog metadata and images; do not persist expiring playback URLs, library data, access-denied pages, or diagnostics. KV's eventual consistency is suitable for catalog snapshots, not an authoritative watch-history store: https://developers.cloudflare.com/kv/concepts/how-kv-works/
 
 A Cloudflare gateway needs an account, KV namespace, and public endpoint before changing the desktop API address. It has not been deployed by this patch. Neither KeyDB nor Cloudflare can make an external video host accept a rejected embed.
+
+## Further fixes in 1.0.2
+
+The reported player loaded real video when tested as an independent browser page; its iframe integration was incompatible with the app sandbox. Desktop playback now uses an unprivileged native child view with restricted navigation and no library bridge. The page layout and episode list remain in the main app. The website sandbox is unchanged.
+
+Homepage assembly has a 2.5-second response budget and publishes completed sections afterward. It no longer crawls individual metadata pages before returning editorial lists. Live protected-reader checks returned twelve recent episodes initially, then six reviews, six weekly trending entries, and ten airing entries from the completed snapshot. These are individual network samples, not a guarantee for all connections or cold hosts.
+
+Image requests now wait in a bounded queue. A busy or timed-out image lookup returns a short retry response instead of declaring the poster unavailable. Missing artwork is still shown honestly when no verified image can be found.
+
+Editorial lists also read the publisher's public RSS feed. It supplies dated episode recaps when the homepage cannot be read, with the same source restrictions and response-size limits. General news is excluded from reviews. Weekly coverage is labelled "Featured this week"; it does not claim audience popularity or manufacture most-viewed rankings.

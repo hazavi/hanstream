@@ -36,7 +36,7 @@ const MAX_PENDING_READS = 24;
 export function clearHtmlCache() { pages.clear(); pending.clear(); unavailableUntil.clear(); }
 
 // Only public HTML pages from the configured sources may be requested.
-export async function readHtml(value: string, revalidate = 3600, timeout = 3500): Promise<string> {
+export async function readHtml(value: string, revalidate = 3600, timeout = 3500, feed = false): Promise<string> {
   const url = new URL(value);
   if (url.protocol !== 'https:' || !getSourceConfig().allowedOrigins.includes(url.origin) || url.username || url.password || url.port) throw new Error('Invalid source URL');
   const saved = pages.get(url.href);
@@ -48,7 +48,7 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 3500)
     if (saved) return saved.html;
     throw new SourceUnavailable('Catalog');
   }
-  const request = readFreshHtml(url.href, Math.min(timeout, 3500)).then(html => {
+  const request = readFreshHtml(url.href, Math.min(timeout, 3500),feed).then(html => {
     if (revalidate > 0 && html.length < 1_000_000) pages.set(url.href, { html, expires: Date.now() + revalidate * 1000 });
     if (pages.size > 80) pages.delete(pages.keys().next().value!);
     return html;
@@ -61,7 +61,9 @@ export async function readHtml(value: string, revalidate = 3600, timeout = 3500)
   return request;
 }
 
-async function readFreshHtml(value: string, timeout: number): Promise<string> {
+export const readFeed=(value:string,revalidate=300)=>readHtml(value,revalidate,3500,true);
+
+async function readFreshHtml(value: string, timeout: number, feed=false): Promise<string> {
   let url = new URL(value);
   const allowedOrigins = new Set(getSourceConfig().allowedOrigins);
   const source = "Catalog";
@@ -73,7 +75,7 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
     try {
       const options: SourceRequestInit = {
         dispatcher: publicDispatcher,
-        headers: { Accept: "text/html", "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
+        headers: { Accept: feed?'application/rss+xml, application/xml, text/xml':'text/html', "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
         cache: 'no-store', redirect: "manual", signal: AbortSignal.timeout(timeout),
       };
       response = await sourceFetch(url.href, options);
@@ -105,7 +107,7 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
       continue;
     }
     if ([403, 429].includes(response.status)) unavailableUntil.set(url.origin, Date.now() + 60_000);
-    if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html")) {
+    if (!response.ok || !((response.headers.get("content-type") || "").includes("text/html") || feed&&/^(?:application\/(?:rss\+xml|xml)|text\/xml)(?:;|$)/i.test(response.headers.get('content-type')||''))) {
       await response.body?.cancel();
       throw new SourceUnavailable(source);
     }

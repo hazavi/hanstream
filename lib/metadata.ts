@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { readHtml } from "./html";
+import { readHtml, readFeed } from "./html";
 import { createRuntimeCache, createKeyedCache } from "./runtime-cache";
 import { catalogRoute, normalizeTitle, type CatalogTitle } from "./catalog";
 import { collectMetadata, homepageSections, lookupMetadata, matchMetadata, rankingLists } from "./metadata-source.mjs";
@@ -24,7 +24,7 @@ function mergeCalendar(snapshot:MetadataSnapshot,items:CalendarTitle[]):Metadata
 }
 const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
   // Homepage lists need published indexes, not dozens of optional detail reads.
-  const [main,calendar]=await Promise.allSettled([collectMetadata(readHtml,{previous,limit:0}),getCalendarTitles()]);
+  const [main,calendar]=await Promise.allSettled([collectMetadata(readHtml,{previous,limit:0,feedRead:readFeed}),getCalendarTitles()]);
   if(main.status==='rejected'&&calendar.status==='rejected')throw main.reason;
   const base=main.status==='fulfilled' && main.value.titles?.length ? main.value as MetadataSnapshot:previous||{version:2 as const,fetchedAt:new Date().toISOString(),titles:[],airingUrls:[],editorial:{titles:[],trending:[],popular:[],reviews:[]},sources:[]};
   const items=calendar.status==='fulfilled'?calendar.value:[];

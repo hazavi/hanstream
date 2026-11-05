@@ -6,7 +6,7 @@ The desktop target packages the static React frontend in a Tauri 2 window. Metad
 
 Install Rust, Microsoft C++ Build Tools with the Desktop development with C++ workload, and WebView2. See [Tauri's Windows prerequisites](https://v2.tauri.app/start/prerequisites/#windows). The current local machine has a workspace Rust toolchain but lacks the C++ workload; Windows CI provides the native build environment.
 
-Set `DESKTOP_API_BASE_URL` in `.env.local` to the public Render website address. Run `npm run desktop:dev` for a development window or `npm run desktop:build -- --locked` for an installer. `npm run build:desktop:web` builds only frontend assets. These commands use `.desktop-build/` and `desktop-out/`, independently of the Render output. Generated connection configuration and native build files are ignored by Git.
+Set `DESKTOP_MEDIA_ORIGINS` to the reviewed exact HTTPS player and redirect origins, and `DESKTOP_API_BASE_URL` in `.env.local` to the public Render website address. Run `npm run desktop:dev` for a development window or `npm run desktop:build -- --locked` for an installer. `npm run build:desktop:web` builds only frontend assets. These commands use `.desktop-build/` and `desktop-out/`, independently of the Render output. Generated connection configuration and native build files are ignored by Git.
 
 The **Windows desktop** GitHub Actions workflow builds the unsigned Windows installer and portable executable and uploads them as an Actions artifact. It also launches the real app in WebView2 and checks its origin, local page loading, theme interaction, library controls, and restriction of external top-level navigation. Artifacts are retained for 14 days. No public GitHub release is created automatically.
 
@@ -55,3 +55,11 @@ A Windows installer signature and a Tauri update signature are separate controls
 Native smoke checks do not prove every external video host works. Test actual available episodes in WebView2: start playback, switch servers, seek, show subtitles, enter/exit fullscreen, use previous/next, and reopen the app to check saved history. Also test a trailer, unavailable episodes, a waking backend, offline/reconnect, and a popup attempt. Providers that reject WebView2 or require unsupported DRM need individual investigation before the app is described as fully playback-compatible.
 
 Signed-update download, interruption, and installer recovery checks remain pending until real signing credentials and an update host exist. Do not publish the signed release based only on an unsigned CI build.
+
+## Isolated desktop media
+
+The 1.0.2 desktop player uses a separate native child webview in the existing watch-frame area. This avoids iframe-sandbox incompatibilities without granting remote media access to the app bridge. The website keeps its iframe sandbox. Only the local `main` webview receives library, cache, media-control, and limited event-listening permissions. The remote media webview receives no capabilities, uses a separate browser data directory, rejects unconfigured navigation origins, and denies popups, downloads, and device permissions. Media commands also verify the calling view and app origin. Leaving or reloading the main page closes its media view.
+
+`DESKTOP_MEDIA_ORIGINS` is a reviewed public navigation allowlist in the desktop build configuration, not a credential. It must include each approved player origin and any required top-level redirect origins. It does not permit arbitrary native HTTP requests. Source-reader configuration remains on Render.
+
+The `automation` feature requires `HANSTREAM_TEST_DATA_DIR` and stores its library and browser profiles there, separate from real app data. A second loopback debugging port is used only by the isolated media QA harness. The production installer and executable do not enable either debugging port. CI keeps the QA executable separately for one day; it must never be attached to a release.

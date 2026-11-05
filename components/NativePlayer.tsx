@@ -27,7 +27,9 @@ export function NativePlayer({url,reload,title,onLoaded,onFailure}:{url:string;r
     }
     const observer=new ResizeObserver(resize);
     if(element.current)observer.observe(element.current);
+    const layout=element.current?.closest('.watch-page');if(layout)observer.observe(layout);
     window.addEventListener('scroll',resize,true);window.addEventListener('resize',resize);
+    window.addEventListener('animationend',resize,true);window.addEventListener('transitionend',resize,true);
     void (async()=>{
       const {listen}=await import('@tauri-apps/api/event');
       unlisten=await listen<string>('media-loaded',event=>{if(!disposed&&event.payload===session)callbacks.current.onLoaded();});
@@ -40,6 +42,7 @@ export function NativePlayer({url,reload,title,onLoaded,onFailure}:{url:string;r
     return ()=>{
       disposed=true;observer.disconnect();cancelAnimationFrame(frame);unlisten?.();
       window.removeEventListener('scroll',resize,true);window.removeEventListener('resize',resize);
+      window.removeEventListener('animationend',resize,true);window.removeEventListener('transitionend',resize,true);
       void nativeInvoke('media_close',{session}).catch(()=>{});
     };
   },[url,reload]);
