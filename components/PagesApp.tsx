@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { peekBackend, readBackend } from "@/lib/pages-client";
+import { peekBackend, readBackend, subscribeBackend } from "@/lib/pages-client";
 import type { DramaResponse, EpisodeResult, PopularItem, RecentItem, SearchResponse, TopDramasResponse } from "@/lib/api-types";
 import { ContinueWatching } from "./ContinueWatching";
 import { DramaCard } from "./DramaCard";
 import { TopAiringSection } from "./TopAiringSection";
 import { HomepageHighlights, type HomepageHighlightsData } from "./HomepageHighlights";
 import { PageSkeleton } from './PageSkeleton';
+import { ConnectionStatus } from './ConnectionStatus';
 const DramaDetails = dynamic(() => import('./DramaDetails').then(module => module.DramaDetails), { loading: () => <PageSkeleton view="drama" /> });
 const WatchPage = dynamic(() => import('./WatchPage').then(module => module.WatchPage), { loading: () => <PageSkeleton view="watch" /> });
 
@@ -51,15 +52,16 @@ export default function PagesApp({ view }: { view: View }) {
     if ((view === "drama" || view === "watch") && !slug || view === "watch" && !episode || view === "search" && !search) return;
     const controller = new AbortController();
     setState({ route, data:peekBackend(route) });
-    readBackend(route, controller.signal).then(data => {
+    const unsubscribe=subscribeBackend(route,()=>{const data=peekBackend(route);if(data&&!controller.signal.aborted)setState({route,data});});
+    readBackend(route, controller.signal,{fresh:retry>0}).then(data => {
       if (controller.signal.aborted) return;
       setState({ route, data });
     }).catch(error => { if (!controller.signal.aborted) setState(current => current.route===route && current.data ? current : { route, error: error.message }); });
-    return () => controller.abort();
+    return () => {unsubscribe();controller.abort();};
   }, [route, retry, view, slug, episode, search]);
   if ((view === "drama" || view === "watch") && !slug || view === "watch" && !episode) return <p className="glass-card p-6">Choose a drama from <Link href="/" className="underline">the homepage</Link>.</p>;
   if (view === "search" && !search) return <p className="glass-card p-6">Enter a drama title in the search bar.</p>;
-  if (state.route !== route || !state.data && !state.error) return <PageSkeleton view={view} />;
+  if (state.route !== route || !state.data && !state.error) return <><ConnectionStatus/><PageSkeleton view={view} /></>;
   if (state.error) return <div role="alert" className="glass-card p-6 space-y-4"><p>{state.error}</p><button className="glass-btn" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
   if (view === "home") return <Home data={state.data as HomeData} />;
   if (view === "drama") { const detail = (state.data as DramaResponse).result; return detail ? <DramaDetails detail={detail} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>; }

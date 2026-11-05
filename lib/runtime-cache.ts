@@ -41,7 +41,7 @@ export function createKeyedStaleCache<T>(load: (key: string, previous?: T) => Pr
     if (entries.size > capacity) entries.delete(entries.keys().next().value!);
     return read();
   };
-  return Object.assign(readKey, {clear:()=>entries.clear()});
+  return Object.assign(readKey, {clear:()=>entries.clear(),peek:(key:string)=>entries.get(key)?.peek()});
 }
 
 /** Coalesce title-specific requests and keep the process cache bounded. */

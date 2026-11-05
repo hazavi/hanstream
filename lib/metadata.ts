@@ -25,12 +25,13 @@ function mergeCalendar(snapshot:MetadataSnapshot,items:CalendarTitle[]):Metadata
 const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
   const [main,calendar]=await Promise.allSettled([collectMetadata(readHtml,{previous,limit:12}),getCalendarTitles()]);
   if(main.status==='rejected'&&calendar.status==='rejected')throw main.reason;
-  const base=main.status==='fulfilled'?main.value as MetadataSnapshot:previous||{version:2 as const,fetchedAt:new Date().toISOString(),titles:[],airingUrls:[],editorial:{titles:[],trending:[],popular:[],reviews:[]},sources:[]};
+  const base=main.status==='fulfilled' && main.value.titles?.length ? main.value as MetadataSnapshot:previous||{version:2 as const,fetchedAt:new Date().toISOString(),titles:[],airingUrls:[],editorial:{titles:[],trending:[],popular:[],reviews:[]},sources:[]};
   const items=calendar.status==='fulfilled'?calendar.value:[];
   const first=mergeCalendar(base,items);
+  if(!first.titles.length)throw new Error('Drama metadata is temporarily unavailable.');
   void collectMetadata(readHtml, { previous: first, limit: 60 }).then((next: MetadataSnapshot) => liveMetadata.prime(mergeCalendar(next,items))).catch(() => {});
   return first;
-}, 21_600_000);
+}, value=>value.titles.length?900_000:15_000);
 
 export const getMetadata = cache(liveMetadata);
 async function datedMetadata() {

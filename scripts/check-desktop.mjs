@@ -48,6 +48,31 @@ try {
   await page.getByText('Saved library and watch history deleted from this device.').waitFor();
   assert.equal(await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('library_load')),null);
   assert.equal(await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('cache_load',{key:'smoke'})),null);
+  const api=process.env.DESKTOP_API_BASE_URL;
+  assert.ok(api,'Desktop check needs its configured backend address');
+  const catalogKey=api.replace(/\/$/,'')+'/api/home';
+  let catalogReads=0;
+  const catalog={home:{reviews:[],trending:[],starting:[],ending:[]},recent:[{title:'Offline catalog check',image:'/file.svg','episode-link':'/drama-offline-check--2026/episode/s1e1',episode_number:1,time:'Available now',type:'Drama'}],popular:[],rankings:{lists:{airing:[],upcoming:[],popular:[]},errors:{}},partial:false};
+  await page.route(catalogKey,route=>{
+    catalogReads++;
+    const data=catalogReads===1?{...catalog,partial:true,rankings:{lists:{airing:[],upcoming:[],popular:[]},errors:{airing:'Temporarily unavailable'}}}:{...catalog,rankings:{lists:{airing:[{title:'Recovered airing show',slug:'drama-recovered--2026',detail_link:'/drama-recovered--2026',image:'/file.svg',rank:1,release_year:2026}],upcoming:[],popular:[]},errors:{}}};
+    return route.fulfill({json:data});
+  });
+  await page.goto('https://tauri.localhost/',{waitUntil:'domcontentloaded'});
+  await page.getByText('Offline catalog check',{exact:true}).waitFor();
+  await page.getByText('Recovered airing show',{exact:true}).waitFor({timeout:25_000});
+  await page.waitForFunction(async key=>(await window.__TAURI_INTERNALS__.invoke('cache_load',{key}))?.value?.rankings?.lists?.airing?.[0]?.title==='Recovered airing show',catalogKey);
+  await page.evaluate(async key=>{
+    const record=await window.__TAURI_INTERNALS__.invoke('cache_load',{key});
+    record.savedAt=Date.now()-3_600_000;record.expires=Date.now()+43_200_000;
+    await window.__TAURI_INTERNALS__.invoke('cache_save',{key,value:record,expiresAt:record.expires});
+  },catalogKey);
+  await page.unroute(catalogKey);
+  await page.route(api.replace(/\/$/,'')+'/api/**',route=>route.abort('internetdisconnected'));
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.getByText('Offline catalog check',{exact:true}).waitFor({timeout:8000});
+  await page.getByText('Recovered airing show',{exact:true}).waitFor({timeout:8000});
+  await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('library_clear'));
   const escaped = await page.evaluate(async () => {
     location.href = 'https://example.com/';
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -55,5 +80,5 @@ try {
   }).catch(() => page.url());
   assert.ok(escaped.startsWith('https://tauri.localhost'), 'External top-level navigation was allowed');
   assert.equal(runtimeErrors, 0, 'Desktop UI raised a runtime error');
-  console.log('Desktop WebView2 origin, hydration, SQLite save/reload/delete, bounded cache, theme, and navigation restriction passed.');
+  console.log('Desktop WebView2 origin, hydration, SQLite save/reload/delete, bounded cache, live partial-home recovery, offline catalog reopen, theme, and navigation restriction passed.');
 } finally { await browser.close(); }

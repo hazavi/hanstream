@@ -162,10 +162,12 @@ export async function fetchEpisode(slug: string, episode: string): Promise<Episo
   if (!validEpisodeId(episode)) throw new Error('Invalid episode identifier');
   const match = /^(?:s(\d+)e)?(\d+(?:\.\d+)?)$/i.exec(episode);
   if (!match || Number(match[2]) < 1 || (match[1] && Number(match[1]) < 1)) throw new Error("Invalid episode identifier");
-  const drama = await fetchDrama(slug);
-  const title = drama.result?.title || slug;
-  const movie = parseCatalogRoute(slug)?.movie || slug.startsWith("movie-");
-  const year = Number(drama.result?.meta?.Released) || undefined;
+  if (!validDramaSlug(slug)) throw new Error('Invalid drama identifier');
+  const identity = parseCatalogRoute(slug);
+  const drama = cachedDrama.peek(slug) || (identity ? undefined : await fetchDrama(slug));
+  const title = drama?.result?.title || identity?.title || slug;
+  const movie = identity?.movie || slug.startsWith("movie-");
+  const year = identity?.year || Number(drama?.result?.meta?.Released) || undefined;
   const embeddedSeason = Number(/\bseason\s+(\d+)$/i.exec(title)?.[1]);
   const season = Number(match[1] || 1) === 1 && embeddedSeason ? embeddedSeason : Number(match[1] || 1);
   let stream: Awaited<ReturnType<typeof getPlaybackStream>> = null;
@@ -174,7 +176,7 @@ export async function fetchEpisode(slug: string, episode: string): Promise<Episo
     catch { /* Show the episode's unavailable state without crashing navigation. */ }
   }
   return { result: { title: `${title} - Episode ${match[2]}`, current_episode: movie ? '1' : `s${season}e${match[2]}`, category: { title }, video: stream?.url || "", servers: stream?.servers.map((server, index) => ({ name: `Server ${index + 1}`, url: server.url })),
-    episodes: drama.result?.episodes?.map(ep => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date, season: ep.season, episode: ep.episode, image: ep.image, description: ep.description, available: ep.available })),
+    episodes: drama?.result?.episodes?.map(ep => ({ id: ep.episode_link.split("/").pop(), title: ep.title, time: ep.release_date, season: ep.season, episode: ep.episode, image: ep.image, description: ep.description, available: ep.available })),
   } };
 }
 

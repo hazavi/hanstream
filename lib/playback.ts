@@ -14,8 +14,8 @@ export function parsePlaybackTitle(text: string, url: string): PlaybackTitle | n
   if (!sourceUrl(url, BASE) || !/^\/embed\/[^/]+\.html$/.test(new URL(url).pathname)) return null;
   const episode = /\s+Ep(?:isode)?\s+(\d+(?:\.\d+)?)\s*$/i.exec(text);
   const movie = /\b(?:full .*movie|movie)\s*$/i.test(text);
-  const year = Number(text.match(/\((\d{4})\)/)?.[1]) || undefined;
-  const title = text.replace(/\s+Ep(?:isode)?\s+\d+(?:\.\d+)?\s*$/i, "").replace(/\s+Full\b.*$/i, "").replace(/\s*\(\d{4}\)\s*/, " ").trim();
+  const year = Number(text.match(/\((?:(?:Lakorn|Drama|TV series|Movie)\s+)?(\d{4})\)/i)?.[1]) || undefined;
+  const title = text.replace(/\s+Ep(?:isode)?\s+\d+(?:\.\d+)?\s*$/i, "").replace(/\s+Full\b.*$/i, "").replace(/\s*\((?:(?:Lakorn|Drama|TV series|Movie)\s+)?\d{4}\)\s*/i, " ").trim();
   return title ? { title, year, movie, url, image: "/file.svg", episode: episode ? Number(episode[1]) : undefined } : null;
 }
 
@@ -70,7 +70,7 @@ const fullCatalog = createRuntimeCache(async (): Promise<PlaybackTitle[]> => {
   let failed = false;
   // Read public pagination with two workers, keeping the source's newest-first order.
   const workers = await Promise.allSettled([0, 1].map(async () => {
-    while (next < last && !failed) {
+    while (next < Math.min(last,8) && !failed) {
       const index = next++;
       try {
         pages[index] = parsePlaybackCatalog(await readHtml(`${BASE}/list/${last - index}.html`, 900));
@@ -105,9 +105,13 @@ export async function getPlaybackStream(title: string, episode: string, movie = 
   if (embeddedSeason && season > 1 && embeddedSeason !== season) return null;
   const titles = season > 1 && !embeddedSeason ? [`${title} Season ${season}`] : [title];
   for (const candidate of titles) {
-    const entries = await getPlaybackEpisodes(candidate, year, movie);
+    // A failed latest-index read must not prevent a verified older episode lookup.
+    const entries = await getPlaybackEpisodes(candidate, year, movie).catch(() => []);
     const page = entries.find(item => movie || item.episode === Number(episode));
-    if (page) return parsePlaybackPage(await readHtml(page.url, 900), page.url);
+    if (page) {
+      try { const stream=parsePlaybackPage(await readHtml(page.url,900),page.url); if(stream)return stream; }
+      catch { /* The direct verified route remains available. */ }
+    }
     // Published episode routes follow the title/year pattern. A candidate is
     // accepted only after its real page title confirms title, year and episode.
     if (!movie && year) {
@@ -121,11 +125,9 @@ export async function getPlaybackStream(title: string, episode: string, movie = 
         }
       } catch { /* An unverified route is never offered as a stream. */ }
     }
-    // Older nonstandard routes can be discovered in the background. Bound this
-    // request's wait so an archive crawl cannot hold the player for minutes.
-    const missing = Symbol("index-pending");
-    const result = await Promise.race([fullCatalog().catch(() => []), new Promise<typeof missing>(resolve => { const timer = setTimeout(() => resolve(missing), 1500); timer.unref?.(); })]);
-    const found = result !== missing ? result.find(item => normalizeTitle(item.title) === normalizeTitle(candidate) && Boolean(item.movie) === movie && (!year || item.year === year) && (movie || item.episode === Number(episode))) : undefined;
+    // Playback must never trigger an archive crawl. Reuse only already indexed
+    // nonstandard routes; archive discovery belongs to explicit catalog browsing.
+    const found = indexedItems.find(item => normalizeTitle(item.title) === normalizeTitle(candidate) && Boolean(item.movie) === movie && (!year || item.year === year) && (movie || item.episode === Number(episode)));
     if (found) return parsePlaybackPage(await readHtml(found.url, 900), found.url);
   }
   return null;

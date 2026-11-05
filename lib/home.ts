@@ -4,6 +4,7 @@ import { getHomepage } from './metadata';
 import { createRuntimeCache } from './runtime-cache';
 import { persistentLoader } from './persistent-cache';
 import type { RecentItem, PopularItem, TopDramasResponse } from './api-types';
+import {mergeHomeData} from './home-data';
 
 type HomeData = { home: Awaited<ReturnType<typeof getHomepage>>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse['result']; partial: boolean };
 
@@ -13,12 +14,12 @@ const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
     getHomepage(), fetchRecent(), fetchPopular(), fetchPopularSeries(),
   ]);
   if ([home, recent, popular, rankings].every(result => result.status === 'rejected') && !previous) throw new Error('Homepage temporarily unavailable');
-  return {
+  return mergeHomeData(previous,{
     home: home.status === 'fulfilled' ? home.value : previous?.home || { reviews: [], trending: [], starting: [], ending: [] },
     recent: recent.status === 'fulfilled' ? recent.value.results.slice(0, 12) : previous?.recent || [],
     popular: popular.status === 'fulfilled' ? popular.value.results.slice(0, 12) : previous?.popular || [],
     rankings: rankings.status === 'fulfilled' ? rankings.value.result : previous?.rankings || { lists: { airing: [], upcoming: [], popular: [] }, errors: { airing: 'Drama listings are temporarily unavailable.', upcoming: 'Drama listings are temporarily unavailable.' } },
-    partial: [home, recent, popular, rankings].some(result => result.status === 'rejected'),
-  };
+    partial: [home, recent, popular, rankings].some(result => result.status === 'rejected') || rankings.status==='fulfilled' && Object.keys(rankings.value.result.errors||{}).length>0,
+  });
 }, value => Boolean(value?.home && value?.rankings && !value.partial && Array.isArray(value.recent) && Array.isArray(value.popular)), 30_000);
 export const getHomeData = createRuntimeCache<HomeData>(previous => loadHome('home', previous), value => value.partial ? 10_000 : 30_000, value => !value.partial);

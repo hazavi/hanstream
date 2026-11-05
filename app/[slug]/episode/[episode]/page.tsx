@@ -1,4 +1,4 @@
-import { fetchEpisode, fetchDrama } from "@/lib/api";
+import { fetchEpisode } from "@/lib/api";
 import { formatEpisodeLabel } from "@/lib/format";
 import { WatchPage } from "@/components/WatchPage";
 import type { Metadata } from "next";
@@ -11,13 +11,10 @@ export async function generateMetadata({
 }: EpisodePageProps): Promise<Metadata> {
   const { slug, episode } = await params;
   try {
-    const [episodeData, dramaData] = await Promise.all([
-      fetchEpisode(slug, episode),
-      fetchDrama(slug),
-    ]);
-    const title = episodeData.result?.title || `${slug} episode ${episode}`;
-    const description = `Watch ${dramaData.result?.title || slug}, ${formatEpisodeLabel(episode)}`;
-    const image = dramaData.result?.image;
+    const episodeData=await fetchEpisode(slug,episode);
+    const title=episodeData.result?.title || formatEpisodeLabel(episode);
+    const description='Watch '+(episodeData.result?.category?.title || slug)+', '+formatEpisodeLabel(episode);
+    const image=undefined;
 
     return {
       title,
@@ -35,6 +32,6 @@ export async function generateMetadata({
 
 export default async function EpisodePage({ params }: EpisodePageProps) {
  const { slug, episode } = await params;
- const [playback, drama] = await Promise.all([fetchEpisode(slug, episode), fetchDrama(slug)]);
- return <WatchPage result={playback.result} drama={drama.result} slug={slug} episode={episode} />;
+ const playback = await fetchEpisode(slug, episode);
+ return <WatchPage result={playback.result} slug={slug} episode={episode} />;
 }

@@ -25,6 +25,10 @@ export class SourceUnavailable extends Error {
 }
 
 const unavailableUntil = new Map<string, number>();
+function pausePage(url:string) {
+  unavailableUntil.set(url,Date.now()+15_000);
+  if(unavailableUntil.size>250)unavailableUntil.delete(unavailableUntil.keys().next().value!);
+}
 const pages = new Map<string, { html: string; expires: number }>();
 const pending = new Map<string, Promise<string>>();
 const MAX_HTML_BYTES = 5_000_000;
@@ -64,7 +68,7 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
   let retried = false;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (url.protocol !== "https:" || !allowedOrigins.has(url.origin) || url.username || url.password || url.port) throw new Error("Invalid source URL");
-    if ((unavailableUntil.get(url.origin) || 0) > Date.now()) throw new SourceUnavailable(source);
+    if ((unavailableUntil.get(url.origin) || 0) > Date.now() || (unavailableUntil.get(url.href)||0)>Date.now()) throw new SourceUnavailable(source);
     let response: SourceResponse;
     try {
       const options: SourceRequestInit = {
@@ -76,7 +80,7 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
     } catch (error) {
       const code = (error as { cause?: {code?:string} })?.cause?.code;
       if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) || code === 'UND_ERR_CONNECT_TIMEOUT') {
-        unavailableUntil.set(url.origin, Date.now() + 60_000);
+        pausePage(url.href);
         throw new SourceUnavailable(source);
       }
       if (!retried && !(error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name))) {
@@ -84,7 +88,7 @@ async function readFreshHtml(value: string, timeout: number): Promise<string> {
         await new Promise(resolve => setTimeout(resolve, 150));
         continue;
       }
-      unavailableUntil.set(url.origin, Date.now() + 60_000);
+      pausePage(url.href);
       throw new SourceUnavailable(source);
     }
     if ([500, 502, 503, 504].includes(response.status) && !retried) {
