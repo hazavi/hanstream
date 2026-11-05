@@ -6,6 +6,9 @@ fn main() {
             "library_clear",
             "cache_load",
             "cache_save",
+            "media_open",
+            "media_resize",
+            "media_close",
         ]),
     ))
     .expect("Could not prepare application permissions");

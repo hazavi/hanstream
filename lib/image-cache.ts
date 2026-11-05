@@ -12,6 +12,19 @@ const MAX_CACHE = 24_000_000;
 const images = new Map<string, { body: Buffer; etag: string; expires: number }>();
 const pending = new Map<string, Promise<{ body: Buffer; etag: string } | undefined>>();
 let bytes = 0;
+class ImageBusy extends Error {}
+let active = 0;
+const waiting: (()=>void)[]=[];
+async function acquire() {
+  if(active<4){active++;return;}
+  await new Promise<void>((resolve,reject)=>{
+    const ready=()=>{clearTimeout(timer);resolve();};
+    const timer=setTimeout(()=>{const index=waiting.indexOf(ready);if(index>=0)waiting.splice(index,1);reject(new ImageBusy());},2000);
+    waiting.push(ready);
+  });
+}
+function release(){const next=waiting.shift();if(next)next();else active--;}
+export const imageBusyResponse=()=>new Response(null,{status:503,headers:{'Retry-After':'2','Cache-Control':'no-store'}});
 
 function permitted(value: string) {
   const origins = (process.env.IMAGE_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
@@ -56,9 +69,9 @@ export async function cachedImage(url: string, width = 320) {
     images.delete(key); images.set(key, saved); count('image.hit'); return saved;
   }
   if (pending.has(key)) return pending.get(key);
-  if (pending.size >= 4) return undefined;
+  if (pending.size >= 32) throw new ImageBusy();
   count('image.miss');
-  const task = download(url, width).then(image => {
+  const task = (async()=>{await acquire();try{return await download(url,width);}finally{release();}})().then(image => {
     if (!image) return undefined;
     const old = images.get(key);
     if (old) { bytes -= old.body.length; images.delete(key); }
@@ -67,14 +80,15 @@ export async function cachedImage(url: string, width = 320) {
     }
     bytes += image.body.length; images.set(key, { ...image, expires: Date.now() + 3_600_000 });
     return image;
-  }).catch(() => { count('image.failure'); return undefined; }).finally(() => pending.delete(key));
+  }).catch(error => { if(error instanceof ImageBusy)throw error;count('image.failure'); return undefined; }).finally(() => pending.delete(key));
   pending.set(key, task);
   return task;
 }
 
 export async function imageResponse(url: string, request: Request, fallbackTtl: number) {
   const width = Number(new URL(request.url).searchParams.get('width')) || 320;
-  const image = await cachedImage(url, [80, 160, 320, 640].includes(width) ? width : 320);
+  let image:Awaited<ReturnType<typeof cachedImage>>;
+  try{image=await cachedImage(url,[80,160,320,640].includes(width)?width:320);}catch(error){if(error instanceof ImageBusy)return imageBusyResponse();throw error;}
   const headers = { 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400', 'Content-Type': 'image/webp', 'X-Content-Type-Options': 'nosniff', 'ETag': image?.etag || '' };
   if (image) return request.headers.get('if-none-match') === image.etag ? new Response(null, { status: 304, headers }) : new Response(new Uint8Array(image.body), { headers });
   return missingImageResponse(fallbackTtl);

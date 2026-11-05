@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
   "description": "Local main-window access to fixed library and cache operations, with no arbitrary SQL, filesystem, shell, or native network commands.",
-  "windows": ["main"],
-  "permissions": ["allow-library-load", "allow-library-save", "allow-library-clear", "allow-cache-load", "allow-cache-save"]
+  "webviews": ["main"],
+  "permissions": ["allow-library-load", "allow-library-save", "allow-library-clear", "allow-cache-load", "allow-cache-save", "allow-media-open", "allow-media-resize", "allow-media-close", "core:event:allow-listen", "core:event:allow-unlisten"]
 }

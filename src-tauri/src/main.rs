@@ -2,6 +2,7 @@
 
 use tauri::webview::{DownloadEvent, NewWindowResponse, PermissionResponse};
 use tauri::Manager;
+mod media;
 mod storage;
 
 fn main() {
@@ -15,10 +16,40 @@ fn main() {
             storage::library_save,
             storage::library_clear,
             storage::cache_load,
-            storage::cache_save
+            storage::cache_save,
+            media::media_open,
+            media::media_resize,
+            media::media_close
         ])
         .setup(|app| {
-            app.manage(storage::Storage::open(&app.path().app_data_dir()?)?);
+            #[cfg(not(feature = "automation"))]
+            let data_directory = app.path().app_data_dir()?;
+            #[cfg(feature = "automation")]
+            let data_directory = std::path::PathBuf::from(
+                std::env::var("HANSTREAM_TEST_DATA_DIR")
+                    .expect("Automation requires an isolated data directory"),
+            );
+            app.manage(storage::Storage::open(&data_directory)?);
+            let origins = app
+                .config()
+                .plugins
+                .0
+                .get("media")
+                .and_then(|value| value.get("origins"))
+                .and_then(|value| value.as_array())
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|value| value.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default();
+            app.manage(media::MediaState {
+                active: std::sync::Mutex::new(None),
+                directory: data_directory.join("media-browser"),
+                origins,
+            });
+            let navigation_app = app.handle().clone();
             let window =
                 tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
                     .on_navigation(|url| {
@@ -35,10 +66,17 @@ fn main() {
                                 || url.as_str().starts_with("blob:tauri://localhost/")
                         }
                         _ => true,
+                    })
+                    .on_page_load(move |_, payload| {
+                        if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
+                            media::close_active(&navigation_app);
+                        }
                     });
             // CI builds this separate harness; installers never enable this feature.
             #[cfg(feature = "automation")]
-            let window = window.additional_browser_args(
+            let window = window
+                .data_directory(data_directory.join("app-browser"))
+                .additional_browser_args(
                 "--remote-debugging-port=9223 --remote-debugging-address=127.0.0.1 --disable-gpu",
             );
             window.build()?;

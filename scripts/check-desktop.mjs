@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
+import {checkNativeMedia} from './check-native-media.mjs';
+if(!process.env.CI)throw new Error('Run desktop checks only in an isolated CI test environment.');
 
 const addresses = [...new Set([process.env.DESKTOP_DEBUG_URL || 'http://localhost:9223', 'http://127.0.0.1:9223', 'http://[::1]:9223'])];
 const started = Date.now();
@@ -73,6 +75,7 @@ try {
   await page.getByText('Offline catalog check',{exact:true}).waitFor({timeout:8000});
   await page.getByText('Recovered airing show',{exact:true}).waitFor({timeout:8000});
   await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('library_clear'));
+  await checkNativeMedia(page,api);
   const escaped = await page.evaluate(async () => {
     location.href = 'https://example.com/';
     await new Promise(resolve => setTimeout(resolve, 500));

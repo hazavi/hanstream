@@ -44,8 +44,8 @@ export default function PagesApp({ view }: { view: View }) {
   const [retry, setRetry] = useState(0);
   const homeRetries = useRef(0);
   useEffect(() => {
-    if (view !== 'home' || state.route !== route || !(state.data as HomeData | undefined)?.partial || homeRetries.current >= 3) return;
-    const timer = setTimeout(() => { homeRetries.current++; setRetry(value => value+1); },12_000);
+    if (view !== 'home' || state.route !== route || !(state.data as HomeData | undefined)?.partial || homeRetries.current >= 5) return;
+    const timer = setTimeout(() => { homeRetries.current++; setRetry(value => value+1); },[2000,5000,10000,20000,30000][homeRetries.current]);
     return () => clearTimeout(timer);
   },[view,route,state]);
   useEffect(() => {

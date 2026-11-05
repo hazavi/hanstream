@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { findCatalogArtwork } from "@/lib/catalog-details";
-import { imageResponse, missingImageResponse } from '@/lib/image-cache';
+import { imageResponse, missingImageResponse, imageBusyResponse } from '@/lib/image-cache';
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams;
   const title = query.get('title')?.trim();
@@ -18,5 +18,5 @@ export async function GET(request: Request) {
     }
     return missingImageResponse();
   };
-  return Promise.race([resolve(),new Promise<Response>(resolve => {timer=setTimeout(()=>resolve(missingImageResponse()),11_000);})]).finally(()=>clearTimeout(timer));
+  return Promise.race([resolve(),new Promise<Response>(resolve => {timer=setTimeout(()=>resolve(imageBusyResponse()),11_000);})]).finally(()=>clearTimeout(timer));
 }

@@ -5,9 +5,11 @@ import { getPagesConfig } from './pages-config.mjs';
 export function desktopConfig(env = process.env) {
   const { api } = getPagesConfig({ NEXT_PUBLIC_API_BASE_URL: env.DESKTOP_API_BASE_URL || env.NEXT_PUBLIC_API_BASE_URL, GITHUB_ACTIONS: 'true' });
   if (!api) throw new Error('Set DESKTOP_API_BASE_URL to the public HTTPS backend origin.');
+  const mediaOrigins=[...new Set((env.DESKTOP_MEDIA_ORIGINS||'').split(',').map(value=>value.trim()).filter(Boolean))];
+  for(const origin of mediaOrigins){const parsed=getPagesConfig({NEXT_PUBLIC_API_BASE_URL:origin,GITHUB_ACTIONS:'true'}).api;if(parsed!==origin)throw new Error('Player origins must be exact public HTTPS origins');}
   const signed = env.DESKTOP_SIGNED_UPDATES === '1';
   const csp = contentSecurityPolicy({ apiOrigin: api, desktop: true });
-  const config = { app: { security: { csp, capabilities: ['main'] } }, bundle: { createUpdaterArtifacts: signed }, plugins: {} };
+  const config = { app: { security: { csp, capabilities: ['main'] } }, bundle: { createUpdaterArtifacts: signed }, plugins: {media:{origins:mediaOrigins}} };
   if (signed) {
     if (!env.DESKTOP_UPDATER_PUBLIC_KEY || !env.TAURI_SIGNING_PRIVATE_KEY) throw new Error('Signed updates require an updater public key and private signing key.');
     const endpoint = new URL(env.DESKTOP_UPDATER_ENDPOINT || '');

@@ -11,8 +11,8 @@ export function RefreshListings({ enabled }: { enabled: boolean }) {
     let attempt = 0;
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
-      if (attempt >= 3) return;
-      timer = setTimeout(() => { attempt++; router.refresh(); schedule(); }, [12_000,25_000,50_000][attempt]);
+      if (attempt >= 5) return;
+      timer = setTimeout(() => { attempt++; router.refresh(); schedule(); }, [2000,5000,10000,20000,30000][attempt]);
     };
     schedule();
     return () => clearTimeout(timer);

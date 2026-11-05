@@ -70,4 +70,4 @@ Airing, upcoming, and weekly premiere/finale lists can use published HTML calend
 
 For the additional official-distributor poster fallback, copy `POSTER_SEARCH_URLS` from the ignored local environment to the backend host. It contains comma-separated public HTML search URL templates with `{query}`. Keep this server-only.
 
-Windows installer: [Download HanStream v1.0.1](https://github.com/hazavi/hanstream/releases/download/v1.0.1/HanStream_1.0.1_x64-setup.exe). The installer asks for a folder, offers an optional desktop shortcut, and includes an uninstaller. This release is unsigned; automatic signed updates remain disabled.
+Windows installer: [Download HanStream v1.0.2](https://github.com/hazavi/hanstream/releases/download/v1.0.2/HanStream_1.0.2_x64-setup.exe). The installer asks for a folder, offers an optional desktop shortcut, and includes an uninstaller. This release is unsigned; automatic signed updates remain disabled.

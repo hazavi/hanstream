@@ -3,11 +3,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Server, Check, RotateCcw } from "lucide-react";
 import { MEDIA_SANDBOX, safeEmbedUrl } from '@/lib/embed';
+import {isDesktop} from '@/lib/native';
+import {NativePlayer} from './NativePlayer';
 
 export function EpisodePlayer({ video, servers = [], title, navigation, preferenceKey }: { video: string; servers?: { name: string; url: string }[]; title: string; navigation?: ReactNode; preferenceKey?: string }) {
   const [selected, setSelected] = useState(() => safeEmbedUrl(video));
   const [status,setStatus]=useState<'loading'|'ready'|'slow'|'failed'>('loading');
   const [reload,setReload]=useState(0);
+  const [mode,setMode]=useState<'pending'|'desktop'|'web'>('pending');
+  useEffect(()=>setMode(isDesktop()?'desktop':'web'),[]);
   const availableServers = servers.filter(server => safeEmbedUrl(server.url));
   const serverKey=JSON.stringify(availableServers.map(server=>server.url));
   useEffect(()=>{
@@ -22,7 +26,7 @@ export function EpisodePlayer({ video, servers = [], title, navigation, preferen
   return <div>
 
     <div className="aspect-video relative video-container">
-      {selected ? <iframe key={selected+':'+reload} src={selected} title={title} sandbox={MEDIA_SANDBOX} className="h-full w-full rounded-2xl" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" onLoad={()=>setStatus('ready')} onError={()=>setStatus('failed')} /> : <div className="flex h-full items-center justify-center rounded-2xl glass-card p-6 text-center text-secondary">This episode is currently unavailable.</div>}
+      {selected ? mode==='desktop' ? <NativePlayer url={selected} reload={reload} title={title} onLoaded={()=>setStatus('ready')} onFailure={()=>setStatus('failed')}/> : mode==='web' ? <iframe key={selected+':'+reload} src={selected} title={title} sandbox={MEDIA_SANDBOX} className="h-full w-full rounded-2xl" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" onLoad={()=>setStatus('ready')} onError={()=>setStatus('failed')} /> : null : <div className="flex h-full items-center justify-center rounded-2xl glass-card p-6 text-center text-secondary">This episode is currently unavailable.</div>}
       {selected && status==='loading' && <div className="pointer-events-none absolute top-3 left-3 rounded-lg bg-black/80 px-3 py-2 text-xs text-white" role="status">Loading player...</div>}
     </div>
     {selected && (status==='slow'||status==='failed') && <p role="status" className="text-sm text-secondary py-3">The player has not loaded. Reload it or try another server below.</p>}

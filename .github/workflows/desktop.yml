@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 45
     env:
       DESKTOP_API_BASE_URL: ${{ vars.API_BASE_URL }}
+      DESKTOP_MEDIA_ORIGINS: ${{ vars.DESKTOP_MEDIA_ORIGINS }}
       CARGO_INCREMENTAL: '0'
     steps:
       - uses: actions/checkout@v7
@@ -100,7 +101,7 @@ jobs:
           $testBinary = Join-Path $env:RUNNER_TEMP 'hanstream-automation.exe'
           Copy-Item -LiteralPath './src-tauri/target/release/hanstream.exe' -Destination $testBinary
           Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'hanstream-production.exe') -Destination './src-tauri/target/release/hanstream.exe' -Force
-          $env:WEBVIEW2_USER_DATA_FOLDER=Join-Path $env:RUNNER_TEMP 'hanstream-webview-test'
+          $env:HANSTREAM_TEST_DATA_DIR=Join-Path $env:RUNNER_TEMP 'hanstream-native-test'
           $log = Join-Path $env:RUNNER_TEMP 'hanstream-app.log'
           $errorLog = Join-Path $env:RUNNER_TEMP 'hanstream-app-error.log'
           $app = Start-Process -FilePath $testBinary -WindowStyle Hidden -PassThru -RedirectStandardOutput $log -RedirectStandardError $errorLog
@@ -123,3 +124,11 @@ jobs:
           path: |
             src-tauri/target/release/bundle/nsis/*
             src-tauri/target/release/hanstream.exe
+
+      - name: Retain isolated automation harness for playback QA
+        uses: actions/upload-artifact@v4
+        if: inputs.signed != true && success()
+        with:
+          name: HanStream-QA-${{ github.sha }}
+          retention-days: 1
+          path: ${{ runner.temp }}/hanstream-automation.exe
