@@ -33,14 +33,19 @@ export function parsePlaybackCatalog(html: string): PlaybackTitle[] {
 
 export function parsePlaybackPage(html: string, pageUrl: string): PlaybackStream | null {
   const $ = load(html);
+  const excluded = new Set(getSourceConfig().excludedPlaybackOrigins);
+  const playerUrl = (value: string | undefined) => {
+    const url = httpsUrl(value, pageUrl);
+    return url && !excluded.has(new URL(url).origin) ? url : undefined;
+  };
   const servers: PlaybackStream["servers"] = [];
   // The source delays iframe loading; data-video is the actual streaming URL.
   $(".server-item[data-video]").each((_, el) => {
-    const url = httpsUrl($(el).attr("data-video"), pageUrl);
+    const url = playerUrl($(el).attr("data-video"));
     if (url && !servers.some(server => server.url === url)) servers.push({ name: cleanText($(el).text()) || "Server", url });
   });
   const iframe = $("#embedvideo");
-  const url = httpsUrl(iframe.attr("data-src") || iframe.attr("src"), pageUrl) || servers[0]?.url;
+  const url = playerUrl(iframe.attr("data-src") || iframe.attr("src")) || servers[0]?.url;
   if (!url) return null;
   if (!servers.length) servers.push({ name: "Server 1", url });
   return { url, pageUrl, servers };

@@ -10,6 +10,7 @@ import { EpisodeList } from "./EpisodeList";
 import { EpisodeProgressTracker } from "./EpisodeProgressTracker";
 import { VideoControls } from "./VideoControls";
 import { formatEpisodeLabel } from "@/lib/format";
+import { detailNeedsRefresh } from '@/lib/detail-cache';
 
 export function WatchPage({ result, drama: initialDrama, slug, episode }: { result: EpisodeResult; drama?: DramaDetail; slug: string; episode: string }) {
   const detailPath = '/api/drama/'+encodeURIComponent(slug);
@@ -17,10 +18,22 @@ export function WatchPage({ result, drama: initialDrama, slug, episode }: { resu
   const drama=details.slug===slug ? details.value || initialDrama : initialDrama;
   useEffect(()=>{
     const controller=new AbortController();
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    let attempts=0;
     const update=()=>{const value=peekBackend<DramaResponse>(detailPath)?.result;if(value&&!controller.signal.aborted)setDetails({slug,value});};
     const unsubscribe=subscribeBackend(detailPath,update);
-    void readBackend<DramaResponse>(detailPath,controller.signal,{sameOrigin:true}).then(data=>{if(data.result&&!controller.signal.aborted)setDetails({slug,value:data.result});}).catch(()=>{});
-    return ()=>{controller.abort();unsubscribe();};
+    async function loadDetails() {
+      let incomplete=true;
+      try {
+        const data=await readBackend<DramaResponse>(detailPath,controller.signal,{sameOrigin:true,...(attempts ? {fresh:true} : {})});
+        if(controller.signal.aborted)return;
+        if(data.result)setDetails({slug,value:data.result});
+        incomplete=detailNeedsRefresh(data)||!data.result?.episodes?.length;
+      } catch { /* Playback continues while optional details recover. */ }
+      if(incomplete&&!controller.signal.aborted&&attempts<2)timer=setTimeout(()=>{attempts++;void loadDetails();},attempts===0?15_000:30_000);
+    }
+    void loadDetails();
+    return ()=>{controller.abort();clearTimeout(timer);unsubscribe();};
   },[detailPath,slug]);
   const frameRoot = useRef<HTMLDivElement>(null);
   const [frameHeight, setFrameHeight] = useState(0);

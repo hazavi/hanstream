@@ -16,13 +16,13 @@ export function EpisodePlayer({ video, servers = [], title, navigation, preferen
   const serverKey=JSON.stringify(availableServers.map(server=>server.url));
   useEffect(()=>{
     if(!preferenceKey)return;
-    try{const saved=localStorage.getItem('hanstream-player:'+preferenceKey);if(saved===null)return;const index=Number(saved);const values=JSON.parse(serverKey) as string[];if(Number.isInteger(index)&&index>=0&&values[index]){setStatus('loading');setSelected(values[index]);}}catch{/* Preferences never block playback. */}
+    try{const saved=localStorage.getItem('hanstream-player-v2:'+preferenceKey);if(saved===null)return;const index=Number(saved);const values=JSON.parse(serverKey) as string[];if(Number.isInteger(index)&&index>=0&&values[index]){setStatus('loading');setSelected(values[index]);}}catch{/* Preferences never block playback. */}
   },[preferenceKey,serverKey]);
   useEffect(()=>{
     const timer=setTimeout(()=>setStatus(current=>current==='loading'?'slow':current),12_000);
     return()=>clearTimeout(timer);
   },[selected,reload]);
-  function choose(index:number){const server=availableServers[index];if(!server)return;setStatus('loading');setSelected(safeEmbedUrl(server.url));setReload(value=>value+1);try{if(preferenceKey)localStorage.setItem('hanstream-player:'+preferenceKey,String(index));}catch{/* Session selection still works. */}}
+  function choose(index:number){const server=availableServers[index];if(!server)return;setStatus('loading');setSelected(safeEmbedUrl(server.url));setReload(value=>value+1);try{if(preferenceKey)localStorage.setItem('hanstream-player-v2:'+preferenceKey,String(index));}catch{/* Session selection still works. */}}
   return <div>
 
     <div className="aspect-video relative video-container">

@@ -25,3 +25,7 @@ Homepage assembly has a 2.5-second response budget and publishes completed secti
 Image requests now wait in a bounded queue. A busy or timed-out image lookup returns a short retry response instead of declaring the poster unavailable. Missing artwork is still shown honestly when no verified image can be found.
 
 Editorial lists also read the publisher's public RSS feed. It supplies dated episode recaps when the homepage cannot be read, with the same source restrictions and response-size limits. General news is excluded from reviews. Weekly coverage is labelled "Featured this week"; it does not claim audience popularity or manufacture most-viewed rankings.
+
+`PLAYBACK_EXCLUDED_ORIGINS` removes configured player origins from both the default player and server choices. A player family flagged by the browser's unsafe-site protection was excluded from the deployed configuration and the desktop navigation allowlist. SmartScreen remains enabled. Old server preferences are reset for the revised server list.
+
+Watch pages retry incomplete or failed detail reads twice in the background, without remounting the player. This lets completed metadata fill in episode navigation after the initial playback response. Generated missing-image responses are no longer remembered as successful posters; image recovery includes a bounded retry after the short negative cache expires.
