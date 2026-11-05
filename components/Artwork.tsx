@@ -8,6 +8,7 @@ import { artworkFailedRecently, artworkWinner, claimArtworkRetry, failArtwork, r
 
 export function Artwork({ sources, alt, poster = false, placeholder = 'Artwork unavailable', title, year, person, personKey, fallbackLabel }: { sources: (string | undefined)[]; alt: string; poster?: boolean; placeholder?: string; title?: string; year?: number; person?: string; personKey?: string; fallbackLabel?: string }) {
   const loadedSource = useRef<string | undefined>(undefined);
+  const recovery = useRef({key:'',count:0});
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
   const fallback = title ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}) })}` : undefined;
   const portrait = person ? `${base}/api/portrait?${new URLSearchParams({ name: person, ...(personKey ? {key:personKey} : {}) })}` : undefined;
@@ -28,7 +29,9 @@ export function Artwork({ sources, alt, poster = false, placeholder = 'Artwork u
   },[key]);
   useEffect(() => {
     if (source || key==='[]') return;
-    const timer=setTimeout(()=>{if(claimArtworkRetry(key))setFailure({key,attempt:0});},6000);
+    if(recovery.current.key!==key)recovery.current={key,count:0};
+    if(recovery.current.count>=2)return;
+    const timer=setTimeout(()=>{if(claimArtworkRetry(key)){recovery.current.count++;setFailure({key,attempt:0});}},recovery.current.count===0?6000:65_000);
     return ()=>clearTimeout(timer);
   },[source,key]);
   useEffect(() => {
@@ -40,7 +43,11 @@ export function Artwork({ sources, alt, poster = false, placeholder = 'Artwork u
     },3500);
     return () => clearTimeout(timer);
   },[source,key,attempt,base]);
-  return source ? <Image key={source} src={source} alt={alt} fill sizes={person ? "64px" : poster ? "(max-width: 640px) 65vw, 300px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"} className="object-cover" priority={poster} decoding="async" referrerPolicy="no-referrer" onLoad={() => { loadedSource.current=source; rememberArtwork(key,source); }} onError={() => {
+  return source ? <Image key={source} src={source} alt={alt} fill sizes={person ? "64px" : poster ? "(max-width: 640px) 65vw, 300px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"} className="object-cover" priority={poster} decoding="async" referrerPolicy="no-referrer" onLoad={event => {
+    const generated = source.startsWith(base+'/api/') && event.currentTarget.naturalWidth===2 && event.currentTarget.naturalHeight===3;
+    if(generated){failArtwork(key,source);setFailure({key,attempt:attempt+1});return;}
+    loadedSource.current=source; rememberArtwork(key,source);
+  }} onError={() => {
     failArtwork(key,source);
     let next=attempt+1;
     while(next<candidates.length && artworkFailedRecently(candidates[next]))next++;
