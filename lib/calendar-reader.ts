@@ -4,6 +4,7 @@ import { readHtml, httpsUrl } from './html';
 import { getSourceConfig } from './server-config.mjs';
 import { createKeyedCache } from './runtime-cache';
 import { normalizeTitle, type CatalogTitle } from './catalog';
+import { observeReader } from './diagnostics';
 
 export type CalendarTitle = CatalogTitle & {startDate?:string;endDate?:string;airing?:boolean;upcoming?:boolean;indexOnly:true;sourceName:string;meta:Record<string,string|number>};
 const text=(value:string)=>value.replace(/\s+/g,' ').trim();
@@ -48,22 +49,23 @@ export function parseFilteredShows(html:string,base:string,kind:'airing'|'upcomi
 const lookup=createKeyedCache<CalendarTitle[]>(async yearKey=>{
   const year=Number(yearKey),{artworkOrigin,catalogOrigin}=getSourceConfig();
   const records:CalendarTitle[]=[];
-  const tasks: (()=>Promise<CalendarTitle[]>)[]=[];
-  if(artworkOrigin)for(const releaseYear of [year,year+1])tasks.push(async()=>parseCalendarTitles(await readHtml(`${artworkOrigin}/wiki/${releaseYear}_in_South_Korean_television`,1800),artworkOrigin,releaseYear));
+  const tasks: { role: 'calendar-index' | 'calendar-filter'; read: ()=>Promise<CalendarTitle[]> }[]=[];
+  if(artworkOrigin)for(const releaseYear of [year,year+1])tasks.push({role:'calendar-index',read:async()=>parseCalendarTitles(await readHtml(`${artworkOrigin}/wiki/${releaseYear}_in_South_Korean_television`,1800),artworkOrigin,releaseYear)});
   if(catalogOrigin){
     try{
       const $=load(await readHtml(`${catalogOrigin}/shows`,3600));
       const countries=$('select[name="Show[country_enum]"] option').filter((_,el)=>/^(Korea, Republic of|Japan|Thailand|China)$/.test($(el).text())).map((_,el)=>$(el).attr('value')!).get();
       const states=$('select[name="Show[showStatus_enum]"] option');
       const scripted=$('select[name="Show[showType_enum]"] option').filter((_,el)=>$(el).text()==='Scripted').attr('value');
+      observeReader('calendar-discovery',countries.length);
       for(const kind of ['airing','upcoming'] as const){
         const status=states.filter((_,el)=>$(el).text()===(kind==='airing'?'Running':'In Development')).attr('value');
         if(!status||!scripted)continue;
-        for(const country of countries)tasks.push(async()=>{const query=new URLSearchParams({'Show[country_enum]':country,'Show[showStatus_enum]':status,'Show[showType_enum]':scripted});return parseFilteredShows(await readHtml(`${catalogOrigin}/shows?${query}`,1800),catalogOrigin,kind).slice(0,8);});
+        for(const country of countries)tasks.push({role:'calendar-filter',read:async()=>{const query=new URLSearchParams({'Show[country_enum]':country,'Show[showStatus_enum]':status,'Show[showType_enum]':scripted});return parseFilteredShows(await readHtml(`${catalogOrigin}/shows?${query}`,1800),catalogOrigin,kind).slice(0,8);}});
       }
-    }catch{/* Published calendar dates remain available. */}
+    }catch{observeReader('calendar-discovery',null);}
   }
-  let next=0;await Promise.all([0,1,2].map(async()=>{while(next<tasks.length){const task=tasks[next++];try{records.push(...await task());}catch{/* Each source fails independently. */}}}));
+  let next=0;await Promise.all([0,1,2].map(async()=>{while(next<tasks.length){const task=tasks[next++];try{const items=await task.read();records.push(...items);observeReader(task.role,items.length);}catch{observeReader(task.role,null);}}}));
   const unique=new Map<string,CalendarTitle>();
   for(const item of records){const key=normalizeTitle(item.title);const old=unique.get(key);unique.set(key,old?{...old,...item,year:old.year||item.year,startDate:old.startDate||item.startDate,endDate:old.endDate||item.endDate,image:item.image==='/file.svg'?old.image:item.image,meta:{...old.meta,...item.meta}}:item);}
   if(!unique.size)throw new Error('Published calendar is temporarily unavailable.');

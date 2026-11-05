@@ -13,14 +13,14 @@ export type HomeSection = "reviews" | "trending" | "starting" | "ending";
 export type Ranking = "airing" | "upcoming" | "popular";
 export type MetadataTitle = CatalogTitle & { sourceName: string; indexOnly?: boolean; airing?:boolean;upcoming?:boolean; aliases?: string[]; cast?: DramaCast[]; meta?: Record<string, string | number>; overview?: string; otherNames?: string; startDate?: string; endDate?: string };
 type Editorial = { titles: MetadataTitle[]; trending: MetadataTitle[]; popular: MetadataTitle[]; reviews: MetadataTitle[] };
-export type MetadataSnapshot = { version: 2; fetchedAt: string; titles: MetadataTitle[]; airingUrls: string[]; editorial: Editorial; sources: string[] };
+export type MetadataSnapshot = { version: 2; fetchedAt: string; titles: MetadataTitle[]; airingUrls: string[]; editorial: Editorial; sources: string[]; scheduleAvailable?: boolean };
 
 function mergeCalendar(snapshot:MetadataSnapshot,items:CalendarTitle[]):MetadataSnapshot {
   const titles=[...snapshot.titles];
   for(const item of items){const index=titles.findIndex(old=>normalizeTitle(old.title)===normalizeTitle(item.title)&&(!old.year||!item.year||old.year===item.year));
     const old=titles[index];const next=old?{...item,...old,airing:item.airing,upcoming:item.upcoming,year:old.year||item.year,startDate:old.startDate||item.startDate,endDate:old.endDate||item.endDate,image:old.image&&old.image!='/file.svg'?old.image:item.image,meta:{...item.meta,...old.meta}}:item;
     if(index<0)titles.push(next);else titles[index]=next;
-  }return {...snapshot,titles};
+  }return {...snapshot,titles,scheduleAvailable: Boolean(snapshot.scheduleAvailable || items.length)};
 }
 const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
   // Homepage lists need published indexes, not dozens of optional detail reads.
@@ -31,7 +31,7 @@ const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
   const first=mergeCalendar(base,items);
   if(!first.titles.length)throw new Error('Drama metadata is temporarily unavailable.');
   return first;
-}, value => value.titles.length && value.editorial.reviews.length ? 900_000 : 15_000);
+}, value => value.titles.length && value.editorial.reviews.length && value.scheduleAvailable ? 900_000 : 15_000);
 
 export const getMetadata = cache(liveMetadata);
 async function datedMetadata() {
@@ -55,7 +55,9 @@ export const getHomepage = cache(async (): Promise<Record<HomeSection, CatalogTi
   }))])) as Record<HomeSection, CatalogTitle[]>;
 });
 export async function getMetadataList(kind: Ranking, page = 1): Promise<MetadataTitle[]> {
-  const lists = rankingLists(await datedMetadata()) as Record<Ranking, MetadataTitle[]>;
+  const snapshot = await datedMetadata();
+  if (kind !== 'popular' && !snapshot.scheduleAvailable) throw new Error('Drama schedules are temporarily unavailable.');
+  const lists = rankingLists(snapshot) as Record<Ranking, MetadataTitle[]>;
   const current = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
   return enrichArtwork(lists[kind].slice((current - 1) * 20, current * 20));
 }
