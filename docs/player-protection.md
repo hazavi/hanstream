@@ -1,0 +1,11 @@
+# Player protection
+
+The Windows player uses a separate unprivileged WebView2 surface. It installs HTTP(S) request interception before navigating to the player, then blocks known advertising hostnames and literal/local-network targets. Matching uses a process-wide hostname set and label-boundary suffix checks. Configured player origins are exempt from hostname filtering so a list entry cannot block the selected player itself.
+
+Popups, new windows, downloads, device permissions, and script dialogs are blocked. A fixed local document-start script also prevents popup/close/print calls and new-tab anchor navigation. Navigation is limited to approved HTTPS origins and the selected player's path. Browser security and SmartScreen remain enabled. Player pages never receive library permissions.
+
+The browser player retains its restrictive iframe sandbox. Normal webpages cannot inspect or filter a cross-origin iframe's network requests or DOM. Web request filtering requires the optional Chrome / Edge / Brave extension, built with `node scripts/build-player-shield.mjs`. Set `PLAYER_ORIGINS` to the exact public player origins. The extension is scoped to those players, uses static declarative network rules, and has no history, storage, or native-app bridge permission. It does not remove ads embedded in the actual video, solve challenges, or bypass access controls. Some hosts may refuse ad filtering; select another available server.
+
+The generated extension is available at `/downloads/hanstream-player-shield.zip` when enabled by the website build. Unzip it, open the browser's Extensions page, enable developer mode, choose Load unpacked, and select the extracted folder. It is not silently installed and is not yet published in an extension store. Firefox is not currently a tested target.
+
+Rules are an offline derived subset of EasyList's unconditional ad-server hostnames. Conditional, path, and cosmetic rules are not treated as unconditional blocks. Attribution, the pinned revision, hashes, and the CC BY-SA 3.0 license are in `resources/network-blocklist.NOTICE.md` and `resources/network-blocklist.LICENSE.txt`. The installer and extension include the notices. Keep the adjacent `licenses` folder when distributing the portable executable. Builds never fetch new rules; updates require an explicit immutable upstream revision and review.

@@ -112,23 +112,32 @@ pub async fn media_open(
     let window = app.get_window("main").ok_or("App window is unavailable")?;
     std::fs::create_dir_all(&state.directory).map_err(|_| "Could not prepare player storage")?;
     let origins = state.origins.clone();
+    let player_path = url.path().to_string();
     let emitter = app.clone();
     let event_session = session.clone();
-    let builder = WebviewBuilder::new(&label, WebviewUrl::External(url))
-        .data_directory(state.directory.clone())
-        .on_navigation(move |url| allowed(url, &origins))
-        .on_new_window(|_, _| NewWindowResponse::Deny)
-        .on_permission_request(|_, _| PermissionResponse::Deny)
-        .on_download(|_, _| false)
-        .on_page_load(move |_, payload| {
-            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                let _ = emitter.emit_to(
-                    EventTarget::webview("main"),
-                    "media-loaded",
-                    event_session.clone(),
-                );
-            }
-        });
+    let builder = WebviewBuilder::new(
+        &label,
+        WebviewUrl::External(Url::parse("about:blank").unwrap()),
+    )
+    .data_directory(state.directory.clone())
+    .initialization_script_for_all_frames(include_str!("../../resources/player-guard.js"))
+    .on_navigation(move |url| {
+        url.as_str() == "about:blank" || allowed(url, &origins) && url.path() == player_path
+    })
+    .on_new_window(|_, _| NewWindowResponse::Deny)
+    .on_permission_request(|_, _| PermissionResponse::Deny)
+    .on_download(|_, _| false)
+    .on_page_load(move |_, payload| {
+        if payload.url().scheme() == "https"
+            && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished)
+        {
+            let _ = emitter.emit_to(
+                EventTarget::webview("main"),
+                "media-loaded",
+                event_session.clone(),
+            );
+        }
+    });
     #[cfg(feature = "automation")]
     let builder = builder.additional_browser_args(
         "--remote-debugging-port=9224 --remote-debugging-address=127.0.0.1 --disable-gpu",
@@ -139,6 +148,10 @@ pub async fn media_open(
     if state.active.lock().map_err(|_| "Player is busy")?.as_ref() != Some(&label) {
         let _ = view.close();
         return Err("Player request was replaced".into());
+    }
+    if let Err(error) = crate::privacy::install(&view, url, state.origins.clone()).await {
+        let _ = view.close();
+        return Err(error);
     }
     Ok(())
 }

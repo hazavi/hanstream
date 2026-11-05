@@ -3,6 +3,7 @@
 use tauri::webview::{DownloadEvent, NewWindowResponse, PermissionResponse};
 use tauri::Manager;
 mod media;
+mod privacy;
 mod storage;
 
 fn main() {

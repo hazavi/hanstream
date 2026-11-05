@@ -1,0 +1,23 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';import {deflateRawSync} from 'node:zlib';import './load-env.mjs';import {getPagesConfig} from './pages-config.mjs';
+export async function buildPlayerShield(env=process.env){
+ const origins=[...new Set((env.PLAYER_ORIGINS||env.DESKTOP_MEDIA_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean))];
+ for(const origin of origins)if(getPagesConfig({NEXT_PUBLIC_API_BASE_URL:origin,GITHUB_ACTIONS:'true'}).api!==origin)throw Error('Player origins must be exact HTTPS origins.');
+ if(!origins.length)return false;
+ const list=(await fs.readFile('resources/network-blocklist.txt','utf8')).replace(/\r\n/g,'\n');const notice=await fs.readFile('resources/network-blocklist.NOTICE.md','utf8');
+ if(createHash('sha256').update(list).digest('hex')!==notice.match(/Derived SHA-256: ([a-f0-9]{64})/)?.[1])throw Error('Network rules failed integrity verification.');
+ const hosts=list.trim().split('\n'),players=origins.map(x=>new URL(x).hostname);const types=['script','image','xmlhttprequest','sub_frame','ping','websocket','media','other','font','stylesheet'];const rules=[];
+ for(let i=0;i<hosts.length;i+=500)rules.push({id:rules.length+1,priority:1,action:{type:'block'},condition:{requestDomains:hosts.slice(i,i+500),initiatorDomains:players,resourceTypes:types}});
+ rules.push({id:rules.length+1,priority:2,action:{type:'allow'},condition:{requestDomains:players,initiatorDomains:players,resourceTypes:types}});
+ const version=JSON.parse(await fs.readFile('package.json','utf8')).version;
+ const manifest={manifest_version:3,name:'HanStream Player Shield',version,description:'Blocks known advertising requests and popups on configured video players.',permissions:['declarativeNetRequest'],host_permissions:origins.map(x=>x+'/*'),declarative_net_request:{rule_resources:[{id:'player_rules',enabled:true,path:'network-rules.json'}]},content_scripts:[{matches:origins.map(x=>x+'/*'),js:['player-guard.js'],run_at:'document_start',all_frames:true,world:'MAIN'}]};
+ const files=new Map([['manifest.json',JSON.stringify(manifest,null,2)],['network-rules.json',JSON.stringify(rules)],['player-guard.js',await fs.readFile('resources/player-guard.js','utf8')],['FILTER-NOTICE.md',notice],['FILTER-LICENSE.txt',await fs.readFile('resources/network-blocklist.LICENSE.txt','utf8')],['README.txt','Chrome / Edge / Brave: unzip this folder, open the browser Extensions page, enable developer mode and choose Load unpacked. Select this folder. Access is limited to the configured player sites. This extension has no access to your HanStream library or browsing history. It blocks known ad servers; it cannot remove ads embedded in the video itself.\n']]);
+ const out=path.resolve('browser-extension-out');await fs.mkdir(out,{recursive:true});for(const [name,data]of files)await fs.writeFile(path.join(out,name),data);
+ const table=new Uint32Array(256);for(let i=0;i<256;i++){let value=i;for(let b=0;b<8;b++)value=value&1?0xedb88320^(value>>>1):value>>>1;table[i]=value>>>0;}
+ const local=[],central=[];let offset=0;
+ for(const [name,data]of files){const bytes=Buffer.from(data),filename=Buffer.from(name),compressed=deflateRawSync(bytes);let crc=0xffffffff;for(const byte of bytes)crc=table[(crc^byte)&255]^(crc>>>8);crc=(crc^0xffffffff)>>>0;
+  const header=Buffer.alloc(30);header.writeUInt32LE(0x04034b50);header.writeUInt16LE(20,4);header.writeUInt16LE(8,8);header.writeUInt16LE(33,12);header.writeUInt32LE(crc,14);header.writeUInt32LE(compressed.length,18);header.writeUInt32LE(bytes.length,22);header.writeUInt16LE(filename.length,26);local.push(header,filename,compressed);
+  const directory=Buffer.alloc(46);directory.writeUInt32LE(0x02014b50);directory.writeUInt16LE(20,4);directory.writeUInt16LE(20,6);directory.writeUInt16LE(8,10);directory.writeUInt16LE(33,14);directory.writeUInt32LE(crc,16);directory.writeUInt32LE(compressed.length,20);directory.writeUInt32LE(bytes.length,24);directory.writeUInt16LE(filename.length,28);directory.writeUInt32LE(offset,42);central.push(directory,filename);offset+=header.length+filename.length+compressed.length;
+ }
+ const directory=Buffer.concat(central),end=Buffer.alloc(22);end.writeUInt32LE(0x06054b50);end.writeUInt16LE(files.size,8);end.writeUInt16LE(files.size,10);end.writeUInt32LE(directory.length,12);end.writeUInt32LE(offset,16);await fs.mkdir('public/downloads',{recursive:true});await fs.writeFile('public/downloads/hanstream-player-shield.zip',Buffer.concat([...local,directory,end]));console.log(`Built player shield with ${hosts.length} pinned hostname rules.`);return true;
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve('scripts/build-player-shield.mjs'))await buildPlayerShield();

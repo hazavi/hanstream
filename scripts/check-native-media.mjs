@@ -24,12 +24,19 @@ export async function checkNativeMedia(page,api) {
     });
     assert.notEqual(access,'granted','Remote media gained library access');
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
+    assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
+    await context.route('https://doubleclick.net/**',route=>route.fulfill({contentType:'application/javascript',body:'window.advertisingScriptExecuted=true'}));
+    const advertising=await media.evaluate(()=>new Promise(resolve=>{const script=document.createElement('script');script.src='https://doubleclick.net/player-protection-check.js';script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}));
+    assert.equal(advertising,'blocked','Known advertising request was not blocked');
+    assert.equal(await media.evaluate(()=>Boolean(window.advertisingScriptExecuted)),false,'Advertising script executed');
+    await media.evaluate(()=>window.close());
+    assert.equal(media.isClosed(),false,'Remote player was able to close its host');
     const denied=await page.evaluate(async()=>{try{await window.__TAURI_INTERNALS__.invoke('media_open',{session:crypto.randomUUID().replaceAll('-',''),url:'https://example.com/',x:0,y:0,width:300,height:200});return false;}catch{return true;}});
     assert.ok(denied,'An unapproved media origin was accepted');
     const closed=media.waitForEvent('close',{timeout:10000});
     await page.goto('https://tauri.localhost/profile/',{waitUntil:'domcontentloaded'});
     await closed;
     await page.getByRole('heading',{name:'My Library',exact:true}).waitFor();
-    console.log('Native media playback, separate browser context, library isolation, popup denial, origin restriction, and navigation cleanup passed.');
+    console.log('Native playback, ad-request filtering, popup/close guards, library isolation, origin restriction, and navigation cleanup passed.');
   } finally {await mediaBrowser.close().catch(()=>{});}
 }

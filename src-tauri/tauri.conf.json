@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "HanStream",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "identifier": "io.github.hazavi.hanstream",
   "build": {
     "beforeBuildCommand": "npm run build:desktop:web",
@@ -48,6 +48,10 @@
         "startMenuFolder": "HanStream",
         "displayLanguageSelector": false
       }
+    },
+    "resources": {
+      "../resources/network-blocklist.NOTICE.md": "licenses/player-filter-NOTICE.md",
+      "../resources/network-blocklist.LICENSE.txt": "licenses/player-filter-LICENSE.txt"
     }
   }
 }

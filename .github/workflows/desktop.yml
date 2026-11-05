@@ -2,9 +2,9 @@ name: Windows desktop
 on:
   push:
     branches: [master, main]
-    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
+    paths: ['src-tauri/**', 'resources/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['src-tauri/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
+    paths: ['src-tauri/**', 'resources/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
   workflow_dispatch:
     inputs:
       signed:
@@ -116,6 +116,13 @@ jobs:
             }
           }
           finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }
+      - name: Include filter license notices
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path src-tauri/target/release/licenses -Force | Out-Null
+          Copy-Item resources/network-blocklist.NOTICE.md src-tauri/target/release/licenses/player-filter-NOTICE.md
+          Copy-Item resources/network-blocklist.LICENSE.txt src-tauri/target/release/licenses/player-filter-LICENSE.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -124,6 +131,7 @@ jobs:
           path: |
             src-tauri/target/release/bundle/nsis/*
             src-tauri/target/release/hanstream.exe
+            src-tauri/target/release/licenses/*
 
       - name: Retain isolated automation harness for playback QA
         uses: actions/upload-artifact@v4

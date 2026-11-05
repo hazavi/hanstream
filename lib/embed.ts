@@ -12,3 +12,4 @@ export function safeEmbedUrl(value: string): string | undefined {
 
 // Keep video scripts and origin storage, but deny popups, downloads and top navigation.
 export const MEDIA_SANDBOX = 'allow-scripts allow-same-origin allow-presentation';
+export const MEDIA_PERMISSIONS = "autoplay; fullscreen; encrypted-media; picture-in-picture; camera 'none'; microphone 'none'; geolocation 'none'; payment 'none'; usb 'none'; clipboard-read 'none'; clipboard-write 'none'";
