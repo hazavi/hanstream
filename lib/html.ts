@@ -33,18 +33,21 @@ const pages = new Map<string, { html: string; expires: number }>();
 const pending = new Map<string, Promise<string>>();
 const MAX_HTML_BYTES = 5_000_000;
 const MAX_PENDING_READS = 24;
+const PLAYBACK_RESERVE = 4;
 export function clearHtmlCache() { pages.clear(); pending.clear(); unavailableUntil.clear(); }
 
 // Only public HTML pages from the configured sources may be requested.
 export async function readHtml(value: string, revalidate = 3600, timeout = 3500, feed = false): Promise<string> {
   const url = new URL(value);
-  if (url.protocol !== 'https:' || !getSourceConfig().allowedOrigins.includes(url.origin) || url.username || url.password || url.port) throw new Error('Invalid source URL');
+  const sources = getSourceConfig();
+  if (url.protocol !== 'https:' || !sources.allowedOrigins.includes(url.origin) || url.username || url.password || url.port) throw new Error('Invalid source URL');
   const saved = pages.get(url.href);
   if (revalidate > 0 && saved && saved.expires > Date.now()) { count('html.hit'); return saved.html; }
   const existing = pending.get(url.href);
   if (existing) return existing;
   count('html.miss');
-  if (pending.size >= MAX_PENDING_READS) {
+  const capacity = url.origin === sources.streamOrigin ? MAX_PENDING_READS : MAX_PENDING_READS - PLAYBACK_RESERVE;
+  if (pending.size >= capacity) {
     if (saved) return saved.html;
     throw new SourceUnavailable('Catalog');
   }

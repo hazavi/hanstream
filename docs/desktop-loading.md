@@ -33,3 +33,5 @@ Editorial lists also read the publisher's public RSS feed. It supplies dated epi
 Watch pages retry incomplete or failed detail reads twice in the background, without remounting the player. This lets completed metadata fill in episode navigation after the initial playback response. Generated missing-image responses are no longer remembered as successful posters; image recovery includes a bounded retry after the short negative cache expires.
 
 Published calendar dates start loading before optional filter discovery, so an unavailable filter page cannot delay those date reads or leave them competing with later poster fallbacks for the reader pool.
+
+The bounded HTML reader reserves four of its 24 slots for playback-source reads. Optional metadata and image fallback lookups cannot consume those slots during a cold startup.
