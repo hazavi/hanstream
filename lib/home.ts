@@ -4,7 +4,7 @@ import { getHomepage } from './metadata';
 import { createRuntimeCache } from './runtime-cache';
 import { persistentLoader } from './persistent-cache';
 import type { RecentItem, PopularItem, TopDramasResponse } from './api-types';
-import {mergeHomeData} from './home-data';
+import {mergeHomeData,hasHomeContent} from './home-data';
 
 type HomeData = { home: Awaited<ReturnType<typeof getHomepage>>; recent: RecentItem[]; popular: PopularItem[]; rankings: TopDramasResponse['result']; partial: boolean };
 type Slot<T> = { result?: PromiseSettledResult<T> };
@@ -39,5 +39,5 @@ const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
   const result=snapshot();
   delivered=true;
   return result;
-}, value => Boolean(value?.home && value?.rankings && !value.partial && Array.isArray(value.recent) && Array.isArray(value.popular)), 30_000);
-export const getHomeData = createRuntimeCache<HomeData>(previous => loadHome('home', previous), value => value.partial ? 10_000 : 30_000, value => !value.partial);
+}, value => Boolean(value?.home && value?.rankings && !value.partial && value.recent?.length && value.popular?.length), 30_000);
+export const getHomeData = createRuntimeCache<HomeData>(previous => loadHome('home', previous), value => value.partial ? 10_000 : 30_000, value => !value.partial || hasHomeContent(value));

@@ -57,6 +57,7 @@ export const getHomepage = cache(async (): Promise<Record<HomeSection, CatalogTi
 export async function getMetadataList(kind: Ranking, page = 1): Promise<MetadataTitle[]> {
   const snapshot = await datedMetadata();
   if (kind !== 'popular' && !snapshot.scheduleAvailable) throw new Error('Drama schedules are temporarily unavailable.');
+  if (kind === 'popular' && !snapshot.editorial.popular.length) throw new Error('Popular drama listings are temporarily unavailable.');
   const lists = rankingLists(snapshot) as Record<Ranking, MetadataTitle[]>;
   const current = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
   return enrichArtwork(lists[kind].slice((current - 1) * 20, current * 20));
