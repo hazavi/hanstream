@@ -153,6 +153,7 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
 }
 const loadPersistentDrama = persistentLoader('detail', async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => Boolean(value?.result?.title && !detailNeedsRefresh(value)));
 const cachedDrama = createKeyedStaleCache(loadPersistentDrama, value => detailNeedsRefresh(value) ? 15_000 : 300_000, 100, value => !detailNeedsRefresh(value));
+export const peekDrama = (slug:string) => cachedDrama.peek(slug);
 export const fetchDrama = cache(async (slug: string) => {
   if (!validDramaSlug(slug)) throw new Error('Invalid drama identifier');
   return cachedDrama(slug);
