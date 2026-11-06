@@ -17,7 +17,7 @@ function notify(key:string) { listeners.get(key)?.forEach(listener=>listener());
 let generation = 0;
 let waking:Promise<void>|undefined;
 function wakeBackend() {
-  if (!waking) waking=fetch(address('/api/health'),{signal:AbortSignal.timeout(75_000),credentials:'omit',cache:'no-store'}).then(response=>{if(!response.ok)throw new Error('The catalog service could not start. Please retry shortly.');}).finally(()=>{waking=undefined;});
+  if (!waking) waking=fetch(address('/api/health'),{signal:AbortSignal.timeout(40_000),credentials:'omit',cache:'no-store'}).then(response=>{if(!response.ok)throw new Error('The catalog service could not start. Please retry shortly.');}).finally(()=>{waking=undefined;});
   return waking;
 }
 export function clearBackendCache() { generation++; responses.clear(); pending.clear(); }
@@ -50,9 +50,10 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
   const load = () => {
     const existing = pending.get(key);
     if (!search && existing) return existing;
-    const timeout = AbortSignal.timeout(search ? 8000 : drama ? 25000 : 15000);
+    const timeout = AbortSignal.timeout(search ? 30_000 : 90_000);
     const started = generation;
-    let requestSignal = search && signal ? AbortSignal.any([signal, timeout]) : timeout;
+    const requestSignal = search && signal ? AbortSignal.any([signal, timeout]) : timeout;
+    const fetchCurrent=(uncached=false)=>fetch(key,{signal:AbortSignal.any([requestSignal,AbortSignal.timeout(search?8000:15000)]),credentials:'omit',...(uncached?{cache:'no-store' as const}:{})});
     const request = (async () => {
       if (!search && !episode && !saved && !options.fresh) {
         let cacheTimer:ReturnType<typeof setTimeout>|undefined;
@@ -79,19 +80,29 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
       }
       try {
       let response:Response;
-      try { response=await fetch(key,{signal:requestSignal,credentials:'omit'}); }
+      try { response=await fetchCurrent(); }
       catch(error) {
         if(!base || search || !['TimeoutError','AbortError'].includes((error as {name?:string})?.name || ''))throw error;
         await wakeBackend();
-        requestSignal=AbortSignal.timeout(drama?25_000:15_000);
-        response=await fetch(key,{signal:requestSignal,credentials:'omit'});
+        response=await fetchCurrent();
       }
       if ([502,503,504].includes(response.status)) {
         await response.body?.cancel();
         await new Promise(resolve=>setTimeout(resolve,250));
-        response = await fetch(key, {signal:requestSignal,credentials:'omit'});
+        response = await fetchCurrent();
       }
       if (!response.ok) throw new Error('Unable to load this page. Please try again.');
+      while (response.status === 202) {
+        const seconds=Math.min(3,Math.max(1,Number(response.headers.get('retry-after'))||2));
+        await response.body?.cancel();
+        await new Promise<void>((resolve,reject)=>{
+          const abort=()=>{clearTimeout(timer);reject(requestSignal.reason);};
+          const timer=setTimeout(()=>{requestSignal.removeEventListener('abort',abort);resolve();},seconds*1000);
+          if(requestSignal.aborted)abort();else requestSignal.addEventListener('abort',abort,{once:true});
+        });
+        response=await fetchCurrent(true);
+        if(!response.ok)throw new Error('The catalog reader could not load this request. Please retry shortly.');
+      }
       const raw = await response.json();
       const value = drama ? mergeDramaResponse(saved?.value as DramaResponse | undefined, raw) : path==='/api/home' ? mergeHomeData(saved?.value as HomeData|undefined,raw) : raw;
       const partial = path === '/api/home' && value?.partial === true;

@@ -1,6 +1,6 @@
 # Player protection
 
-The Windows player uses a separate unprivileged WebView2 surface. It installs HTTP(S) request interception before navigating to the player, then blocks known advertising hostnames and literal/local-network targets. Matching uses a process-wide hostname set and label-boundary suffix checks. Configured player origins are exempt from hostname filtering so a list entry cannot block the selected player itself.
+The Windows player uses a separate unprivileged WebView2 surface. It installs HTTP(S) request interception before navigating to the player, then blocks known advertising hostnames, literal IP addresses, and local hostnames. Matching uses a process-wide hostname set and label-boundary suffix checks. Configured player origins are exempt from hostname filtering so a list entry cannot block the selected player itself.
 
 Popups, new windows, downloads, device permissions, and script dialogs are blocked. A fixed local document-start script also prevents popup/close/print calls and new-tab anchor navigation. Navigation is limited to approved HTTPS origins and the selected player's path. Browser security and SmartScreen remain enabled. Player pages never receive library permissions.
 

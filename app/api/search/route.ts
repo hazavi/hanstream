@@ -1,3 +1,4 @@
+import {readerErrorResponse} from '@/lib/reader-response';
 import { NextResponse } from "next/server";
 import { fetchSearch } from "@/lib/api";
 
@@ -8,7 +9,6 @@ export async function GET(request: Request) {
   try {
     return NextResponse.json(await fetchSearch(query, Number(url.searchParams.get("page")) || 1));
   } catch (error) {
-    console.error("Drama catalog search failed:", error);
-    return NextResponse.json({ error: "Search is temporarily unavailable" }, { status: 502 });
+    return readerErrorResponse(error,"Search is temporarily unavailable");
   }
 }

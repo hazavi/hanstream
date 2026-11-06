@@ -25,3 +25,5 @@ tests
 __tests__
 playwright-report
 test-results
+reader-out
+browser-extension-out

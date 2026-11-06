@@ -1,3 +1,5 @@
+import {webRuntime} from "@/lib/deployment";
+import {ReaderPage} from "@/components/ReaderPage";
 import { Suspense } from "react";
 import Link from "next/link";
 import { ContinueWatching } from "@/components/ContinueWatching";
@@ -20,6 +22,7 @@ function PopularPreview({ items }: { items: PopularItem[] }) {
 }
 
 export default async function Home() {
+  if (webRuntime()) return <ReaderPage view="home" />;
   const data = await getHomeData();
   return <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
     <RefreshListings enabled={data.partial} />

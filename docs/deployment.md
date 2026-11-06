@@ -1,5 +1,7 @@
 ﻿# Deploy on Render
 
+The new target is [Vercel website/API with a separate reader](vercel-deployment.md). This page documents the existing full Render service for migration and rollback. Keep it until the new deployment has a reachable TLS cache and a healthy reader.
+
 The full Next.js website runs at https://hanstream-backend.onrender.com/. Its pages and read-only catalog routes share one origin. GitHub Pages is no longer used.
 
 ## Service configuration

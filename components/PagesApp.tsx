@@ -32,10 +32,10 @@ function Home({ data }: { data: HomeData }) {
     </div><div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-5"><TopAiringSection result={data.rankings} /><HomepageHighlights home={data.home} /></div>
   </div>;
 }
-export default function PagesApp({ view }: { view: View }) {
+export default function PagesApp({ view, routeSlug, routeEpisode }: { view: View; routeSlug?: string; routeEpisode?: string }) {
   const query = useSearchParams();
-  const slug = query.get("id") || "";
-  const episode = query.get("episode") || "";
+  const slug = routeSlug || query.get("id") || "";
+  const episode = routeEpisode || query.get("episode") || "";
   const search = query.get("q") || "";
   const page = Math.max(1, Math.floor(Number(query.get("page")) || 1));
   const kind = view === "popular" ? "popular" : view === "recent-movies" ? "movies" : "recent";
@@ -53,7 +53,7 @@ export default function PagesApp({ view }: { view: View }) {
     const controller = new AbortController();
     setState({ route, data:peekBackend(route) });
     const unsubscribe=subscribeBackend(route,()=>{const data=peekBackend(route);if(data&&!controller.signal.aborted)setState({route,data});});
-    readBackend(route, controller.signal,{fresh:retry>0}).then(data => {
+    readBackend(route, controller.signal,{fresh:retry>0,sameOrigin:!process.env.NEXT_PUBLIC_API_BASE_URL}).then(data => {
       if (controller.signal.aborted) return;
       setState({ route, data });
     }).catch(error => { if (!controller.signal.aborted) setState(current => current.route===route && current.data ? current : { route, error: error.message }); });

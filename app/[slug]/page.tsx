@@ -1,3 +1,5 @@
+import {webRuntime} from "@/lib/deployment";
+import {ReaderPage} from "@/components/ReaderPage";
 import { fetchDrama } from "@/lib/api";
 import { DramaDetails } from "@/components/DramaDetails";
 import type { Metadata } from "next";
@@ -42,6 +44,7 @@ export async function generateMetadata({
 export default async function DramaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!parseCatalogRoute(slug) && !/^(movie-)?\d+$/.test(slug)) notFound();
+  if (webRuntime()) return <ReaderPage view="drama" routeSlug={slug} />;
   const { result } = await fetchDrama(slug);
   return result ? <DramaDetails detail={result} slug={slug} /> : <p className="source-empty">Drama details are unavailable.</p>;
 }

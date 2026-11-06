@@ -33,3 +33,12 @@ Set backend-only `DIAGNOSTICS_TOKEN` to at least 32 random characters to enable 
 If a secret leaks: revoke it at the issuing service first, replace it in the backend or CI secret settings, restart or redeploy affected services, invalidate affected cache namespaces, and review access logs. Removing a secret from the latest commit does not remove it from Git history. If a signing key leaks, suspend desktop update publication until trust and key rotation are resolved.
 
 Rotate credentials on a schedule appropriate to the service. Keep logs free of full upstream URLs, tokens, cookies, and profile exports. Redis records expire after one day, rate counters after two minutes, and process caches are bounded. Pages needs a different host or trusted proxy for custom frontend response headers beyond its meta CSP.
+
+
+## Vercel and player protection
+
+The Vercel build replaces the source-handler import with a disabled module. A build check rejects HTML reader dependencies in function traces. API jobs accept fixed operation names and validated title/episode fields, not URLs. The separate worker revalidates envelopes, uses bounded queues and expiring leases, and reserves a playback consumer. Shared production cache connections require TLS, except the existing explicitly configured Render-private connection used by the legacy full service.
+
+On Vercel, rate limits use the platform-overwritten x-vercel-forwarded-for header. Other hosts retain explicit proxy-trust settings. See [Vercel request headers](https://vercel.com/docs/headers/request-headers). Cached job results never contain source configuration or personal library data. Playback results have short transport expiry and no HTTP/durable client caching.
+
+Desktop player requests pass a pinned advertising-host filter before navigation. Popups, downloads, dialogs, and remote library access remain denied. Browser iframe sandboxing prevents popups; the optional scoped extension adds network filtering. See [player protection](player-protection.md) and [Vercel deployment](vercel-deployment.md).

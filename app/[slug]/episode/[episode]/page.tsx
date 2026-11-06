@@ -1,3 +1,5 @@
+import {webRuntime} from "@/lib/deployment";
+import {ReaderPage} from "@/components/ReaderPage";
 import { fetchEpisode } from "@/lib/api";
 import { formatEpisodeLabel } from "@/lib/format";
 import { WatchPage } from "@/components/WatchPage";
@@ -32,6 +34,7 @@ export async function generateMetadata({
 
 export default async function EpisodePage({ params }: EpisodePageProps) {
  const { slug, episode } = await params;
+ if (webRuntime()) return <ReaderPage view="watch" routeSlug={slug} routeEpisode={episode} />;
  const playback = await fetchEpisode(slug, episode);
  return <WatchPage result={playback.result} slug={slug} episode={episode} />;
 }

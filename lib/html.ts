@@ -38,6 +38,7 @@ export function clearHtmlCache() { pages.clear(); pending.clear(); unavailableUn
 
 // Only public HTML pages from the configured sources may be requested.
 export async function readHtml(value: string, revalidate = 3600, timeout = 3500, feed = false): Promise<string> {
+  if(process.env.VERCEL==='1'||process.env.HANSTREAM_ROLE==='web')throw new Error('Source readers must run outside the website deployment.');
   const url = new URL(value);
   const sources = getSourceConfig();
   if (url.protocol !== 'https:' || !sources.allowedOrigins.includes(url.origin) || url.username || url.password || url.port) throw new Error('Invalid source URL');

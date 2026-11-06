@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: hanstream-reader
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile.reader
+    healthCheckPath: /health
+    envVars:
+      - key: HANSTREAM_ROLE
+        value: reader
+      - key: CACHE_URL
+        sync: false
+      - key: READER_NAMESPACE
+        value: hanstream
+      - key: STREAM_SOURCE_URL
+        sync: false
+      - key: METADATA_SOURCE_URL
+        sync: false
+      - key: EDITORIAL_SOURCE_URL
+        sync: false
+      - key: DETAILS_SOURCE_URL
+        sync: false

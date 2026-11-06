@@ -20,7 +20,11 @@
     "check:types": "tsc --noEmit",
     "build:desktop:web": "node scripts/desktop.mjs web",
     "desktop:dev": "node scripts/desktop.mjs dev",
-    "desktop:build": "node scripts/desktop.mjs build"
+    "desktop:build": "node scripts/desktop.mjs build",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "build:reader": "node scripts/build-reader.mjs",
+    "start:reader": "node reader-out/worker.mjs",
+    "build:shield": "node scripts/build-player-shield.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.17",
@@ -60,6 +64,7 @@
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
     "@vitejs/plugin-react": "^5.1.0",
+    "esbuild": "0.25.12",
     "eslint": "^9",
     "eslint-config-next": "15.5.28",
     "jsdom": "^27.1.0",
@@ -74,5 +79,8 @@
     "next": {
       "postcss": "8.5.30"
     }
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

@@ -1,3 +1,5 @@
+import {webRuntime} from "@/lib/deployment";
+import {ReaderPage} from "@/components/ReaderPage";
 import { fetchRecentMovies, RecentMovieItem } from "../../lib/api";
 import { DramaCard } from "../../components/DramaCard";
 import { Pagination } from "../../components/Pagination";
@@ -9,6 +11,7 @@ export default async function RecentMoviesPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  if (webRuntime()) return <ReaderPage view="recent-movies" />;
   const params = await searchParams;
   const page = Number(params?.page || "1");
 

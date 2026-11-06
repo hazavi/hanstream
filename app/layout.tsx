@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "HanStream | Asian Drama Streaming",
   description: "Watch Asian dramas online for free.",
-  metadataBase: new URL(process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL : undefined) || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
   icons: {
     icon: "/favicon.ico",
   },

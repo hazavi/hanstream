@@ -1,3 +1,4 @@
+import {readerErrorResponse} from '@/lib/reader-response';
 import { NextResponse } from "next/server";
 import { fetchPopular, fetchRecent, fetchRecentMovies } from "@/lib/api";
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
       if (kind === "recent") return (await fetchRecent(p)).results;
       return (await fetchRecentMovies(p)).result.movies.map(item => ({ "episode-link": item.id, episode_number: Number(item.ep), image: item.img, time: item.time, title: item.title, type: item.type }));
     };
-    const [items, next] = await Promise.all([read(page), read(page + 1)]);
+    const [items, next] = await Promise.all([read(page), page < 2000 ? read(page + 1) : Promise.resolve([])]);
     return NextResponse.json({ items, page, hasNext: next.length > 0 });
-  } catch { return NextResponse.json({ error: "Drama listings unavailable" }, { status: 502 }); }
+  } catch(error) { return readerErrorResponse(error,"Drama listings unavailable"); }
 }

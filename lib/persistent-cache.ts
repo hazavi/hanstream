@@ -8,13 +8,18 @@ let connection: Promise<Store | undefined> | undefined;
 let cooldown = 0;
 const MAX_BYTES = 2_000_000;
 
+export function cacheConnectionUrl(env=process.env) {
+  const url = new URL(env.CACHE_URL || '');
+  const privateRender = env.RENDER === 'true' && url.hostname === env.CACHE_PRIVATE_HOST && /^red-[a-z0-9]+$/.test(url.hostname) && url.port === '6379';
+  const local = env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(url.hostname);
+  if (url.protocol !== 'rediss:' && !(url.protocol === 'redis:' && (local || privateRender))) throw new Error('Cache requires TLS or the explicitly configured Render private host');
+  return url.href;
+}
+
 async function store() {
   if (!process.env.CACHE_URL || Date.now() < cooldown) return undefined;
   if (!connection) connection = (async () => {
-    const url = new URL(process.env.CACHE_URL!);
-    const privateRender = process.env.RENDER === 'true' && url.hostname === process.env.CACHE_PRIVATE_HOST && /^red-[a-z0-9]+$/.test(url.hostname) && url.port === '6379';
-    const local = process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(url.hostname);
-    if (url.protocol !== 'rediss:' && !(url.protocol === 'redis:' && (local || privateRender))) throw new Error('Cache requires TLS or the explicitly configured Render private host');
+    const url = new URL(cacheConnectionUrl());
     const client = createClient({ url: url.href, disableOfflineQueue: true, commandsQueueMaxLength: 100, socket: { connectTimeout: 700, reconnectStrategy: false } });
     client.on('error', () => { count('cache.failure'); cooldown = Date.now() + 60_000; connection = undefined; if (client.isOpen) client.destroy(); });
     await client.connect();

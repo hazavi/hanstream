@@ -63,3 +63,4 @@ yarn-error.log*
 next-env.d.ts
 /browser-extension-out/
 /public/downloads/hanstream-player-shield.zip
+/reader-out/

@@ -1,3 +1,5 @@
+import {webRuntime} from "@/lib/deployment";
+import {ReaderPage} from "@/components/ReaderPage";
 import { fetchPopular, PopularItem } from "../../lib/api";
 import { DramaCard } from "../../components/DramaCard";
 import { Pagination } from "../../components/Pagination";
@@ -13,6 +15,7 @@ export default async function PopularPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  if (webRuntime()) return <ReaderPage view="popular" />;
   const params = await searchParams;
   const page = Number(params?.page || "1");
   const data: PopularResponse = await fetchPopular(page);

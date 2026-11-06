@@ -9,9 +9,11 @@ const script = "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXP
 export function clearRateLimits() { windows.clear(); }
 
 export function clientBucket(headers: Headers) {
-  const header = process.env.RATE_LIMIT_IP_HEADER?.toLowerCase();
+  // Vercel overwrites this platform header. Never infer trust from an incoming header alone.
+  const vercel=process.env.VERCEL==='1';
+  const header = vercel ? 'x-vercel-forwarded-for' : process.env.RATE_LIMIT_IP_HEADER?.toLowerCase();
   // Enable only when the deployment's trusted proxy overwrites this exact header.
-  const value = process.env.TRUST_PROXY === '1' && header && /^[a-z-]+$/.test(header) ? headers.get(header)?.trim() : undefined;
+  const value = (vercel || process.env.TRUST_PROXY === '1') && header && /^[a-z-]+$/.test(header) ? headers.get(header)?.trim() : undefined;
   return value && isIP(value) ? createHash('sha256').update(value).digest('hex') : 'shared';
 }
 

@@ -1,3 +1,5 @@
+import {webRuntime} from "@/lib/deployment";
+import {ReaderPage} from "@/components/ReaderPage";
 import { fetchSearchCached, SearchResultItem } from "../../lib/api";
 import { DramaCard } from "@/components/DramaCard";
 import { redirect } from "next/navigation";
@@ -7,6 +9,7 @@ interface SearchPageProps {
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
+  if (webRuntime()) return <ReaderPage view="search" />;
   const params = await searchParams;
   const query = typeof params.q === 'string' ? params.q.slice(0, 161) : '';
   const page = typeof params.page === 'string' && /^[1-9]\d{0,3}$/.test(params.page) ? Number(params.page) : 1;

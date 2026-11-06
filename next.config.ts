@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
 import { securityHeaders } from './lib/security-policy.mjs';
+import path from 'node:path';
+
+const web = process.env.VERCEL === '1' || process.env.HANSTREAM_ROLE === 'web';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  typescript: { tsconfigPath: web ? 'tsconfig.vercel.json' : 'tsconfig.json' },
+  webpack(config) {
+    config.resolve.alias['@reader/handler'] = path.resolve(web ? 'lib/reader-disabled.ts' : 'lib/source-handler.ts');
+    return config;
+  },
   // These Node-only dependencies should not rely on generated Webpack vendor chunks.
   serverExternalPackages: ['cheerio', 'undici'],
   async headers() { return [{ source: '/:path*', headers: securityHeaders(process.env.NODE_ENV === 'development') }]; },

@@ -1,0 +1,16 @@
+.env*
+!.env.example
+.tools/
+.agents/
+.codex/
+.git/
+src-tauri/
+desktop-out/
+reader-out/
+browser-extension-out/
+worker/
+tests/
+**/*.test.*
+**/*.spec.*
+lib/source-*.ts
+release/

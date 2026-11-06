@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@reader/handler": [
+        "./lib/source-handler.ts"
       ]
     }
   },

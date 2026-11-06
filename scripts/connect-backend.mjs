@@ -10,15 +10,15 @@ function git(args, input) {
 
 async function connect() {
   const address = process.argv[2];
-  if (!address) throw new Error('Usage: npm run connect:backend -- YOUR_RENDER_HTTPS_URL');
+  if (!address) throw new Error('Usage: npm run connect:backend -- YOUR_PUBLIC_HTTPS_URL');
   const { api } = getPagesConfig({ NEXT_PUBLIC_API_BASE_URL: address, GITHUB_ACTIONS: 'true' });
-  if (!api) throw new Error('Enter the public HTTPS URL shown on your Render service.');
+  if (!api) throw new Error('Enter the public HTTPS URL of your website and API deployment.');
   const remote = git(['remote', 'get-url', 'origin']);
   const match = /^(?:https:\/\/github\.com\/|git@github\.com:)([\w.-]+)\/([\w.-]+?)(?:\.git)?$/.exec(remote);
   if (!match) throw new Error('The origin remote must point to this project on github.com.');
   const [, owner, repo] = match;
-  const origin = `https://${owner.toLowerCase()}.github.io`;
-  console.log('Checking backend health, browser access, and live homepage content. A sleeping service may take a minute to wake.');
+  const origin = 'https://tauri.localhost';
+  console.log('Checking API health, desktop access, and live homepage content.');
   const content = await checkBackend(api, origin);
   console.log(`Backend verified: ${content.recent} recent entries loaded.`);
 
@@ -36,10 +36,10 @@ async function connect() {
   if (![200, 404].includes(variable.status)) throw new Error(`GitHub variable access failed (HTTP ${variable.status}).`);
   const saved = await request(variable.ok ? '/actions/variables/API_BASE_URL' : '/actions/variables', { method: variable.ok ? 'PATCH' : 'POST', body: JSON.stringify({ name: 'API_BASE_URL', value: api }) });
   if (!saved.ok) throw new Error(`Could not update API_BASE_URL (HTTP ${saved.status}).`);
-  const started = await request('/actions/workflows/pages.yml/dispatches', { method: 'POST', body: JSON.stringify({ ref: branch }) });
-  if (!started.ok) throw new Error(`API_BASE_URL was saved, but the Pages workflow could not be started (HTTP ${started.status}). Run it from GitHub Actions.`);
-  console.log(`Saved API_BASE_URL and started Deploy GitHub Pages on ${branch}.`);
-  console.log(`Follow deployment: https://github.com/${owner}/${repo}/actions/workflows/pages.yml`);
+  const started = await request('/actions/workflows/desktop.yml/dispatches', { method: 'POST', body: JSON.stringify({ ref: branch }) });
+  if (!started.ok) throw new Error(`API_BASE_URL was saved, but the desktop workflow could not be started (HTTP ${started.status}). Run it from GitHub Actions.`);
+  console.log(`Saved API_BASE_URL and started the desktop build on ${branch}.`);
+  console.log(`Follow build: https://github.com/${owner}/${repo}/actions/workflows/desktop.yml`);
 }
 
 connect().catch(error => { console.error(error.message); process.exitCode = 1; });

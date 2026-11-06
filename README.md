@@ -1,5 +1,7 @@
 # HanStream
 
+Deployment target: [Vercel website and API with a separate source worker](docs/vercel-deployment.md). The repository includes an isolated Vercel build, worker Dockerfile, validated Redis queue, and desktop/browser player protection. You must connect a shared TLS cache and the worker before switching traffic. The current Render site stays available during setup.
+
 Website: [HanStream on Render](https://hanstream-backend.onrender.com/). Render serves the full website and its same-origin catalog readers. GitHub Pages deployment is retired.
 
 An Asian drama app with episode playback, a browser-local watchlist, ratings, and viewing progress. The interface uses black, white, and neutral gray, with outlined navigation, sliding selectors, and flat panels in light and dark mode. Drama artwork and video retain their original colors.
@@ -24,7 +26,7 @@ Environment variables keep source configuration out of the client bundle. The br
 
 The homepage includes latest episodes, popular dramas, reviews, weekly trends, premieres, and finales. Cards open internal drama pages. Source labels and outbound navigation are omitted from the interface; playback servers use numbered controls.
 
-Drama pages share the same layout on the Render website and desktop app. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Show info, cast, and trailer share left-aligned outline tabs inside a bordered panel below the poster and summary, with Show info selected first; cast pages show six people, and actor portraits load only for the current page using the existing catalogs. The trailer tab is omitted when no trailer is available. Upcoming episodes remain visible without a playback link and keep their full episode number. Released episodes without a published still use the show poster. Missing or blocked detail pages use available fallback metadata and verified playback entries.
+Drama pages share the same layout on the website and desktop app. The primary detail reader supplies summaries, original titles, genres, tags, ratings, broadcast facts, trailers, and episode cards with names and stills when published. Unavailable posters fall back to matching artwork from the other configured catalogs. Show info, cast, and trailer share left-aligned outline tabs inside a bordered panel below the poster and summary, with Show info selected first; cast pages show six people, and actor portraits load only for the current page using the existing catalogs. The trailer tab is omitted when no trailer is available. Upcoming episodes remain visible without a playback link and keep their full episode number. Released episodes without a published still use the show poster. Missing or blocked detail pages use available fallback metadata and verified playback entries.
 
 The shared `components/ui/slide-tabs.tsx` component accepts typed items, a selected value, a change handler, and navigation or panel mode. It supplies route links for the header and keyboard-controlled panel buttons for drama details. The header is one compact pill with Home, Popular, Latest, Movies, search, library, and theme controls. It stays in document flow and scrolls away. Search opens a popover, with Ctrl/Cmd+K and Escape support. Tab geometry is cached between resizes, and resizing preserves the hovered target. The cursor uses a 180 ms eased transition, with reduced-motion support. `components/ui/demo.tsx` includes the supplied selector demo. Shared application styles stay in `app/globals.css`; the outline theme and responsive navigation rules are in `app/outline.css`. Real drama artwork remains in use; this interface needs no stock images.
 
@@ -52,7 +54,7 @@ npm start
 
 Personal watch data stays in the browser's local storage. Readable drama routes include the title and release year, and existing numeric routes remain supported.
 
-## Render website
+## Existing Render website
 
 The existing Free Docker service hosts the full application. Keep private source origins in Render environment variables. See the [deployment guide](docs/deployment.md). The desktop app packages its own frontend and uses the public Render origin for catalog requests.
 
