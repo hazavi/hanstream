@@ -9,7 +9,9 @@ let cooldown = 0;
 const MAX_BYTES = 2_000_000;
 
 export function cacheConnectionUrl(env=process.env) {
-  const url = new URL(env.CACHE_URL || '');
+  let url:URL;
+  try { url=new URL(env.CACHE_URL || ''); }
+  catch { throw new Error('Set a valid private cache connection URL.'); }
   const privateRender = env.RENDER === 'true' && url.hostname === env.CACHE_PRIVATE_HOST && /^red-[a-z0-9]+$/.test(url.hostname) && url.port === '6379';
   const local = env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(url.hostname);
   if (url.protocol !== 'rediss:' && !(url.protocol === 'redis:' && (local || privateRender))) throw new Error('Cache requires TLS or the explicitly configured Render private host');
