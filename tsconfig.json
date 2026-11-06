@@ -28,6 +28,9 @@
       ],
       "@reader/handler": [
         "./lib/source-handler.ts"
+      ],
+      "@reader/runtime": [
+        "./lib/reader-runtime.ts"
       ]
     }
   },

@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   typescript: { tsconfigPath: web ? 'tsconfig.vercel.json' : 'tsconfig.json' },
   webpack(config) {
     config.resolve.alias['@reader/handler'] = path.resolve(web ? 'lib/reader-disabled.ts' : 'lib/source-handler.ts');
+    config.resolve.alias['@reader/runtime'] = path.resolve(web ? 'lib/reader-disabled.ts' : 'lib/reader-runtime.ts');
     return config;
   },
   // These Node-only dependencies should not rely on generated Webpack vendor chunks.

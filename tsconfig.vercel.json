@@ -1,8 +1,30 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "paths": { "@/*": ["./*"], "@reader/handler": ["./lib/reader-disabled.ts"] },
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@reader/handler": [
+        "./lib/reader-disabled.ts"
+      ],
+      "@reader/runtime": [
+        "./lib/reader-disabled.ts"
+      ]
+    },
     "tsBuildInfoFile": ".next/vercel.tsbuildinfo"
   },
-  "exclude": ["node_modules", ".tools", ".pages-build", ".desktop-build", "src-tauri", "worker", "tests", "__tests__", "**/*.test.ts", "**/*.test.tsx", "lib/source-*.ts"]
+  "exclude": [
+    "node_modules",
+    ".tools",
+    ".pages-build",
+    ".desktop-build",
+    "src-tauri",
+    "worker",
+    "tests",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "lib/source-*.ts"
+  ]
 }

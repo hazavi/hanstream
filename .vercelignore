@@ -14,3 +14,5 @@ tests/
 **/*.spec.*
 lib/source-*.ts
 release/
+
+lib/reader-runtime.ts

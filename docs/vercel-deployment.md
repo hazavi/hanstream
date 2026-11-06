@@ -1,10 +1,22 @@
 # Vercel website and API
 
-The website and read-only API run together on Vercel. A separate Node worker reads source pages and writes results to a shared Redis-compatible cache. The Vercel build excludes the source readers and their HTML/image-processing dependencies. It cannot fall back to fetching source pages directly.
+The website and read-only API run together on Vercel. A separate Node worker reads source pages and writes results to a Redis-compatible cache. The Vercel build excludes the source readers and their HTML/image-processing dependencies. It cannot fall back to fetching source pages directly.
+
+## Existing reader connection
+
+The deployed website can use the existing full Render service through an authenticated machine endpoint. Redis stays on Render's private network. This mode needs no additional public cache service.
+
+On the reader host, keep its private source settings and `CACHE_URL`. Set `READER_GATEWAY_SECRET` to a random secret of at least 32 characters and `READER_NAMESPACE` to the same value used by Vercel. Deploy the normal `Dockerfile`, which starts queue consumers through Next.js instrumentation. It reserves a consumer for playback and refreshes the homepage while the host runs. The existing website/API remain available for installed desktop builds during migration.
+
+On Vercel, set `HANSTREAM_ROLE=web`, `READER_GATEWAY_ORIGIN` to the reader's exact public HTTPS origin without a trailing slash, the matching `READER_GATEWAY_SECRET`, and the matching `READER_NAMESPACE`. Leave `CACHE_URL` unset in this mode. Set `SITE_URL` to the public Vercel origin. Keep private source settings on the reader host, not Vercel.
+
+The machine endpoint accepts only authenticated, size-limited jobs from the fixed reader protocol. It returns 404 without valid authentication and is disabled on Vercel. It cannot fetch arbitrary URLs. Responses are uncached over HTTP; successful public metadata has a bounded process cache on the website. Redis credentials and reader configuration never reach the browser. The website's public API stays on Vercel.
+
+`/api/health` on Vercel verifies the authenticated connection and reports `readerReady`. A sleeping Free reader can still delay an uncached request. Warm metadata remains available in browser and process caches. For metadata that must remain available across cold Vercel instances while the reader sleeps, use the direct shared-cache option below.
 
 Vercel's [acceptable use policy](https://vercel.com/legal/acceptable-use-policy) prohibits scraping and proxy services. Keeping readers outside Vercel addresses that deployment boundary; it does not establish approval for the site's content. Source permissions and each host's policies still apply. The worker does not bypass challenges or playback restrictions.
 
-## Shared cache
+## Optional direct shared cache
 
 Use a Redis 7-compatible service with TCP connections, TLS, Lua, and Streams (`XREADGROUP`, `XAUTOCLAIM`, `XACK`, `XDEL`). CI uses Redis 7.4. Both Vercel and the worker need the same authenticated `rediss://` connection URL, saved as `CACHE_URL` in their secret settings.
 
@@ -12,7 +24,7 @@ The existing Render cache has a private address that Vercel cannot reach. Do not
 
 Set the same `READER_NAMESPACE` on both deployments. Use a different namespace and preferably separate credentials/cache for previews. Playback addresses have a 60-second transport TTL, are returned with `no-store`, and never enter durable browser/desktop response caches. The cache holds no personal library records.
 
-## Deploy the reader outside Vercel
+## Dedicated worker for direct-cache mode
 
 Create a Docker service using `Dockerfile.reader`, health path `/health`, and port `3101`. `render.reader.yaml` is an optional Free-plan blueprint for a separate Render reader. Keep the current full Render service live during setup.
 
@@ -36,6 +48,8 @@ Import this repository as a Next.js project with the repository root and Node 24
 | `SITE_URL` | Final public HTTPS website origin, once assigned |
 | `PLAYER_ORIGINS` | Approved public player origins, comma-separated, for the optional extension |
 | `READER_WAKE_ORIGIN` | Optional exact worker HTTPS origin without a trailing slash |
+
+The variable table above describes direct-cache mode. With the existing reader connection, use `READER_GATEWAY_ORIGIN` and `READER_GATEWAY_SECRET` instead of `CACHE_URL` and `READER_WAKE_ORIGIN`.
 
 Leave `NEXT_PUBLIC_API_BASE_URL` unset on Vercel. The build explicitly uses same-origin `/api` requests. Desktop's exact `https://tauri.localhost` origin is already permitted. Add other real frontend origins to `FRONTEND_ORIGINS` only when needed, without wildcards.
 

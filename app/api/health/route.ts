@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { getSourceConfig } from "@/lib/server-config.mjs";
 import {webRuntime,readerNamespace} from '@/lib/deployment';
 import {cacheCommand} from '@/lib/persistent-cache';
+import {bridgeConfigured,bridgeHealth} from '@/lib/reader-bridge-client';
 
 export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     if(webRuntime()){
+      if(bridgeConfigured()){
+        const health=await bridgeHealth();
+        return NextResponse.json({status:health.cacheReady?'ok':'not_ready',role:'web',readerReady:health.readerReady},{status:health.cacheReady?200:503,headers:{'Cache-Control':'no-store'}});
+      }
       const heartbeat=await cacheCommand(client=>client.get(readerNamespace()+':heartbeat'));
       if(heartbeat===undefined)throw new Error('Cache unavailable');
       const age=Date.now()-Number(heartbeat);

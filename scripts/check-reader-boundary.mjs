@@ -11,6 +11,7 @@ async function walk(dir) {
   return result;
 }
 const files = await walk(".next/server/app");
+for(const name of await readdir('.next/server'))if(name.includes('instrumentation')&&name.endsWith('.nft.json'))files.push(path.join('.next/server',name));
 for (const file of files.filter((file) => file.endsWith(".nft.json"))) {
   const trace = JSON.parse(await readFile(file, "utf8"));
   assert.ok(

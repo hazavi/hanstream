@@ -8,17 +8,10 @@ import {
   type ReaderJob,
 } from "./reader-protocol";
 import { after } from "next/server";
+import { ReaderPending, ReaderUnavailable } from "./reader-errors";
+import { bridgeConfigured, readBridge } from "./reader-bridge-client";
+export { ReaderPending, ReaderUnavailable } from "./reader-errors";
 
-export class ReaderPending extends Error {
-  constructor() {
-    super("The catalog reader is preparing this request.");
-  }
-}
-export class ReaderUnavailable extends Error {
-  constructor() {
-    super("The catalog reader is unavailable. Please try again shortly.");
-  }
-}
 export function readerKeys(job: ReaderJob) {
   const root = readerNamespace();
   const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
@@ -84,6 +77,10 @@ export async function requestReader<T>(input: ReaderJob): Promise<T> {
     return (await import("@reader/handler")).executeReaderJob(
       job,
     ) as Promise<T>;
+  if (bridgeConfigured()) return readBridge<T>(job);
+  return requestCachedReader<T>(job);
+}
+export async function requestCachedReader<T>(job: ReaderJob): Promise<T> {
   if (!process.env.CACHE_URL) throw new ReaderUnavailable();
   const keys = readerKeys(job);
   const raw = await cacheCommand((client) => client.get(keys.result));

@@ -5,6 +5,11 @@ import { contentSecurityPolicy } from './lib/security-policy.mjs';
 import { checkRateLimit } from './lib/rate-limit';
 
 export async function middleware(request: NextRequest) {
+  if(request.nextUrl.pathname==='/api/reader-bridge'){
+    if(process.env.VERCEL==='1'||process.env.HANSTREAM_ROLE==='web')return new NextResponse(null,{status:404,headers:{'Cache-Control':'no-store'}});
+    // This machine endpoint authenticates before reading its bounded request body.
+    return NextResponse.next();
+  }
   if (!request.nextUrl.pathname.startsWith('/api/')) {
     const nonce = crypto.randomUUID().replaceAll('-', '');
     const policy = contentSecurityPolicy({ nonce, development: process.env.NODE_ENV === 'development' });
