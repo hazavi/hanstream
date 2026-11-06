@@ -51,6 +51,7 @@ try{
  const stale=readerKeys({kind:'home'});
  await redis.set(stale.result,JSON.stringify({version:1,id:stale.id,fetchedAt:Date.now()-31_000,value:{saved:true}}),{EX:60});
  assert.deepEqual(await requestReader({kind:'home'}),{saved:true},'Stale metadata was discarded during refresh');
+ await eventually(async()=>assert.equal(await redis.xLen(readerNamespace()+':normal'),0));
  await worker.stop();worker=undefined;
  const invalid={version:1,id:'forged',createdAt:Date.now(),job:{kind:'home'}};
  await redis.xAdd(readerNamespace()+':normal','*',{payload:JSON.stringify(invalid)});
