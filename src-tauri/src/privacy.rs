@@ -92,7 +92,7 @@ pub async fn install(
                                     None,
                                     403,
                                     w!("Blocked by player protection"),
-                                    w!("Cache-Control: no-store\r\nContent-Length: 0\r\n"),
+                                    w!("Cache-Control: no-store\r\nContent-Length: 0\r\nX-HanStream-Blocked: 1\r\n"),
                                 )?;
                                 args.SetResponse(&response)?;
                             }

@@ -25,9 +25,14 @@ export async function checkNativeMedia(page,api) {
     assert.notEqual(access,'granted','Remote media gained library access');
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
     assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
-    await context.route('https://ad.doubleclick.net/**',route=>route.fulfill({contentType:'application/javascript',body:'window.advertisingScriptExecuted=true'}));
+    // DevTools route.fulfill can override a native WebResourceRequested response.
+    // Verify the actual native response instead of routing this request through CDP.
+    const blockedResponse=media.waitForResponse(response=>response.url().startsWith('https://ad.doubleclick.net/player-protection-check.js'),{timeout:10000});
     const advertising=await media.evaluate(()=>new Promise(resolve=>{const script=document.createElement('script');script.src='https://ad.doubleclick.net/player-protection-check.js';script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}));
     assert.equal(advertising,'blocked','Known advertising request was not blocked');
+    const protectedResponse=await blockedResponse;
+    assert.equal(protectedResponse.status(),403);
+    assert.equal(protectedResponse.headers()['x-hanstream-blocked'],'1','The request did not pass through the native filter');
     assert.equal(await media.evaluate(()=>Boolean(window.advertisingScriptExecuted)),false,'Advertising script executed');
     await media.evaluate(()=>window.close());
     assert.equal(media.isClosed(),false,'Remote player was able to close its host');
