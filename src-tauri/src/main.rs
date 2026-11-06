@@ -7,6 +7,25 @@ mod privacy;
 mod storage;
 
 fn main() {
+    #[cfg(feature = "automation")]
+    {
+        // Check the actual embedded rules separately from browser tracking protection.
+        assert!(privacy::blocked("https://ad.doubleclick.net/check.js", &[]));
+        assert!(privacy::blocked(
+            "https://child.ad.doubleclick.net/check.js",
+            &[]
+        ));
+        assert!(!privacy::blocked(
+            "https://not-doubleclick.example/check.js",
+            &[]
+        ));
+        assert!(!privacy::blocked("https://content.example/check.js", &[]));
+        assert!(!privacy::blocked(
+            "https://ad.doubleclick.net/check.js",
+            &["https://ad.doubleclick.net".into()]
+        ));
+        assert!(privacy::blocked("https://203.0.113.1/check.js", &[]));
+    }
     let builder = tauri::Builder::default();
     #[cfg(feature = "signed-updates")]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());

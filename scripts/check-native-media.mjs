@@ -25,12 +25,16 @@ export async function checkNativeMedia(page,api) {
     assert.notEqual(access,'granted','Remote media gained library access');
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
     assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
-    // DevTools route.fulfill can override a native WebResourceRequested response.
-    // Verify the actual native response instead of routing this request through CDP.
-    const blockedResponse=media.waitForResponse(response=>response.url().startsWith('https://ad.doubleclick.net/player-protection-check.js'),{timeout:10000});
-    const advertising=await media.evaluate(()=>new Promise(resolve=>{const script=document.createElement('script');script.src='https://ad.doubleclick.net/player-protection-check.js';script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}));
+    // Known advertising rules are checked at native automation startup. Use a
+    // reserved literal address here so browser tracker lists cannot mask interception.
+    // Do not mock this request: DevTools fulfillment can override a native response.
+    const probe='https://203.0.113.1/player-protection-check.js';
+    const blockedResponse=media.waitForResponse(response=>response.url()===probe,{timeout:10000});
+    const [advertising,protectedResponse]=await Promise.all([
+      media.evaluate(url=>new Promise(resolve=>{const script=document.createElement('script');script.src=url;script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}),probe),
+      blockedResponse,
+    ]);
     assert.equal(advertising,'blocked','Known advertising request was not blocked');
-    const protectedResponse=await blockedResponse;
     assert.equal(protectedResponse.status(),403);
     assert.equal(protectedResponse.headers()['x-hanstream-blocked'],'1','The request did not pass through the native filter');
     assert.equal(await media.evaluate(()=>Boolean(window.advertisingScriptExecuted)),false,'Advertising script executed');
