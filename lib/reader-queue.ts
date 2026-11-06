@@ -30,6 +30,7 @@ export function readerKeys(job: ReaderJob) {
   };
 }
 const enqueueScript = `if redis.call('EXISTS',KEYS[1])==1 then return 0 end if redis.call('XLEN',KEYS[2])>=64 then return -1 end redis.call('SET',KEYS[1],'queued','EX',120) redis.call('XADD',KEYS[2],'*','payload',ARGV[1]) return 1`;
+const enqueuing = new Map<string, Promise<void>>();
 function wakeReader() {
   const value = process.env.READER_WAKE_ORIGIN;
   if (!value) return;
@@ -62,20 +63,26 @@ function wakeReader() {
 }
 export async function enqueueReader(job: ReaderJob) {
   const keys = readerKeys(job);
-  const payload = JSON.stringify({
-    version: 1,
-    id: keys.id,
-    createdAt: Date.now(),
-    job,
-  });
-  const queued = await cacheCommand((client) =>
-    client.eval(enqueueScript, {
-      keys: [keys.pending, keys.queue],
-      arguments: [payload],
-    }),
-  );
-  if (queued === undefined || Number(queued) < 0) throw new ReaderUnavailable();
-  if (Number(queued) === 1) wakeReader();
+  const existing = enqueuing.get(keys.pending);
+  if (existing) return existing;
+  const task = (async () => {
+    const payload = JSON.stringify({
+      version: 1,
+      id: keys.id,
+      createdAt: Date.now(),
+      job,
+    });
+    const queued = await cacheCommand((client) =>
+      client.eval(enqueueScript, {
+        keys: [keys.pending, keys.queue],
+        arguments: [payload],
+      }),
+    );
+    if (queued === undefined || Number(queued) < 0) throw new ReaderUnavailable();
+    if (Number(queued) === 1) wakeReader();
+  })().finally(() => enqueuing.delete(keys.pending));
+  enqueuing.set(keys.pending, task);
+  return task;
 }
 export async function requestReader<T>(input: ReaderJob): Promise<T> {
   const job = parseReaderJob(input);
