@@ -57,7 +57,9 @@ export async function retryWhileActive<T>(
   onRetry?: (error: unknown) => void,
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
-    await waitForActivePage(signal);
+    // Let the initial read restore local cached data even offline or hidden.
+    // Only recovery traffic needs to wait for an active page.
+    if (attempt > 0) await waitForActivePage(signal);
     if (signal.aborted) throw signal.reason;
     try {
       return await load(attempt);

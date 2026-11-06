@@ -16,7 +16,15 @@ export async function checkNativeMedia(page,api) {
     const context=mediaBrowser.contexts()[0];
     await context.route('https://media.example/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html><body style="margin:0;background:black"><video autoplay muted playsinline style="width:100vw;height:100vh"></video><script>const canvas=document.createElement("canvas");canvas.width=160;canvas.height=90;const draw=canvas.getContext("2d");setInterval(()=>{draw.fillStyle="white";draw.fillRect(0,0,160,90);},100);const video=document.querySelector("video");video.srcObject=canvas.captureStream(10);video.play();</script></body></html>'}));
     const media=context.pages()[0]||await context.waitForEvent('page');
-    await media.goto('https://media.example/player',{waitUntil:'domcontentloaded'});
+    // The native surface starts its first navigation before DevTools can attach.
+    // A late completion can interrupt this fixture navigation once on WebView2.
+    for(let attempt=0;;attempt++){
+      try{await media.goto('https://media.example/player',{waitUntil:'domcontentloaded'});break;}
+      catch(error){
+        if(attempt>=2||media.isClosed()||!error.message.includes('net::ERR_ABORTED'))throw error;
+        await new Promise(resolve=>setTimeout(resolve,250));
+      }
+    }
     await media.waitForFunction(()=>document.querySelector('video')?.currentTime>0.5,{timeout:10000});
     const access=await media.evaluate(async()=>{
       const invoke=window.__TAURI_INTERNALS__?.invoke;if(!invoke)return 'no bridge';

@@ -67,7 +67,7 @@ export function WatchPage({
     };
     const unsubscribe = subscribeBackend(detailPath, update);
     async function loadDetails() {
-      await waitForActivePage(controller.signal);
+      if (attempts > 0) await waitForActivePage(controller.signal);
       let incomplete = true;
       try {
         const data = await readBackend<DramaResponse>(
