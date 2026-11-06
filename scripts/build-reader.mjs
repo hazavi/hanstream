@@ -17,6 +17,8 @@ export const workerPlugin = {
       contents:
         "export const NextResponse=Response; export function after(task){void Promise.resolve().then(task).catch(()=>{});}",
     }));
+    builder.onResolve({filter:/^next\/cache$/},()=>({path:'cache',namespace:'worker-cache'}));
+    builder.onLoad({filter:/.*/,namespace:'worker-cache'},()=>({contents:'export function unstable_cache(fn){return fn;}'}));
   },
 };
 if (process.argv[1]?.endsWith("build-reader.mjs"))

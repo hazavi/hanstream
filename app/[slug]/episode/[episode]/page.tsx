@@ -4,6 +4,7 @@ import { fetchEpisode } from "@/lib/api";
 import { formatEpisodeLabel } from "@/lib/format";
 import { WatchPage } from "@/components/WatchPage";
 import type { Metadata } from "next";
+import {parseCatalogRoute} from '@/lib/catalog';
 
 interface EpisodePageProps { params: Promise<{ slug: string; episode: string }> }
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export async function generateMetadata({
   params,
 }: EpisodePageProps): Promise<Metadata> {
   const { slug, episode } = await params;
+  if(webRuntime())return {title:`${parseCatalogRoute(slug)?.title||slug} · ${formatEpisodeLabel(episode)}`};
   try {
     const episodeData=await fetchEpisode(slug,episode);
     const title=episodeData.result?.title || formatEpisodeLabel(episode);

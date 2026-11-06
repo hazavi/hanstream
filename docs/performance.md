@@ -24,11 +24,11 @@ The deployed backend now uses a Free Render Key Value instance (Valkey) in the s
 
 Completed homepage results that arrive after the response budget are also saved to the shared cache. Partial snapshots never replace its last complete record. The cache was initialized from current verified source HTML, with no catalog JSON committed to the repository.
 
-The Redis command queue is capped at 100. A timed-out command destroys its connection and starts a one-minute cooldown, so repeated requests cannot leave an unbounded queue behind a stalled cache server.
+The Redis command queue is capped at 32, with at most 16 active commands per connection and a two-second command budget. One slow command does not disconnect healthy users or disable the cache for a minute. Three consecutive timeouts reset a stalled connection; reconnect attempts wait one second. Initial connections have a three-second budget.
 
 The outbound dispatcher uses Undici 7 to match Node 24's built-in fetch API. A real local HTTP regression test covers that integration; mocking fetch alone would miss an incompatible dispatcher major version.
 
-Server HTML readers use the HTTP client's own fetch implementation rather than Next's patched global fetch. Both HTTP paths have a real local-server regression check. Homepage sections resolve independently, retain previous successful sections during an outage, and mark partial responses as non-cacheable over HTTP. A failed optional metadata lookup no longer discards available episodes. The regular homepage reuses the same assembled snapshot as the desktop API.
+Server HTML readers use the HTTP client's own fetch implementation rather than Next's patched global fetch. Both HTTP paths have a real local-server regression check. Homepage sections resolve independently and retain previous successful sections during an outage. A usable partial homepage has a short public cache lifetime; an empty homepage is not cached. A failed optional metadata lookup no longer discards available episodes. The regular homepage reuses the same assembled snapshot as the desktop API.
 
 ## Optional image byte cache
 
@@ -36,7 +36,7 @@ Set backend-only `IMAGE_ORIGINS` to a comma-separated list of exact HTTPS image 
 
 The existing artwork and portrait routes accept `width=80`, `160`, `320`, or `640`. The pipeline accepts JPEG, PNG, WebP, and AVIF, limits input to 5 MB and 25 million decoded pixels, emits WebP, caps active jobs at four, and retains at most 24 MB of image bytes in memory. It supplies ETags and conditional 304 responses. Every redirect is checked against the origin list. DNS resolution is bound to the connection and rejects non-public addresses. Upstream SVG is excluded. The server-generated fallback SVG contains no upstream content.
 
-This cache currently covers image requests through those backend routes, not every direct image URL returned by a catalog. It is process-local and is cleared on a backend restart. No image files or generated catalogs are committed.
+This cache covers image requests through those backend routes, not every direct image URL returned by a catalog. Reader-side image processing has a bounded process cache. The Vercel website also saves successful metadata and image responses in Next.js Data Cache, serves stale successes while refreshing, and caches public responses at its CDN. Missing images and transport failures do not replace saved successful images. Expiring playback addresses and search queries stay out of durable website caching. No image files or generated catalogs are committed.
 
 ## Local client storage
 

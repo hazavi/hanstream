@@ -4,10 +4,12 @@ import { after } from "next/server";
 import { readerNamespace } from "./deployment";
 import { readerTiming, type ReaderJob } from "./reader-protocol";
 import { ReaderPending, ReaderUnavailable } from "./reader-errors";
+import { durableReaderValue } from "./reader-durable-cache";
 
-const saved = new Map<string, { value: unknown; at: number; bytes: number }>();
+type Entry = { value: unknown; at: number; bytes: number };
+const metadataCache = { entries: new Map<string, Entry>(), bytes: 0 };
+const imageCache = { entries: new Map<string, Entry>(), bytes: 0 };
 const loading = new Map<string, Promise<unknown>>();
-let bytes = 0;
 export function bridgeConfigured() {
   return Boolean(
     process.env.READER_GATEWAY_ORIGIN && process.env.READER_GATEWAY_SECRET,
@@ -93,6 +95,11 @@ export async function bridgeHealth() {
 export async function readBridge<T>(job: ReaderJob): Promise<T> {
   const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
   const key = readerNamespace() + ":" + id;
+  const cache =
+    job.kind === "artwork" || job.kind === "portrait"
+      ? imageCache
+      : metadataCache;
+  const saved = cache.entries;
   const previous = saved.get(key);
   const timing = readerTiming(job, previous?.value);
   if (previous && Date.now() - previous.at < timing.fresh)
@@ -101,50 +108,59 @@ export async function readBridge<T>(job: ReaderJob): Promise<T> {
     const existing = loading.get(key);
     if (existing) return existing as Promise<T>;
     const task = (async () => {
-      const config = settings();
-      let response: Response;
-      try {
-        response = await fetch(config.url, {
-          method: "POST",
-          headers: config.headers,
-          body: JSON.stringify(job),
-          cache: "no-store",
-          redirect: "error",
-          signal: AbortSignal.timeout(12_000),
-        });
-      } catch {
-        throw new ReaderPending();
-      }
-      if (response.status === 202) {
-        await response.body?.cancel();
-        throw new ReaderPending();
-      }
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw new ReaderUnavailable();
-      }
-      const record = await json(response);
-      if (
-        record.version !== 1 ||
-        record.namespace !== readerNamespace() ||
-        record.id !== id ||
-        !Object.hasOwn(record, "value")
-      )
-        throw new ReaderUnavailable();
-      const size = Buffer.byteLength(JSON.stringify(record.value));
+      const value = await durableReaderValue<T>(job, async () => {
+        const config = settings();
+        let response: Response;
+        try {
+          response = await fetch(config.url, {
+            method: "POST",
+            headers: config.headers,
+            body: JSON.stringify(job),
+            cache: "no-store",
+            redirect: "error",
+            signal: AbortSignal.timeout(
+              job.kind === "artwork" || job.kind === "portrait" ? 3000 : 6000,
+            ),
+          });
+        } catch {
+          throw new ReaderPending();
+        }
+        if (
+          response.status === 202 ||
+          response.status >= 500 ||
+          response.status === 429
+        ) {
+          await response.body?.cancel();
+          throw new ReaderPending();
+        }
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new ReaderUnavailable();
+        }
+        const record = await json(response);
+        if (
+          record.version !== 1 ||
+          record.namespace !== readerNamespace() ||
+          record.id !== id ||
+          !Object.hasOwn(record, "value")
+        )
+          throw new ReaderUnavailable();
+        return record.value as T;
+      });
+      const size = Buffer.byteLength(JSON.stringify(value));
       const old = saved.get(key);
       if (old) {
-        bytes -= old.bytes;
+        cache.bytes -= old.bytes;
         saved.delete(key);
       }
-      saved.set(key, { value: record.value, at: Date.now(), bytes: size });
-      bytes += size;
-      while (saved.size > 64 || bytes > 16_000_000) {
+      saved.set(key, { value, at: Date.now(), bytes: size });
+      cache.bytes += size;
+      while (saved.size > 64 || cache.bytes > 8_000_000) {
         const first = saved.keys().next().value!;
-        bytes -= saved.get(first)!.bytes;
+        cache.bytes -= saved.get(first)!.bytes;
         saved.delete(first);
       }
-      return record.value as T;
+      return value;
     })().finally(() => loading.delete(key));
     loading.set(key, task);
     return task;

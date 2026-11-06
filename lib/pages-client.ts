@@ -119,6 +119,8 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
       return value;
       } catch (error) {
         if (!search && !episode && saved && saved.staleUntil > Date.now()) return saved.value;
+        if ((error as { name?: string })?.name === 'TimeoutError')
+          throw new Error('The catalog is taking longer than expected. Please try again shortly.');
         throw error;
       }
     })();

@@ -5,6 +5,11 @@ import {
   requestReader,
 } from "./reader-queue";
 import type { ReaderJob, ReaderImage } from "./reader-protocol";
+import {
+  missingImageResponse,
+  pendingImageResponse,
+} from "./image-placeholder";
+import { webRuntime } from "./deployment";
 export function readerErrorResponse(
   error: unknown,
   fallback = "Content is temporarily unavailable.",
@@ -26,20 +31,14 @@ export function readerErrorResponse(
   );
 }
 export async function readerImageResponse(job: ReaderJob, request: Request) {
-  const deadline = Date.now() + 5000;
   let image: ReaderImage;
-  while (true) {
-    try {
-      image = await requestReader<ReaderImage>(job);
-      break;
-    } catch (error) {
-      if (!(error instanceof ReaderPending) || Date.now() >= deadline)
-        return new Response(null, {
-          status: 503,
-          headers: { "Cache-Control": "no-store", "Retry-After": "2" },
-        });
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
+  try {
+    image = await requestReader<ReaderImage>(job);
+  } catch {
+    // The client retries queued images. Do not poll the worker for every <img>.
+    return webRuntime()
+      ? pendingImageResponse()
+      : missingImageResponse(5, job.kind === "portrait");
   }
   if (
     !image ||
@@ -49,11 +48,15 @@ export async function readerImageResponse(job: ReaderJob, request: Request) {
       image.headers?.["content-type"] || "",
     )
   )
-    return new Response(null, {
-      status: 502,
-      headers: { "Cache-Control": "no-store" },
-    });
-  const headers = { ...image.headers, "X-Content-Type-Options": "nosniff" };
+    return missingImageResponse(5, job.kind === "portrait");
+  const headers = {
+    ...image.headers,
+    "X-Content-Type-Options": "nosniff",
+    "Vercel-CDN-Cache-Control":
+      image.headers["x-artwork-available"] === "0"
+        ? "no-store"
+        : "public, s-maxage=3600, stale-while-revalidate=86400",
+  };
   if (
     image.headers.etag &&
     request.headers.get("if-none-match") === image.headers.etag

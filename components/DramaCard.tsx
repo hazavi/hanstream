@@ -17,7 +17,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
     const href = d["episode-link"];
 
     return (
-      <Link href={href} className="group block animate-slide-up">
+      <Link prefetch={false} href={href} className="group block animate-slide-up">
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
           <div className="relative aspect-[4/5] overflow-hidden">
             <Artwork sources={[d.image, ...(d.poster_fallbacks || [])]} alt={d.title} title={d.title} year={Number(d["episode-link"].match(/--(\d{4})/)?.[1]) || undefined} />
@@ -67,7 +67,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
 
   const p: PopularItem = item;
   return (
-    <Link href={p["detail-link"]} className="group block animate-slide-up">
+    <Link prefetch={false} href={p["detail-link"]} className="group block animate-slide-up">
       <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
         <div className="relative aspect-[4/5] overflow-hidden">
           <Artwork sources={[p.image, ...(p.poster_fallbacks || [])]} alt={p.title} title={p.title} year={Number(p["detail-link"].match(/--(\d{4})/)?.[1]) || undefined} />

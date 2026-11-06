@@ -1,6 +1,7 @@
 import {readerErrorResponse} from '@/lib/reader-response';
 import { NextResponse } from "next/server";
 import { fetchPopular, fetchRecent, fetchRecentMovies } from "@/lib/api";
+import {publicCatalogHeaders} from '@/lib/public-cache';
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams;
@@ -13,7 +14,8 @@ export async function GET(request: Request) {
       if (kind === "recent") return (await fetchRecent(p)).results;
       return (await fetchRecentMovies(p)).result.movies.map(item => ({ "episode-link": item.id, episode_number: Number(item.ep), image: item.img, time: item.time, title: item.title, type: item.type }));
     };
-    const [items, next] = await Promise.all([read(page), page < 2000 ? read(page + 1) : Promise.resolve([])]);
-    return NextResponse.json({ items, page, hasNext: next.length > 0 });
+    const items=await read(page);
+    // Do not crawl another archive page before displaying this page's results.
+    return NextResponse.json({items,page,hasNext:page<2000&&items.length>=20},{headers:items.length?publicCatalogHeaders():{'Cache-Control':'no-store'}});
   } catch(error) { return readerErrorResponse(error,"Drama listings unavailable"); }
 }

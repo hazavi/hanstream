@@ -14,6 +14,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const resolvedParams = await params;
+  if(webRuntime())return {title:parseCatalogRoute(resolvedParams.slug)?.title||resolvedParams.slug};
   try {
     const data = await fetchDrama(resolvedParams.slug);
     const title =

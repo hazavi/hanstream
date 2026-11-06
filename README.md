@@ -1,6 +1,6 @@
 # HanStream
 
-Deployment target: [Vercel website and API with a separate source worker](docs/vercel-deployment.md). The repository includes an isolated Vercel build, worker Dockerfile, validated Redis queue, and desktop/browser player protection. You must connect a shared TLS cache and the worker before switching traffic. The current Render site stays available during setup.
+Deployment target: [Vercel website and API with a separate source worker](docs/vercel-deployment.md). The repository includes an isolated Vercel build, worker Dockerfile, validated Redis queue, and desktop/browser player protection. The existing Render reader connects through an authenticated machine endpoint with its cache on the private network. A direct shared TLS cache is an optional alternative.
 
 Website: [HanStream on Render](https://hanstream-backend.onrender.com/). Render serves the full website and its same-origin catalog readers. GitHub Pages deployment is retired.
 

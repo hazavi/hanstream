@@ -27,7 +27,7 @@ export function HomepageHighlights({ home }: { home: HomepageHighlightsData }) {
         {home[section.key].slice(0, 5).map((item, index) => {
           const date = section.key === "reviews" ? reviewDate(item.date) : undefined;
           return <li key={`${catalogRoute(item)}-${item.date || index}`}>
-            <Link href={catalogRoute(item)} className="top-airing-item flex items-center gap-3 p-2 rounded-lg group">
+            <Link prefetch={false} href={catalogRoute(item)} className="top-airing-item flex items-center gap-3 p-2 rounded-lg group">
               <span aria-hidden="true" className="w-5 shrink-0 text-center text-sm font-semibold text-secondary tabular-nums">{index + 1}</span>
               <div className="relative w-10 h-14 shrink-0 rounded-md overflow-hidden surface">
                 <Artwork sources={[item.image]} alt={item.title} title={item.title} year={item.year} />
