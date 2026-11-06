@@ -26,13 +26,15 @@ export async function startReaderWorker(options: WorkerOptions = {}) {
       import("../lib/source-handler").then((module) =>
         module.executeReaderJob(job),
       ));
-  const total = Math.min(4, Math.max(2, options.concurrency || 3));
+  const total = Math.min(4, Math.max(3, options.concurrency || 4));
   let stopping = false;
   const clients: Array<{ isOpen: boolean; isReady: boolean; destroy(): void }> =
     [];
   const tasks = Array.from({ length: total }, (_, index) =>
     (async () => {
-      const queue = root + (index === 0 ? ":urgent" : ":normal"),
+      const queue =
+          root +
+          (index === 0 ? ":urgent" : index === 1 ? ":normal" : ":images"),
         consumer = randomUUID();
       const client = createClient({
         url,
@@ -83,6 +85,17 @@ export async function startReaderWorker(options: WorkerOptions = {}) {
           return;
         }
         const keys = readerKeys(envelope.job);
+        if (keys.queue !== queue) {
+          // Move jobs left in the old shared queue during a rolling upgrade.
+          await client.eval(
+            "if redis.call('XLEN',KEYS[2])>=64 then return 0 end redis.call('XADD',KEYS[2],'*','payload',ARGV[2]) redis.call('XACK',KEYS[1],'readers',ARGV[1]) redis.call('XDEL',KEYS[1],ARGV[1]) return 1",
+            {
+              keys: [queue, keys.queue],
+              arguments: [message.id, JSON.stringify(envelope)],
+            },
+          );
+          return;
+        }
         const lease = randomUUID();
         if (
           (await client.set(keys.lease, lease, { NX: true, EX: 60 })) !== "OK"
@@ -101,7 +114,7 @@ export async function startReaderWorker(options: WorkerOptions = {}) {
               );
             }),
           ]).finally(() => clearTimeout(timer));
-          retain = readerTiming(envelope.job).retain;
+          retain = readerTiming(envelope.job, value).retain;
           if (
             envelope.job.kind === "episode" &&
             !(value as { result?: { video?: string } })?.result?.video

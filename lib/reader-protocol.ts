@@ -3,6 +3,8 @@ import {
   validEpisodeId,
   validSearchQuery,
 } from "./request-validation";
+import { detailNeedsRefresh } from "./detail-cache";
+import type { DramaResponse } from "./api-types";
 export type ReaderJob =
   | { kind: "home" | "rankings" | "hot" }
   | { kind: "recent" | "popular" | "movies"; page: number }
@@ -122,7 +124,28 @@ export function parseReaderJob(input: unknown): ReaderJob {
       throw new Error("Unsupported reader request.");
   }
 }
-export function readerTiming(job: ReaderJob) {
+export function readerTiming(job: ReaderJob, value?: unknown) {
+  if (value !== undefined) {
+    const data = value as {
+      result?: { video?: string };
+      partial?: boolean;
+      headers?: Record<string, string>;
+    };
+    if (job.kind === "episode" && !data?.result?.video)
+      return { fresh: 2000, retain: 2 };
+    if (
+      job.kind === "drama" &&
+      detailNeedsRefresh((value || {}) as DramaResponse)
+    )
+      return { fresh: 15_000, retain: 86_400 };
+    if (job.kind === "home" && data?.partial)
+      return { fresh: 10_000, retain: 86_400 };
+    if (
+      (job.kind === "artwork" || job.kind === "portrait") &&
+      data?.headers?.["x-artwork-available"] === "0"
+    )
+      return { fresh: 30_000, retain: 60 };
+  }
   if (job.kind === "episode") return { fresh: 20_000, retain: 60 };
   if (job.kind === "search") return { fresh: 60_000, retain: 300 };
   if (job.kind === "artwork" || job.kind === "portrait")

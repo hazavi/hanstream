@@ -17,7 +17,13 @@ export function readerKeys(job: ReaderJob) {
   const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
   return {
     id,
-    queue: root + (job.kind === "episode" ? ":urgent" : ":normal"),
+    queue:
+      root +
+      (job.kind === "episode"
+        ? ":urgent"
+        : job.kind === "artwork" || job.kind === "portrait"
+          ? ":images"
+          : ":normal"),
     pending: root + ":pending:" + id,
     result: root + ":result:" + id,
     lease: root + ":lease:" + id,
@@ -93,10 +99,10 @@ export async function requestCachedReader<T>(job: ReaderJob): Promise<T> {
         record.id === keys.id &&
         Number.isFinite(age) &&
         age >= 0 &&
-        age < readerTiming(job).retain * 1000
+        age < readerTiming(job, record.value).retain * 1000
       ) {
         if (record.error) throw new ReaderUnavailable();
-        if (age >= readerTiming(job).fresh)
+        if (age >= readerTiming(job, record.value).fresh)
           await enqueueReader(job).catch(() => {});
         return record.value as T;
       }

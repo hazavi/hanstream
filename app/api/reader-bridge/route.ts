@@ -15,12 +15,32 @@ export async function GET(request: Request) {
     const heartbeat = await cacheCommand((client) =>
       client.get(readerNamespace() + ":heartbeat"),
     );
+    const queued = await cacheCommand((client) =>
+      client.eval(
+        "return {redis.call('XLEN',KEYS[1]),redis.call('XLEN',KEYS[2]),redis.call('XLEN',KEYS[3])}",
+        {
+          keys: [
+            readerNamespace() + ":urgent",
+            readerNamespace() + ":normal",
+            readerNamespace() + ":images",
+          ],
+          arguments: [],
+        },
+      ),
+    );
     return Response.json(
       {
         role: "reader",
         namespace: readerNamespace(),
         cacheReady: heartbeat !== undefined,
         readerReady: worker.ready() && Boolean(heartbeat),
+        queued: Array.isArray(queued)
+          ? {
+              playback: Number(queued[0]),
+              metadata: Number(queued[1]),
+              images: Number(queued[2]),
+            }
+          : undefined,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

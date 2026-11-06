@@ -6,7 +6,7 @@ The website and read-only API run together on Vercel. A separate Node worker rea
 
 The deployed website can use the existing full Render service through an authenticated machine endpoint. Redis stays on Render's private network. This mode needs no additional public cache service.
 
-On the reader host, keep its private source settings and `CACHE_URL`. Set `READER_GATEWAY_SECRET` to a random secret of at least 32 characters and `READER_NAMESPACE` to the same value used by Vercel. Deploy the normal `Dockerfile`, which starts queue consumers through Next.js instrumentation. It reserves a consumer for playback and refreshes the homepage while the host runs. The existing website/API remain available for installed desktop builds during migration.
+On the reader host, keep its private source settings and `CACHE_URL`. Set `READER_GATEWAY_SECRET` to a random secret of at least 32 characters and `READER_NAMESPACE` to the same value used by Vercel. Deploy the normal `Dockerfile`, which starts queue consumers through Next.js instrumentation. Playback and metadata have separate reserved consumers; two additional consumers handle images, so failed posters cannot fill the drama/search queue. The existing website/API remain available for installed desktop builds during migration.
 
 On Vercel, set `HANSTREAM_ROLE=web`, `READER_GATEWAY_ORIGIN` to the reader's exact public HTTPS origin without a trailing slash, the matching `READER_GATEWAY_SECRET`, and the matching `READER_NAMESPACE`. Leave `CACHE_URL` unset in this mode. Set `SITE_URL` to the public Vercel origin. Keep private source settings on the reader host, not Vercel.
 

@@ -20,7 +20,7 @@ import {cacheCommand} from '../lib/persistent-cache';
 process.env.READER_NAMESPACE='check-'+randomUUID();
 delete process.env.VERCEL;process.env.HANSTREAM_ROLE='reader';
 const redis=createClient({url:process.env.CACHE_URL,socket:{connectTimeout:1000,reconnectStrategy:false}});redis.on('error',()=>{});await redis.connect();
-let release;const blocked=new Promise(resolve=>{release=resolve;});let normalStarted=0,calls=0;
+let release,releaseImages;const blocked=new Promise(resolve=>{release=resolve;});const blockedImages=new Promise(resolve=>{releaseImages=resolve;});let normalStarted=0,imageStarted=0,calls=0;
 let worker;
 async function eventually(task,timeout=10_000){const end=Date.now()+timeout;while(true){try{return await task();}catch(error){if(Date.now()>end)throw error;await new Promise(r=>setTimeout(r,25));}}}
 try{
@@ -33,6 +33,7 @@ try{
  worker=await startReaderWorker({blockMs:100,execute:async job=>{
   calls++;
   if(job.kind==='recent'){normalStarted++;await blocked;return {results:[{title:'Fixture'}]};}
+  if(job.kind==='artwork'){imageStarted++;await blockedImages;return {fixture:true};}
   if(job.kind==='search')throw Error('private source failure');
   if(job.kind==='episode')return {result:{title:'Fixture',video:'https://media.example/player'}};
   return {fixture:true};
@@ -41,12 +42,18 @@ try{
  const home=await eventually(()=>requestReader({kind:'home'}));assert.deepEqual(home,{fixture:true});
  const count=calls;assert.deepEqual(await requestReader({kind:'home'}),home);assert.equal(calls,count,'Fresh cache refetched');
  await enqueueReader({kind:'recent',page:1});await enqueueReader({kind:'recent',page:2});
- await eventually(async()=>assert.equal(normalStarted,2));
+ await eventually(async()=>assert.equal(normalStarted,1));
+ for(const title of ['Fixture One','Fixture Two'])await enqueueReader({kind:'artwork',title,secondary:false,width:320});
+ await eventually(async()=>assert.equal(imageStarted,2));
+ const legacyImage={kind:'artwork',title:'Legacy Fixture',secondary:false,width:320} as const;
+ await redis.xAdd(readerNamespace()+':normal','*',{payload:JSON.stringify({version:1,id:readerKeys(legacyImage).id,createdAt:Date.now(),job:legacyImage})});
  const episode={kind:'episode',slug:'drama-fixture--2026',episode:'s1e10'} as const;
  const start=Date.now();const playback=await eventually(()=>requestReader(episode));
  assert.equal(playback.result.video,'https://media.example/player');assert.ok(Date.now()-start<3000,'Playback waited behind metadata');
  assert.ok(await redis.ttl(readerKeys(episode).result)<=60,'Playback survived its short IPC TTL');
  release();
+ const metadataStart=Date.now();assert.deepEqual(await eventually(()=>requestReader({kind:'popular',page:1})),{fixture:true});
+ assert.ok(Date.now()-metadataStart<3000,'Images blocked drama metadata');releaseImages();
  await assert.rejects(eventually(()=>requestReader({kind:'search',query:'Fixture',page:1}),500),ReaderUnavailable);
  const stale=readerKeys({kind:'home'});
  await redis.set(stale.result,JSON.stringify({version:1,id:stale.id,fetchedAt:Date.now()-31_000,value:{saved:true}}),{EX:60});
@@ -58,9 +65,9 @@ try{
  process.env.HANSTREAM_ROLE='reader';
  worker=await startReaderWorker({blockMs:100,execute:async()=>{throw Error('Unexpected job');}});
  await eventually(async()=>assert.equal(await redis.xLen(readerNamespace()+':normal'),0));
- console.log('Reader checks passed: validation, deduplication, cache hits, priority playback, short playback TTL, stale metadata, failure isolation, invalid-envelope cleanup.');
+ console.log('Reader checks passed: validation, deduplication, cache hits, priority playback, independent metadata/image queues, short playback TTL, stale metadata, failure isolation, invalid-envelope cleanup.');
 }finally{
- release();await worker?.stop();
+ release();releaseImages();await worker?.stop();
  const keys=[];for await(const batch of redis.scanIterator({MATCH:readerNamespace()+':*',COUNT:100}))keys.push(...batch);
  if(keys.length)await redis.del(keys);
  await redis.quit();await cacheCommand(async client=>{client.destroy();return true;});

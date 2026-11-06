@@ -94,7 +94,7 @@ export async function readBridge<T>(job: ReaderJob): Promise<T> {
   const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
   const key = readerNamespace() + ":" + id;
   const previous = saved.get(key);
-  const timing = readerTiming(job);
+  const timing = readerTiming(job, previous?.value);
   if (previous && Date.now() - previous.at < timing.fresh)
     return previous.value as T;
   const refresh = () => {
