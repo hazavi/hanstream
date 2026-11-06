@@ -4,6 +4,8 @@ import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
 import type { DramaResponse } from './api-types';
 import { readLocalResponse, storeLocalResponse } from './client-cache';
 import { hasHomeContent, mergeHomeData, type HomeData } from './home-data';
+import { BackendRequestError } from './request-retry';
+import { isPlaybackResponse } from './playback-response';
 
 const responses = new Map<string, { expires: number; staleUntil: number; value: unknown }>();
 const pending = new Map<string, Promise<unknown>>();
@@ -91,7 +93,7 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
         await new Promise(resolve=>setTimeout(resolve,250));
         response = await fetchCurrent();
       }
-      if (!response.ok) throw new Error('Unable to load this page. Please try again.');
+      if (!response.ok) throw new BackendRequestError('Unable to load this page. Please try again.', !response.status || response.status >= 500 || response.status === 429);
       while (response.status === 202) {
         const seconds=Math.min(3,Math.max(1,Number(response.headers.get('retry-after'))||2));
         await response.body?.cancel();
@@ -101,9 +103,10 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
           if(requestSignal.aborted)abort();else requestSignal.addEventListener('abort',abort,{once:true});
         });
         response=await fetchCurrent(true);
-        if(!response.ok)throw new Error('The catalog reader could not load this request. Please retry shortly.');
+        if(!response.ok)throw new BackendRequestError('The catalog reader could not load this request. Please retry shortly.', response.status >= 500 || response.status === 429);
       }
       const raw = await response.json();
+      if (episode && !isPlaybackResponse(raw)) throw new BackendRequestError('The episode is still loading.');
       const value = drama ? mergeDramaResponse(saved?.value as DramaResponse | undefined, raw) : path==='/api/home' ? mergeHomeData(saved?.value as HomeData|undefined,raw) : raw;
       const partial = path === '/api/home' && value?.partial === true;
       const ttl = drama ? detailNeedsRefresh(value) ? 15_000 : 300_000 : partial ? 10_000 : 30_000;

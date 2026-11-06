@@ -1,4 +1,3 @@
-// @ts-ignore -- Next.js handles global CSS imports at build time.
 import "./globals.css";
 import "./outline.css";
 import type { Metadata } from "next";
@@ -8,6 +7,7 @@ import { ProfileProvider } from "@/lib/profile";
 import { FloatingNav } from "@/components/FloatingNav";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { DynamicMain } from "@/components/DynamicMain";
+import { ToastViewport } from '@/components/ui/toast';
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -55,6 +55,7 @@ export default async function RootLayout({
               <ProfileProvider>
                 <FloatingNav />
                 <ScrollToTop />
+                <ToastViewport />
                 <DynamicMain>{children}</DynamicMain>
                 <footer className="border-t border-neutral-500/50 py-8">
                   <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">

@@ -19,7 +19,6 @@ export function VideoPlayer({ src, title }: VideoPlayerProps) {
         ref={iframeRef}
         src={safeSrc}
         sandbox={MEDIA_SANDBOX}
-        allowFullScreen
         className="w-full h-full border-0"
         title={title}
         referrerPolicy="no-referrer"

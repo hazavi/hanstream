@@ -55,7 +55,7 @@ The variable table above describes direct-cache mode. With the existing reader c
 
 Leave `NEXT_PUBLIC_API_BASE_URL` unset on Vercel. The build explicitly uses same-origin `/api` requests. Desktop's exact `https://tauri.localhost` origin is already permitted. Add other real frontend origins to `FRONTEND_ORIGINS` only when needed, without wildcards.
 
-The build succeeds without reader secrets. At runtime `/api/health` returns `503` until the cache connects. With a cache it returns `status: "ok"` and `readerReady`. Confirm `readerReady: true` before cutover. Cold requests return `202` with `Retry-After`; the frontend polls within a fixed deadline and offers retry on failure.
+The build succeeds without reader secrets. At runtime `/api/health` returns `503` until the cache connects. With a cache it returns `status: "ok"` and `readerReady`. Confirm `readerReady: true` before cutover. Cold requests return `202` with `Retry-After`. Individual network attempts have deadlines; an open page keeps recovering transient failures with backoff instead of stopping at an error screen. Outer retries pause in hidden/offline pages and cancel on navigation. Invalid permanent requests are not retried forever.
 
 After the first deployment assigns a production URL, set `SITE_URL` to that origin and redeploy. Keep private preview protection enabled. Desktop should use the intended public production deployment.
 
@@ -67,6 +67,6 @@ Keep the old full Render service until the new website, API, and desktop build h
 
 ## Player protection and validation
 
-Desktop filtering is built into its isolated player. Website iframe sandboxing blocks popups and top navigation, but a webpage cannot filter another origin's network requests. Website network filtering requires the optional extension. Configure `PLAYER_ORIGINS` before building to include its download. See [player protection](player-protection.md).
+Desktop filtering is built into its isolated player. Website iframe sandboxing blocks popups, new tabs, and top navigation without an extension download. Configure `PLAYER_ORIGINS` on the reader to enable bounded checks for removed uploads. See [player protection](player-protection.md).
 
 Run `npm run check:types`, `npm run build:reader`, `npm run build:vercel`, and `node scripts/check-reader-boundary.mjs`. CI also checks Redis queue behavior, browser filtering, desktop installation, and native player isolation. `npm run build:backend` still builds the full local/Render application for rollback.

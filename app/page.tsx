@@ -9,6 +9,7 @@ import { HomepageHighlights } from "@/components/HomepageHighlights";
 import { getHomeData } from '@/lib/home';
 import { RefreshListings } from '@/components/RefreshListings';
 import type { RecentItem, PopularItem } from '@/lib/api-types';
+import { NoticeToast } from '@/components/ui/toast';
 
 // Render week boundaries and cached public-page metadata on request.
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function Home() {
     <RefreshListings enabled={data.partial} />
     <div className="flex-1 animate-fade-in min-w-0 space-y-8 sm:space-y-12">
       <Suspense fallback={null}><ContinueWatching /></Suspense>
-      {data.partial && <p role="status" className="text-sm text-secondary">Some listings are temporarily unavailable.</p>}
+      <NoticeToast enabled={data.partial} id="home-partial" message="Some listings are temporarily unavailable. We’ll keep checking for updates."/>
       <section id="recent" className="space-y-4 sm:space-y-6 scroll-mt-24">
         <div className="flex items-center justify-between"><h2 className="text-xl sm:text-2xl font-bold heading">Latest Episodes</h2><Link href="/recently-added" className="glass-btn group !px-3 sm:!px-4 !py-2 text-sm sm:text-base">View all <span aria-hidden="true" className="group-hover:translate-x-1 transition-transform">›</span></Link></div>
         <LatestEpisodes items={data.recent} />

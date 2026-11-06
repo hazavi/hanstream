@@ -14,7 +14,6 @@ export function TopAiringSection({ result }: { result: TopDramasResponse["result
           <div className="min-w-0"><h3 className="text-sm font-medium text-primary line-clamp-2 group-hover:text-neutral-600 dark:group-hover:text-neutral-400">{item.title}</h3>{item.release_year > 0 && <p className="text-xs text-secondary mt-1">{item.release_year}</p>}</div>
         </Link>
       </li>)}</ol> : <p className="text-xs text-secondary">No rankings are listed right now.</p>}
-      <p className="text-[11px] text-secondary">{section.key === "airing" ? "Alphabetical" : "Soonest premieres"}</p>
     </section>)}
   </aside>;
 }

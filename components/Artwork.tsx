@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { UserRound } from "lucide-react";
+import { pauseRequest, waitForActivePage } from '@/lib/request-retry';
 import { isPublishedImage } from "@/lib/image-utils.mjs";
 import {
   artworkFailedRecently,
@@ -108,17 +109,20 @@ export function Artwork({
   useEffect(() => {
     if (!near || source || key === "[]") return;
     if (recovery.current.key !== key) recovery.current = { key, count: 0 };
-    if (recovery.current.count >= 2) return;
-    const timer = setTimeout(
-      () => {
+    const controller=new AbortController();
+    void (async()=>{
+      while(!controller.signal.aborted){
+        await pauseRequest([6000,65_000,120_000,300_000][Math.min(recovery.current.count,3)],controller.signal);
+        await waitForActivePage(controller.signal);
+        recovery.current.count++;
         if (claimArtworkRetry(key)) {
-          recovery.current.count++;
+          pendingRetry.current = { key: '', count: 0 };
           setFailure({ key, attempt: 0 });
+          return;
         }
-      },
-      recovery.current.count === 0 ? 6000 : 65_000,
-    );
-    return () => clearTimeout(timer);
+      }
+    })().catch(()=>{});
+    return () => controller.abort();
   }, [source, key, near]);
   useEffect(() => {
     if (

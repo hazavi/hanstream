@@ -32,7 +32,13 @@
 
 /* Watch page: a quiet player area and a searchable episode sidebar. */
 .watch-page { width: 100%; margin: 0 auto; }
-.watch-heading { display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 1.5rem; }
+.watch-heading { margin-bottom: 1.25rem; }
+.watch-caption { margin: .75rem 0 .25rem; font-size: .85rem; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); }
+.toast-viewport { position: fixed; z-index: 120; bottom: max(1rem, env(safe-area-inset-bottom)); right: 1rem; width: min(390px, calc(100vw - 2rem)); display: grid; gap: .65rem; pointer-events: none; }
+.toast-message { display: flex; align-items: flex-start; gap: .7rem; padding: 1rem; border: 1px solid var(--border-hover); border-radius: 12px; background: var(--card); color: var(--foreground); box-shadow: 0 8px 28px #0003; font-size: .8rem; line-height: 1.5; pointer-events: auto; }
+.toast-message p { flex: 1; }
+.toast-message button { display: inline-flex; padding: .15rem; color: var(--muted-foreground); cursor: pointer; }
+.toast-message button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .watch-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.75rem; align-items: start; }
 .watch-primary { min-width: 0; }
 .watch-primary .video-container { overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: #050505; }
