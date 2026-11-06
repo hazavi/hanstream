@@ -112,7 +112,19 @@ export async function availablePlayerServers<T extends { url: string }>(
       state: await check(server.url),
     })),
   );
+  const preferred = (process.env.PLAYER_PREFERRED_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim());
+  const priority = (server: T) => {
+    try {
+      const index = preferred.indexOf(new URL(server.url).origin);
+      return index < 0 ? preferred.length : index;
+    } catch {
+      return preferred.length;
+    }
+  };
   return results
     .filter((result) => result.state !== "missing")
-    .map((result) => result.server);
+    .map((result) => result.server)
+    .sort((a, b) => priority(a) - priority(b));
 }

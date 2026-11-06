@@ -228,7 +228,6 @@ export function WatchPage({
       >
         <div ref={frameRoot} className="watch-primary">
           <EpisodePlayer
-            preferenceKey={slug}
             key={`${slug}/${episode}/${playback.video}`}
             video={playback.video}
             servers={playback.servers}

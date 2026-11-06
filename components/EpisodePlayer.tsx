@@ -13,14 +13,12 @@ export function EpisodePlayer({
   title,
   caption,
   navigation,
-  preferenceKey,
 }: {
   video: string;
   servers?: { name: string; url: string }[];
   title: string;
   caption?: ReactNode;
   navigation?: ReactNode;
-  preferenceKey?: string;
 }) {
   const [selected, setSelected] = useState(() => safeEmbedUrl(video));
   const [status, setStatus] = useState<"loading" | "ready" | "slow" | "failed">(
@@ -33,26 +31,8 @@ export function EpisodePlayer({
   const availableServers = (Array.isArray(servers) ? servers : []).filter(
     (server) => server && safeEmbedUrl(server.url),
   );
-  const serverKey = JSON.stringify(
-    availableServers.map((server) => server.url),
-  );
-  useEffect(() => {
-    if (!preferenceKey) return;
-    try {
-      const saved = localStorage.getItem(
-        "hanstream-player-v2:" + preferenceKey,
-      );
-      if (saved === null) return;
-      const index = Number(saved);
-      const values = JSON.parse(serverKey) as string[];
-      if (Number.isInteger(index) && index >= 0 && values[index]) {
-        setStatus("loading");
-        setSelected(values[index]);
-      }
-    } catch {
-      /* Preferences never block playback. */
-    }
-  }, [preferenceKey, serverKey]);
+  // A saved server index can point to a different or broken upload after a source
+  // update. Start each episode with the reader's current preferred server.
   useEffect(() => {
     const timer = setTimeout(
       () => setStatus((current) => (current === "loading" ? "slow" : current)),
@@ -78,15 +58,6 @@ export function EpisodePlayer({
     setStatus("loading");
     setSelected(safeEmbedUrl(server.url));
     setReload((value) => value + 1);
-    try {
-      if (preferenceKey)
-        localStorage.setItem(
-          "hanstream-player-v2:" + preferenceKey,
-          String(index),
-        );
-    } catch {
-      /* Session selection still works. */
-    }
   }
   function failed() {
     if (selected) failedServers.current.add(selected);
