@@ -8,7 +8,6 @@ import {
   readerTiming,
   type ReaderJob,
 } from "../lib/reader-protocol";
-import { executeReaderJob } from "../lib/source-handler";
 
 export type WorkerOptions = {
   execute?: (job: ReaderJob) => Promise<unknown>;
@@ -21,7 +20,12 @@ export async function startReaderWorker(options: WorkerOptions = {}) {
     throw new Error("The source worker must run outside Vercel.");
   const url = cacheConnectionUrl();
   const root = readerNamespace();
-  const execute = options.execute || executeReaderJob;
+  const execute =
+    options.execute ||
+    ((job: ReaderJob) =>
+      import("../lib/source-handler").then((module) =>
+        module.executeReaderJob(job),
+      ));
   const total = Math.min(4, Math.max(2, options.concurrency || 3));
   let stopping = false;
   const clients: Array<{ isOpen: boolean; isReady: boolean; destroy(): void }> =

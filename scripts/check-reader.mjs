@@ -19,7 +19,7 @@ import {cacheCommand} from '../lib/persistent-cache';
 
 process.env.READER_NAMESPACE='check-'+randomUUID();
 delete process.env.VERCEL;process.env.HANSTREAM_ROLE='reader';
-const redis=createClient({url:process.env.CACHE_URL});redis.on('error',()=>{});await redis.connect();
+const redis=createClient({url:process.env.CACHE_URL,socket:{connectTimeout:1000,reconnectStrategy:false}});redis.on('error',()=>{});await redis.connect();
 let release;const blocked=new Promise(resolve=>{release=resolve;});let normalStarted=0,calls=0;
 let worker;
 async function eventually(task,timeout=10_000){const end=Date.now()+timeout;while(true){try{return await task();}catch(error){if(Date.now()>end)throw error;await new Promise(r=>setTimeout(r,25));}}}
