@@ -25,8 +25,8 @@ export async function checkNativeMedia(page,api) {
     assert.notEqual(access,'granted','Remote media gained library access');
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
     assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
-    await context.route('https://doubleclick.net/**',route=>route.fulfill({contentType:'application/javascript',body:'window.advertisingScriptExecuted=true'}));
-    const advertising=await media.evaluate(()=>new Promise(resolve=>{const script=document.createElement('script');script.src='https://doubleclick.net/player-protection-check.js';script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}));
+    await context.route('https://ad.doubleclick.net/**',route=>route.fulfill({contentType:'application/javascript',body:'window.advertisingScriptExecuted=true'}));
+    const advertising=await media.evaluate(()=>new Promise(resolve=>{const script=document.createElement('script');script.src='https://ad.doubleclick.net/player-protection-check.js';script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}));
     assert.equal(advertising,'blocked','Known advertising request was not blocked');
     assert.equal(await media.evaluate(()=>Boolean(window.advertisingScriptExecuted)),false,'Advertising script executed');
     await media.evaluate(()=>window.close());
