@@ -34,9 +34,11 @@ export async function checkNativeMedia(page,api) {
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
     assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
     // Known advertising rules are checked at native automation startup. Use a
-    // reserved literal address here so browser tracker lists cannot mask interception.
+    // public literal address: reserved/private IPs can be denied by browser local-
+    // network permissions before the native filter sees the request. Still require
+    // our own 403 and marker header, so browser blocking cannot pass this check.
     // Do not mock this request: DevTools fulfillment can override a native response.
-    const probe='https://203.0.113.1/player-protection-check.js';
+    const probe='https://1.1.1.1/player-protection-check.js';
     const blockedResponse=media.waitForResponse(response=>response.url()===probe,{timeout:10000});
     const [advertising,protectedResponse]=await Promise.all([
       media.evaluate(url=>new Promise(resolve=>{const script=document.createElement('script');script.src=url;script.onload=()=>resolve('loaded');script.onerror=()=>resolve('blocked');document.head.append(script);}),probe),
