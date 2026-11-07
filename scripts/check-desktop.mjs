@@ -50,7 +50,11 @@ try {
     const complete = new Promise((resolve,reject) => {helper.on('error',reject);helper.on('exit',code=>code===0?resolve():reject(new Error(output || 'Native export check failed')));});
     void complete.catch(()=>{});
     await page.getByRole('button',{name:'Export library',exact:true}).click();
-    await complete;
+    try { await complete; }
+    catch (error) {
+      const feedback = await page.getByRole('region',{name:'Manage saved library',exact:true}).innerText();
+      throw new Error(`${error.message}\nApp export feedback: ${feedback}`, {cause:error});
+    }
     await page.getByRole('button',{name:'Export library',exact:true}).waitFor();
     assert.ok(await page.getByRole('button',{name:'Export library',exact:true}).isEnabled());
   };

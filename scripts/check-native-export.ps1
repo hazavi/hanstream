@@ -17,10 +17,11 @@ namespace HanStreamCi {
     private delegate bool EnumProc(IntPtr window, IntPtr parameter);
     [DllImport("user32.dll")] private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
     [DllImport("user32.dll")] private static extern int GetDlgCtrlID(IntPtr window);
-    [DllImport("user32.dll")] private static extern IntPtr GetParent(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr window, EnumProc callback, IntPtr parameter);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder text, int count);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wparam, string value);
+    [DllImport("user32.dll", EntryPoint="SendMessageW")] private static extern IntPtr SendMessageValue(IntPtr window, uint message, IntPtr wparam, IntPtr lparam);
     [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, uint message, IntPtr wparam, IntPtr lparam);
     private static string ClassName(IntPtr window){var text=new StringBuilder(256);GetClassName(window,text,text.Capacity);return text.ToString();}
     private static IntPtr Find(IntPtr dialog,string className,int id){IntPtr found=IntPtr.Zero;EnumChildWindows(dialog,(window,parameter)=>{if(GetDlgCtrlID(window)==id && ClassName(window)==className){found=window;return false;}return true;},IntPtr.Zero);return found;}
@@ -41,7 +42,7 @@ namespace HanStreamCi {
       return IntPtr.Zero;
     }
     public static bool SetFileName(IntPtr dialog,string path){var edit=FileName(dialog);return edit!=IntPtr.Zero && SendMessage(edit,0x000C,IntPtr.Zero,path)!=IntPtr.Zero;}
-    public static bool Click(IntPtr dialog,int id){var button=Find(dialog,"Button",id);return button!=IntPtr.Zero && PostMessage(GetParent(button),0x0111,(IntPtr)id,button);}
+    public static bool Click(IntPtr dialog,int id){var button=Find(dialog,"Button",id);if(button==IntPtr.Zero)return false;SetForegroundWindow(dialog);SendMessageValue(dialog,0x0028,button,(IntPtr)1);return PostMessage(button,0x00F5,IntPtr.Zero,IntPtr.Zero);}
     public static string Describe(IntPtr dialog){var controls=new List<string>();EnumChildWindows(dialog,(window,parameter)=>{controls.Add(ClassName(window)+":"+GetDlgCtrlID(window));return true;},IntPtr.Zero);return string.Join(", ",controls);}
   }
 }

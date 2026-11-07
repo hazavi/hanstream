@@ -1,0 +1,45 @@
+name: Desktop runtime verification
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Windows desktop workflow run containing the isolated QA build
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      DESKTOP_API_BASE_URL: ${{ vars.API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: HanStream-QA-*
+          merge-multiple: true
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: qa-harness
+      - run: npm ci
+      - name: Verify native app without recompilation
+        shell: pwsh
+        run: |
+          . ./scripts/desktop-window-check.ps1
+          $binary = Get-ChildItem -LiteralPath './qa-harness' -Recurse -Filter 'hanstream-automation.exe'
+          if (@($binary).Count -ne 1) { throw 'Expected one isolated QA executable.' }
+          $env:HANSTREAM_TEST_DATA_DIR = Join-Path $env:RUNNER_TEMP 'hanstream-runtime-check'
+          $app = Start-Process -FilePath $binary.FullName -WindowStyle Hidden -PassThru
+          $env:HANSTREAM_TEST_PROCESS_ID = $app.Id
+          try {
+            node scripts/check-desktop.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'Native runtime check failed.' }
+            if (!(Close-HanStreamWindow -AppProcessId $app.Id) -or !$app.WaitForExit(15000)) { throw 'Closing the app left its process running.' }
+          } finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }
