@@ -6,15 +6,14 @@ $target=[IO.Path]::GetFullPath($SavePath)
 if (!$target.StartsWith($root+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetExtension($target) -ne '.json') {throw 'Export fixture must be a JSON file in the runner temporary directory.'}
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
-$condition=[Windows.Automation.AndCondition]::new([Windows.Automation.Condition[]]@(
-  (New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ProcessIdProperty,$AppProcessId)),
-  (New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::NameProperty,'Export library')),
-  (New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
-))
+. "$PSScriptRoot/desktop-window-check.ps1"
 $deadline=[DateTime]::UtcNow.AddSeconds(30)
 $dialog=$null
 while (!$dialog -and [DateTime]::UtcNow -lt $deadline) {
-  $dialog=[Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Descendants,$condition)
+  # The shell folder view can share the dialog's title and report itself as a
+  # Window to UIA. Start from the real top-level HWND, not that nested fragment.
+  $handle=[HanStreamCi.Window]::Find($AppProcessId,'Export library')
+  if ($handle -ne [IntPtr]::Zero) {$dialog=[Windows.Automation.AutomationElement]::FromHandle($handle)}
   if (!$dialog) {Start-Sleep -Milliseconds 150}
 }
 if (!$dialog) {throw 'Export did not open a native Save As dialog.'}
@@ -38,7 +37,10 @@ if ($Cancel) {
   # Common Item Dialog controls initialize after its top-level window appears.
   # Windows builds expose the filename edit through either a name or numeric ID.
   $filename=Wait-DialogControl ([Windows.Automation.AndCondition]::new(
-    [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Edit),
+    [Windows.Automation.OrCondition]::new(
+      [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Edit),
+      [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::ComboBox)
+    ),
     [Windows.Automation.OrCondition]::new([Windows.Automation.Condition[]]@(
       [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty,'File name:'),
       [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty,'File name'),
