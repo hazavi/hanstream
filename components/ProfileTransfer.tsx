@@ -45,7 +45,7 @@ export function ProfileTransfer() {
     <div className="flex flex-wrap gap-3">
       <button type="button" className="glass-btn gap-2 px-4" disabled={!profile} onClick={download}><Download size={16} aria-hidden="true" />Export library</button>
       <button type="button" className="glass-btn gap-2 px-4" disabled={!profile} onClick={() => input.current?.click()}><Upload size={16} aria-hidden="true" />Import library</button>
-      <button type="button" className="glass-btn gap-2 px-4" disabled={!profile} onClick={() => setPending('delete')}><Trash2 size={16} aria-hidden="true" />Delete saved data</button>
+      <button type="button" className="glass-btn danger-button gap-2 px-4" disabled={!profile} onClick={() => setPending('delete')}><Trash2 size={16} aria-hidden="true" />Delete saved data</button>
       <input ref={input} type="file" accept="application/json,.json" aria-label="Library file" className="sr-only" onChange={upload} />
     </div>
     {persistenceError && <p role="alert" className="text-sm">{persistenceError}</p>}{error && <p role="alert" className="text-sm">{error}</p>}{message && <p role="status" className="text-sm text-secondary">{message}</p>}

@@ -36,10 +36,17 @@ try {
   });
   assert.equal(saved.cache.ok,true);
   await page.reload({waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:'Open Plan to watch folder',exact:true}).click();
   await page.getByText('Storage check',{exact:true}).first().waitFor();
   assert.equal(await page.evaluate(() => localStorage.getItem('hanstream-local-profile')),null,'Desktop library must live in SQLite');
   assert.equal((await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('library_load'))).watchlist[0].title,'Storage check','Existing library must migrate into SQLite');
-  await page.getByRole('button',{name:'Remove',exact:true}).click();
+  await page.getByText('Storage check',{exact:true}).first().hover();
+  await page.getByRole('button',{name:'Remove Storage check from watchlist',exact:true}).click();
+  await page.getByRole('alertdialog',{name:'Remove from watchlist?'}).waitFor();
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  assert.equal((await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('library_load'))).watchlist.length,1,'Cancelling removal changed the saved library');
+  await page.getByRole('button',{name:'Remove Storage check from watchlist',exact:true}).click();
+  await page.getByRole('button',{name:'Remove drama',exact:true}).click();
   await page.waitForFunction(async () => (await window.__TAURI_INTERNALS__.invoke('library_load')).watchlist.length === 0);
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'light');

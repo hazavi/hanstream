@@ -6,6 +6,7 @@ import { DramaCard } from "./DramaCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import type { PopularItem } from "@/lib/api";
 import Link from "next/link";
+import { Trash2 } from 'lucide-react';
 
 export function ContinueWatching() {
   const { getContinueWatching, removeFromContinueWatching, profile } =
@@ -149,7 +150,7 @@ export function ContinueWatching() {
               return (
                 <div
                   key={item.slug}
-                  className="relative group/card flex-shrink-0 w-[160px] sm:w-[180px]"
+                  className="library-card relative group/card flex-shrink-0 w-[160px] sm:w-[180px]"
                 >
                   <DramaCard
                     item={
@@ -169,22 +170,12 @@ export function ContinueWatching() {
                       e.stopPropagation();
                       handleRemoveClick(item.title, item.slug);
                     }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-200 z-10 hover:bg-black/20 cursor-pointer"
+                    className="library-remove danger-button"
+                    type="button"
+                    aria-label={`Remove ${item.title} from continue watching`}
                     title="Remove from continue watching"
                   >
-                    <svg
-                      className="w-4 h-4 text-white drop-shadow-lg"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <Trash2 size={17} aria-hidden="true" />
                   </button>
 
                   {/* Episode info overlay - top left, only shown on hover */}

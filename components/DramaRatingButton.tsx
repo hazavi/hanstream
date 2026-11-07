@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useProfile } from "@/lib/profile";
 import { Portal } from "./Portal";
 import Image from "next/image";
+import { X } from 'lucide-react';
 
 interface DramaRatingButtonProps {
   slug: string;
@@ -90,21 +91,10 @@ export function DramaRatingButton({
                 </h3>
                 <button
                   onClick={() => setShowRatingModal(false)}
-                  className="close-btn"
+                  type="button" aria-label="Close rating"
+                  className="close-btn rating-close-button"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X size={20} aria-hidden="true" />
                 </button>
               </div>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useProfile } from "@/lib/profile";
 import { WatchStatus } from "@/lib/types";
 import { Portal } from "./Portal";
+import { X } from 'lucide-react';
 
 interface WatchlistButtonProps {
   slug: string;
@@ -272,7 +273,7 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
                       removeFromWatchlist(slug);
                       setIsOpen(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left text-neutral-500 hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-all duration-150"
+                    className="danger-button w-full gap-2.5 px-2.5 py-2 text-left"
                   >
                     <svg
                       className="w-4 h-4"
@@ -308,21 +309,10 @@ export function WatchlistButton({ slug, title, image }: WatchlistButtonProps) {
                 <h3 className="text-lg font-semibold">Rate this Drama</h3>
                 <button
                   onClick={() => setShowRatingModal(false)}
-                  className="close-btn"
+                  type="button" aria-label="Close rating"
+                  className="close-btn rating-close-button"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X size={20} aria-hidden="true" />
                 </button>
               </div>
 
