@@ -141,7 +141,7 @@ jobs:
 
       - name: Retain isolated automation harness for playback QA
         uses: actions/upload-artifact@v4
-        if: inputs.signed != true && success()
+        if: inputs.signed != true && always()
         with:
           name: HanStream-QA-${{ github.sha }}
           retention-days: 1
