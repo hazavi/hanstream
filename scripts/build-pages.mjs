@@ -28,7 +28,7 @@ await cp(path.join(root,"components/ui"),path.join(stage,"components/ui"),{recur
 for (const name of await readdir(path.join(stage, 'components/ui'))) {
   if (name.endsWith('.tsx')) await writeFile(path.join(stage,'components/ui',name),adapt(await readFile(path.join(stage,'components/ui',name),'utf8')));
 }
-for (const name of ["home-data.ts", "native.ts", "client-cache.ts", "profile-storage.ts", "detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "profile-transfer.ts", "request-validation.ts", "request-retry.ts", "playback-response.ts", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
+for (const name of ["catalog-response.ts", "home-data.ts", "native.ts", "client-cache.ts", "profile-storage.ts", "detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "profile-transfer.ts", "request-validation.ts", "request-retry.ts", "playback-response.ts", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
 await writeFile(path.join(stage, "lib/api-client.ts"), 'export { fetchSearchClient } from "./pages-client";\n');
 await writeFile(path.join(stage, "lib/site-link.tsx"), `"use client";
 import Link from "next/link";

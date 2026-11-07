@@ -4,7 +4,7 @@
 
 `npm run check:secrets` checks tracked files for common credential and private-key formats and for private values present in the process environment. It reports filenames, not matched values. It is a safety check, not a complete secret detector. Enable repository secret scanning where available as another layer.
 
-The security workflow audits all npm dependencies, checks types, runs the regression suite, scans tracked files, and compiles the backend using non-secret placeholder origins. The Pages workflow also audits production dependencies and verifies the final public artifact. Keep dependency patches small and run these checks after updates. The current audit reports zero findings across production and development dependencies.
+The security workflow audits npm and Rust dependencies, checks types, scans tracked files, checks reader queues and player filtering, verifies the Vercel source-reader boundary, and compiles the backend using non-secret placeholder origins. The Windows workflow tests installation, uninstallation, native storage and player isolation. Local regression tests are kept outside Git as requested. The current npm audit reports zero findings across production and development dependencies.
 
 The lint parser and plugin are pinned to the current ESLint-9-compatible releases. Their nested glob matcher is overridden to the patched minimatch 11 release; targeted lint checks pass. This avoids the old parser version selected by the automatic audit fix. Recheck that override when upgrading the lint toolchain.
 
@@ -41,4 +41,8 @@ The Vercel build replaces the source-handler import with a disabled module. A bu
 
 On Vercel, rate limits use the platform-overwritten x-vercel-forwarded-for header. Other hosts retain explicit proxy-trust settings. See [Vercel request headers](https://vercel.com/docs/headers/request-headers). Cached job results never contain source configuration or personal library data. Playback results have short transport expiry and no HTTP/durable client caching.
 
-Desktop player requests pass a pinned advertising-host filter before navigation. Popups, downloads, dialogs, and remote library access remain denied. Browser iframe sandboxing prevents popups; the optional scoped extension adds network filtering. See [player protection](player-protection.md) and [Vercel deployment](vercel-deployment.md).
+Desktop player requests pass a pinned advertising-host filter before navigation. Popups, downloads, dialogs, and remote library access remain denied. Browser iframe sandboxing prevents popups. See [player protection](player-protection.md).
+
+Catalog JSON is limited to 2 MB while streaming, even when Content-Length is absent or incorrect. Malformed result shapes are rejected before rendering or cache writes, and malformed persisted results are ignored. API requests omit credentials and reject redirects. Both persistent-cache adapters exclude search and playback paths. Browser cache entries use byte limits and expire within one day.
+
+Release assets include SHA-256 checksums. A checksum verifies file integrity; it is not a code-signing certificate. Windows installers remain unsigned until signing credentials are configured, and automatic updates stay disabled in these builds.

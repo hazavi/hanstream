@@ -6,6 +6,7 @@ import { readLocalResponse, storeLocalResponse } from './client-cache';
 import { hasHomeContent, mergeHomeData, type HomeData } from './home-data';
 import { BackendRequestError } from './request-retry';
 import { isPlaybackResponse } from './playback-response';
+import { readCatalogJson, validCatalogResponse } from './catalog-response';
 
 const responses = new Map<string, { expires: number; staleUntil: number; value: unknown }>();
 const pending = new Map<string, Promise<unknown>>();
@@ -19,7 +20,7 @@ function notify(key:string) { listeners.get(key)?.forEach(listener=>listener());
 let generation = 0;
 let waking:Promise<void>|undefined;
 function wakeBackend() {
-  if (!waking) waking=fetch(address('/api/health'),{signal:AbortSignal.timeout(40_000),credentials:'omit',cache:'no-store'}).then(response=>{if(!response.ok)throw new Error('The catalog service could not start. Please retry shortly.');}).finally(()=>{waking=undefined;});
+  if (!waking) waking=fetch(address('/api/health'),{signal:AbortSignal.timeout(40_000),credentials:'omit',cache:'no-store',redirect:'error'}).then(response=>{if(!response.ok)throw new Error('The catalog service could not start. Please retry shortly.');}).finally(()=>{waking=undefined;});
   return waking;
 }
 export function clearBackendCache() { generation++; responses.clear(); pending.clear(); }
@@ -55,7 +56,7 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
     const timeout = AbortSignal.timeout(search ? 30_000 : 90_000);
     const started = generation;
     const requestSignal = search && signal ? AbortSignal.any([signal, timeout]) : timeout;
-    const fetchCurrent=(uncached=false)=>fetch(key,{signal:AbortSignal.any([requestSignal,AbortSignal.timeout(search?8000:15000)]),credentials:'omit',...(uncached?{cache:'no-store' as const}:{})});
+    const fetchCurrent=(uncached=false)=>fetch(key,{signal:AbortSignal.any([requestSignal,AbortSignal.timeout(search?8000:15000)]),credentials:'omit',redirect:'error',...(uncached?{cache:'no-store' as const}:{})});
     const request = (async () => {
       if (!search && !episode && !saved && !options.fresh) {
         let cacheTimer:ReturnType<typeof setTimeout>|undefined;
@@ -63,14 +64,14 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
         const localRequest=readLocalResponse(key);
         const local = await Promise.race([localRequest,new Promise<undefined>(resolve=>{cacheTimer=setTimeout(()=>{cacheSlow=true;resolve(undefined);},300);})]).finally(()=>clearTimeout(cacheTimer));
         if(cacheSlow) void localRequest.then(record=>{
-          if(!record || record.expires<=Date.now() || generation!==started)return;
+          if(!record || record.expires<=Date.now() || generation!==started || !validCatalogResponse(path,record.value))return;
           const current=responses.get(key);
           if(current && !(path==='/api/home'&&(current.value as HomeData)?.partial) && !(drama&&detailNeedsRefresh(current.value as DramaResponse)))return;
           const value=current ? drama?mergeDramaResponse(record.value as DramaResponse,current.value as DramaResponse):path==='/api/home'?mergeHomeData(record.value as HomeData,current.value as HomeData):current.value : record.value;
           saved={value,expires:current?.expires || record.savedAt,staleUntil:record.expires};
           responses.set(key,saved);notify(key);
         }).catch(()=>{});
-        if (local && local.expires > Date.now()) {
+        if (local && local.expires > Date.now() && validCatalogResponse(path,local.value)) {
           saved = {value:local.value,expires:Math.min(local.expires,local.savedAt+(drama ? 300_000 : 30_000)),staleUntil:local.expires};
           responses.set(key,saved);
           notify(key);
@@ -105,14 +106,16 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
         response=await fetchCurrent(true);
         if(!response.ok)throw new BackendRequestError('The catalog reader could not load this request. Please retry shortly.', response.status >= 500 || response.status === 429);
       }
-      const raw = await response.json();
+      let raw = await readCatalogJson(response);
       if (episode && !isPlaybackResponse(raw)) throw new BackendRequestError('The episode is still loading.');
-      const value = drama ? mergeDramaResponse(saved?.value as DramaResponse | undefined, raw) : path==='/api/home' ? mergeHomeData(saved?.value as HomeData|undefined,raw) : raw;
-      const partial = path === '/api/home' && value?.partial === true;
-      const ttl = drama ? detailNeedsRefresh(value) ? 15_000 : 300_000 : partial ? 10_000 : 30_000;
-      if (generation===started && (!episode || value?.result?.video)) {
+      if (episode && isPlaybackResponse(raw) && 'drama' in raw && raw.drama != null && !validCatalogResponse('/api/drama/', {result: raw.drama})) raw = {...raw, drama: undefined};
+      if (!episode && !validCatalogResponse(path,raw)) throw new BackendRequestError('The catalog returned incomplete data.');
+      const value = drama ? mergeDramaResponse(saved?.value as DramaResponse | undefined, raw as DramaResponse) : path==='/api/home' ? mergeHomeData(saved?.value as HomeData|undefined,raw as HomeData) : raw;
+      const partial = path === '/api/home' && (value as HomeData)?.partial === true;
+      const ttl = drama ? detailNeedsRefresh(value as DramaResponse) ? 15_000 : 300_000 : partial ? 10_000 : 30_000;
+      if (generation===started && (!episode || isPlaybackResponse(value) && value.result.video)) {
         responses.delete(key);
-        const durable = !search && !episode && (path==='/api/home'?hasHomeContent(value):!partial&&!(drama&&detailNeedsRefresh(value)));
+        const durable = !search && !episode && (path==='/api/home'?hasHomeContent(value as HomeData):!partial&&!(drama&&detailNeedsRefresh(value as DramaResponse)));
         const record = {value,expires:Date.now()+ttl,staleUntil:Date.now()+(durable?86_400_000:ttl)};
         responses.set(key, record);
         notify(key);

@@ -1,12 +1,12 @@
 "use client";
 
 import { Artwork } from "./Artwork";
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from "next/link";
 import type { DramaDetail, DramaEpisode, DramaResponse } from "@/lib/api-types";
 import { detailNeedsRefresh, mergeDramaResponse } from '@/lib/detail-cache';
 import { readBackend } from '@/lib/pages-client';
-import { Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { DramaMedia } from './DramaMedia';
 import { Breadcrumb } from "./Breadcrumb";
 import { DescriptionSection } from "./DescriptionSection";
@@ -22,9 +22,9 @@ function airDate(value?: string) {
   return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Copenhagen" });
 }
 
-function EpisodeCard({ episode, posters,slug }: { episode: DramaEpisode; posters: (string | undefined)[];slug:string }) {
-  const id=episode.episode_link.split('/').pop()||String(episode.episode);
-  const watched=useEpisodeHistory(slug).watched.includes(canonicalEpisode(id));
+const episodesPerPage = 24;
+
+function EpisodeCard({ episode, posters, watched }: { episode: DramaEpisode; posters: (string | undefined)[]; watched: boolean }) {
   const future = Boolean(episode.release_date && Date.parse(episode.release_date) > Date.now() || episode.available === false && !episode.release_date);
   const available = episode.available !== false && !future;
   const label = `Episode ${episode.episode}`;
@@ -49,7 +49,14 @@ function EpisodeCard({ episode, posters,slug }: { episode: DramaEpisode; posters
 
 export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDetail; slug: string }) {
   const [recovered, setRecovered] = useState<{initial:DramaDetail;slug:string;detail:DramaDetail}>();
+  const [episodePage, setEpisodePage] = useState({ slug, index: 0 });
+  const history = useEpisodeHistory(slug);
+  const watched = useMemo(() => new Set(history.watched), [history.watched]);
   const detail = recovered?.slug===slug && recovered.initial===initialDetail ? recovered.detail : initialDetail;
+  const episodes = detail.episodes || [];
+  const pageCount = Math.max(1, Math.ceil(episodes.length / episodesPerPage));
+  const page = Math.min(episodePage.slug === slug ? episodePage.index : 0, pageCount - 1);
+  const visibleEpisodes = episodes.slice(page * episodesPerPage, (page + 1) * episodesPerPage);
   useEffect(() => {
     if (!detailNeedsRefresh({result:initialDetail})) return;
     const controller = new AbortController();
@@ -93,9 +100,17 @@ export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDet
 
     </div>
     <div className="detail-media-row"><DramaMedia key={slug} cast={cast} trailer={detail.trailer} facts={facts}/></div>
-    <section aria-labelledby="episodes-heading" className="space-y-5"><h2 id="episodes-heading" className="text-xl sm:text-2xl font-bold heading">Episodes ({detail.episodes?.length || 0})</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">{detail.episodes?.map(episode => <EpisodeCard key={episode.episode_link} episode={episode} posters={posters} slug={slug}/>)}</div>
-      {!detail.episodes?.length && <p className="source-empty">No episodes are listed yet.</p>}
+    <section aria-labelledby="episodes-heading" className="space-y-5"><h2 id="episodes-heading" className="text-xl sm:text-2xl font-bold heading">Episodes ({episodes.length})</h2>
+      {pageCount > 1 && <nav aria-label="Episode pages" className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-secondary" role="status">{page * episodesPerPage + 1}–{Math.min((page + 1) * episodesPerPage, episodes.length)} of {episodes.length}</p>
+        <div className="flex min-w-0 items-center gap-2">
+          <button type="button" className="episode-icon-button" aria-label="Previous episode page" disabled={page === 0} onClick={() => setEpisodePage({slug, index: page - 1})}><ChevronLeft size={16} aria-hidden="true"/></button>
+          <select aria-label="Episode page" className="episode-select" value={page} onChange={event => setEpisodePage({slug, index: Number(event.target.value)})}>{Array.from({length: pageCount}, (_, index) => <option key={index} value={index}>Episodes {index * episodesPerPage + 1}–{Math.min((index + 1) * episodesPerPage, episodes.length)}</option>)}</select>
+          <button type="button" className="episode-icon-button" aria-label="Next episode page" disabled={page === pageCount - 1} onClick={() => setEpisodePage({slug, index: page + 1})}><ChevronRight size={16} aria-hidden="true"/></button>
+        </div>
+      </nav>}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">{visibleEpisodes.map(episode => <EpisodeCard key={episode.episode_link} episode={episode} posters={posters} watched={watched.has(canonicalEpisode(episode.episode_link.split('/').pop() || String(episode.episode)))}/>)}</div>
+      {!episodes.length && <p className="source-empty">No episodes are listed yet.</p>}
     </section>
   </div>;
 }
