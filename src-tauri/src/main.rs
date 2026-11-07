@@ -31,6 +31,16 @@ fn main() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
+        .on_window_event(|window, event| {
+            if window.label() == "main"
+                && matches!(event, tauri::WindowEvent::CloseRequested { .. })
+            {
+                // The isolated media surface must not keep the process alive after
+                // the only app window closes. Exit also releases SQLite and WebView2.
+                media::close_active(window.app_handle());
+                window.app_handle().exit(0);
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             storage::library_load,
             storage::library_save,

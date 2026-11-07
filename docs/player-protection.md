@@ -4,6 +4,8 @@ The Windows player uses a separate unprivileged WebView2 surface. It installs HT
 
 Popups, new windows, downloads, device permissions, and script dialogs are blocked. A fixed local document-start script also prevents popup/close/print calls and new-tab anchor navigation. Navigation is limited to approved HTTPS origins and the selected player's path. Browser security and SmartScreen remain enabled. Player pages never receive library permissions.
 
+The desktop script hides explicitly marked advertising containers and disables the empty, high-stacking click shield observed on a player. It restores its local stylesheet if the player replaces the document head. It does not hide generic overlays, player controls, subtitles, or verification challenges. The native request filter blocks known advertising hosts before those scripts can create their widgets. Ads merged into the video itself cannot be filtered this way.
+
 The browser player blocks popups, new tabs, downloads, and top-level navigation through its iframe sandbox. No extension or ad-filter download is required. Fullscreen uses the iframe's permissions attribute without a duplicate legacy attribute. Delay and server notices use short-lived, dismissible toasts.
 
 A webpage cannot inspect another origin's player DOM or filter its internal network requests. Browser extensions may still report blocked advertising requests in developer tools; those messages do not mean the app's popup blocker failed. The sandbox does not grant third-party storage access to silence provider warnings. Deleted uploads and provider challenges cannot be repaired by disabling browser protection.

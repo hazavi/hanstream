@@ -33,6 +33,22 @@ export async function checkNativeMedia(page,api) {
     assert.notEqual(access,'granted','Remote media gained library access');
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
     assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
+    const overlays = await media.evaluate(async () => {
+      const ad = document.createElement('div'); ad.className = 'video-ad-overlay'; ad.textContent = 'Advertising';
+      const controls = document.createElement('div'); controls.className = 'vjs-control-bar'; controls.textContent = 'Play';
+      const captcha = document.createElement('div'); captcha.className = 'grecaptcha-badge'; captcha.textContent = 'Verification';
+      const shield = document.createElement('div'); shield.style.cssText = 'position:absolute;inset:0;z-index:2147483646';
+      document.body.append(ad, controls, captcha, shield);
+      document.querySelector('#hanstream-player-protection').remove();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const result = {ad: getComputedStyle(ad).display, controls: getComputedStyle(controls).display, captcha: getComputedStyle(captcha).display, shield: getComputedStyle(shield).pointerEvents};
+      ad.remove(); controls.remove(); captcha.remove(); shield.remove();
+      return result;
+    });
+    assert.equal(overlays.ad, 'none', 'Dynamically inserted advertising overlay was visible');
+    assert.notEqual(overlays.controls, 'none', 'Player controls were hidden');
+    assert.notEqual(overlays.captcha, 'none', 'Verification challenge was hidden');
+    assert.equal(overlays.shield, 'none', 'Transparent advertising click shield intercepted playback');
     // Known advertising rules are checked at native automation startup. Use a
     // public literal address: reserved/private IPs can be denied by browser local-
     // network permissions before the native filter sees the request. Still require

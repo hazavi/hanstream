@@ -12,12 +12,31 @@
   };
   document.addEventListener('click', preventNewTab, true);
   document.addEventListener('auxclick', preventNewTab, true);
+  // Keep selectors limited to advertising widgets. Never hide generic overlays,
+  // video controls, subtitles, loading indicators, or verification challenges.
+  const style = document.createElement('style');
+  style.id = 'hanstream-player-protection';
+  style.textContent = `
+    .adsbygoogle,[data-ad-slot],[data-ad-client],.adsterra-ad,[id^="adsterra-"],
+    .ad-overlay,.ads-overlay,.video-ad-overlay,.vjs-ad-container,
+    #ad-overlay,#ad-container,#ads-container,[data-ad-overlay],
+    iframe[title="Advertisement" i],iframe[title="Advertising" i]
+    {display:none!important;pointer-events:none!important}
+    div:empty[style*="z-index: 2147483646"],
+    div:empty[style*="z-index:2147483646"]
+    {pointer-events:none!important}
+  `;
   const addStyle = () => {
-    if (document.getElementById('hanstream-player-protection')) return;
-    const style = document.createElement('style'); style.id = 'hanstream-player-protection';
-    style.textContent = '.adsbygoogle,[data-ad-slot],[data-ad-client],.adsterra-ad,[id^="adsterra-"]{display:none!important;pointer-events:none!important}';
-    (document.head || document.documentElement)?.append(style);
+    if (!style.isConnected) (document.head || document.documentElement)?.append(style);
   };
-  if (document.documentElement) addStyle();
-  else document.addEventListener('DOMContentLoaded', addStyle, {once:true});
+  // A player can replace <head> after initial navigation. Reuse the same element
+  // and coalesce mutations instead of repeatedly scanning the entire document.
+  let queued = false;
+  const observer = new MutationObserver(() => {
+    if (style.isConnected || queued) return;
+    queued = true;
+    queueMicrotask(() => { queued = false; addStyle(); });
+  });
+  observer.observe(document, {childList:true, subtree:true});
+  addStyle();
 })();

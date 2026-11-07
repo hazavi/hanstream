@@ -16,9 +16,50 @@ if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
 if (!(Test-Path -LiteralPath (Join-Path $installDirectory 'hanstream.exe'))) { throw 'App was not installed in the chosen folder.' }
 $uninstaller = Join-Path $installDirectory 'uninstall.exe'
 if (!(Test-Path -LiteralPath $uninstaller)) { throw 'Uninstaller was not placed in the installation folder.' }
+# Closing the real app must exit its process, even though playback has a child WebView.
+$appPath = Join-Path $installDirectory 'hanstream.exe'
+$app = Start-Process -FilePath $appPath -WindowStyle Hidden -PassThru
+try {
+  $deadline = [DateTime]::UtcNow.AddSeconds(30)
+  do { Start-Sleep -Milliseconds 250; $app.Refresh() } while (!$app.HasExited -and $app.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
+  if ($app.HasExited -or !$app.CloseMainWindow()) { throw 'The installed app did not create a closable window.' }
+  if (!$app.WaitForExit(15000)) { throw 'Closing the app left its background process running.' }
+} finally { if (!$app.HasExited) { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue } }
+
+# A different portable copy with the same filename must not block uninstall.
+$fixtureDirectory = Join-Path $temporaryRoot 'hanstream-process-check'
+New-Item -ItemType Directory -Path $fixtureDirectory -Force | Out-Null
+$fixture = Join-Path $fixtureDirectory 'hanstream.exe'
+# Use a signed Windows executable as the process fixture. A generated invisible
+# sleeper can trigger antivirus heuristics and does not improve this path check.
+Copy-Item -LiteralPath (Join-Path $env:WINDIR 'System32/cmd.exe') -Destination $fixture -Force
+$otherCopy = Start-Process -FilePath $fixture -ArgumentList '/D','/K' -WindowStyle Hidden -PassThru
+# Restart Manager also reports non-app file handles. This handle permits deletion
+# and must not cause the uninstaller to try to terminate the PowerShell runner.
+$fileHolder = [IO.File]::Open($appPath, [IO.FileMode]::Open, [IO.FileAccess]::Read, ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+try {
 $process = Start-Process -FilePath $uninstaller -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "Uninstaller failed: $($process.ExitCode)" }
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 while ((Test-Path -LiteralPath (Join-Path $installDirectory 'hanstream.exe')) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 250 }
 if (Test-Path -LiteralPath (Join-Path $installDirectory 'hanstream.exe')) { throw 'Uninstall did not remove the application.' }
-Write-Output 'Installer directory page, optional desktop shortcut, selected folder, and local uninstaller passed.'
+$otherCopy.Refresh()
+if ($otherCopy.HasExited) { throw 'Uninstaller terminated a different portable installation.' }
+} finally { $fileHolder.Dispose(); if (!$otherCopy.HasExited) { Stop-Process -Id $otherCopy.Id } }
+
+# Repair an old release whose invisible process is still running in this exact
+# installation folder. Silent uninstall may stop that copy, and only that copy.
+$process = Start-Process -FilePath $installer.FullName -ArgumentList '/S','/NS',"/D=$installDirectory" -WindowStyle Hidden -Wait -PassThru
+if ($process.ExitCode -ne 0) { throw 'Reinstall for the orphan-process check failed.' }
+Copy-Item -LiteralPath $fixture -Destination $appPath -Force
+$orphan = Start-Process -FilePath $appPath -ArgumentList '/D','/K' -WindowStyle Hidden -PassThru
+try {
+  Start-Sleep -Milliseconds 500
+  $process = Start-Process -FilePath $uninstaller -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
+  if ($process.ExitCode -ne 0) { throw 'Uninstall could not close the exact installed background process.' }
+  if (!$orphan.WaitForExit(15000)) { throw 'Installed background process survived uninstall.' }
+  $deadline = [DateTime]::UtcNow.AddSeconds(30)
+  while ((Test-Path -LiteralPath $appPath) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 250 }
+  if (Test-Path -LiteralPath $appPath) { throw 'Uninstall left the background-process executable installed.' }
+} finally { if (!$orphan.HasExited) { Stop-Process -Id $orphan.Id -ErrorAction SilentlyContinue } }
+Write-Output 'Installer folder/shortcut, app close/exit, unrelated file handle, portable-copy isolation, background-process recovery, and local uninstaller passed.'

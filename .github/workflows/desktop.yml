@@ -114,6 +114,9 @@ jobs:
               Get-Content $log,$errorLog -ErrorAction SilentlyContinue
               throw 'Desktop smoke test failed.'
             }
+            $app.Refresh()
+            if ($app.HasExited -or !$app.CloseMainWindow()) { throw 'The native app did not expose a closable main window.' }
+            if (!$app.WaitForExit(15000)) { throw 'Closing the native window with active playback left a background process.' }
           }
           finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }
       - name: Include filter license notices

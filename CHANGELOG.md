@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1
+
+- Closing the desktop window explicitly closes the isolated player and exits the app.
+- Installer and uninstaller check the exact executable path, avoiding false running-app messages from scanners and Explorer file handles. A different portable copy is left alone.
+- Desktop player protection hides marked advertising overlays and disables the observed transparent click shield. It restores its stylesheet if the player replaces the document head, while preserving controls, subtitles, and verification prompts.
+- Windows checks now cover close/exit with active playback, unrelated file handles, portable-copy isolation, and removal of an installed background process.
+
+Browser iframe sandboxing blocks popups and navigation. It cannot remove banners inside a third-party player's document. These Windows downloads remain unsigned; manual updates and SHA-256 checksums are provided.
+
 ## 1.1.0
 
 - Replaced the navigation's library icon with a profile icon. The profile page still contains the saved library and import/export controls.

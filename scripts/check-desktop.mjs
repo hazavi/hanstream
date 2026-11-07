@@ -83,5 +83,11 @@ try {
   }).catch(() => page.url());
   assert.ok(escaped.startsWith('https://tauri.localhost'), 'External top-level navigation was allowed');
   assert.equal(runtimeErrors, 0, 'Desktop UI raised a runtime error');
+  // Leave a child player alive. The workflow closes the native main window and
+  // requires the process to exit, covering the invisible-process uninstall bug.
+  await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('media_open', {
+    session: crypto.randomUUID().replaceAll('-', ''), url: 'https://media.example/player',
+    x: 0, y: 0, width: 300, height: 200,
+  }));
   console.log('Desktop WebView2 origin, hydration, SQLite save/reload/delete, bounded cache, live partial-home recovery, offline catalog reopen, theme, and navigation restriction passed.');
 } finally { await browser.close(); }
