@@ -62,6 +62,9 @@ export async function checkNativeMedia(page,api) {
     // network permissions before the native filter sees the request. Still require
     // our own 403 and marker header, so browser blocking cannot pass this check.
     // Do not mock this request: DevTools fulfillment can override a native response.
+    // Remove fixture routing entirely: even an unmatched route enables CDP Fetch
+    // interception globally, which can hide WebView2's native filter responses.
+    await context.unrouteAll({behavior:'wait'});
     const probe='https://1.1.1.1/player-protection-check.js';
     const blockedResponse=media.waitForResponse(response=>response.url()===probe,{timeout:10000});
     const [advertising,protectedResponse]=await Promise.all([

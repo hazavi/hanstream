@@ -62,6 +62,7 @@ try {
   await nativeExport('hanstream-export-cancelled.json', true);
   await nativeExport('hanstream-export-second.json');
   assert.equal((await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('library_load'))).watchlist.length,1,'Export changed the saved library');
+  console.log('Native Save As exports to two chosen paths, cancellation, and preserved library history passed.');
   await page.getByText('Storage check',{exact:true}).first().hover();
   await page.getByRole('button',{name:'Remove Storage check from watchlist',exact:true}).click();
   await page.getByRole('alertdialog',{name:'Remove from watchlist?'}).waitFor();
