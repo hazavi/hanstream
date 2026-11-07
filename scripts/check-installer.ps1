@@ -40,6 +40,9 @@ $fileHolder = [IO.File]::Open($appPath, [IO.FileMode]::Open, [IO.FileAccess]::Re
 try {
 $process = Start-Process -FilePath $uninstaller -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "Uninstaller failed: $($process.ExitCode)" }
+# A delete-sharing handle permits DeleteFile but can defer physical removal until
+# it closes. Keep it open during the check, then release it before checking files.
+$fileHolder.Dispose()
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 while ((Test-Path -LiteralPath (Join-Path $installDirectory 'hanstream.exe')) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 250 }
 if (Test-Path -LiteralPath (Join-Path $installDirectory 'hanstream.exe')) { throw 'Uninstall did not remove the application.' }
