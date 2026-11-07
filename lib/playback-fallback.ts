@@ -7,6 +7,7 @@ import { createKeyedCache } from './runtime-cache';
 import { availablePlayerServers } from './player-availability';
 import type { PlaybackStream } from './playback';
 import type { DetailRecord } from './details';
+import { safeEmbedUrl } from './embed';
 
 /** Public episode HTML only; executable scripts and arbitrary redirects are not read. */
 export function parseFallbackEpisode(html: string, url: string, title: string, year: number, episode: string): { stream: PlaybackStream | null; detail: DetailRecord } | null {
@@ -27,7 +28,7 @@ export function parseFallbackEpisode(html: string, url: string, title: string, y
   const excluded = new Set(getSourceConfig().excludedPlaybackOrigins);
   const servers: PlaybackStream['servers'] = [];
   const add = (value?: string) => {
-    const address = httpsUrl(value, url);
+    const address = safeEmbedUrl(httpsUrl(value, url) || '');
     if (!address || !allowed.has(new URL(address).origin) || excluded.has(new URL(address).origin) || servers.some(server => server.url === address)) return;
     servers.push({ name: `Server ${servers.length + 1}`, url: address });
   };
@@ -51,6 +52,7 @@ const lookup = createKeyedCache(async key => {
   const origins = getSourceConfig().playbackFallbackOrigins.slice(0, 2);
   if (season !== 1 || !year || !/^\d+(?:\.\d+)?$/.test(episode)) return null;
   const name = normalizeTitle(title).replaceAll(' ', '-');
+  let metadata: ReturnType<typeof parseFallbackEpisode> = null;
   for (const origin of origins) for (const path of [`${name}-episode-${episode}`, `${name}-${year}-episode-${episode}`]) {
     const url = `${origin}/${path}/`;
     try {
@@ -60,10 +62,11 @@ const lookup = createKeyedCache(async key => {
         const servers = await availablePlayerServers(result.stream.servers);
         result.stream = servers.length ? {...result.stream, url: servers[0].url, servers} : null;
       }
-      return result;
+      if (result.stream) return result;
+      metadata ||= result;
     } catch { /* Try the next exact public episode page, never an archive crawl. */ }
   }
-  return null;
+  return metadata;
 }, 60_000, 100, 15_000);
 
 export const findFallbackEpisode = (title: string, year: number, episode: string, season = 1) => lookup(JSON.stringify({title, year, episode, season}));

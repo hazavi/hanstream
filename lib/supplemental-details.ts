@@ -69,7 +69,9 @@ export function parseCollectionEpisodes(html: string, url: string): DetailEpisod
 export function parseGuideDetail(html: string, url: string, title: string, year?: number): DetailRecord | null {
   const $ = load(html), meta: DetailRecord['meta'] = {};
   $('.list-group-item').each((_, element) => {
-    const row = $(element), key = cleanText(row.children('strong').text()), value = cleanText(row.children('span').text());
+    const row = $(element), key = cleanText(row.children('strong').text());
+    const linked = row.children('span').find('a').map((_, node) => cleanText($(node).text())).get().filter(Boolean);
+    const value = key === 'Genres' && linked.length ? linked.join(', ') : cleanText(row.children('span').text());
     const mapped: Record<string, string> = { 'Original Country': 'Country', 'Original Language': 'Language', 'First Aired': 'Air Date', 'Average Runtime': 'Duration', Genres: 'Genre', Network: 'Network', Status: 'Status' };
     if (mapped[key] && value) meta[mapped[key]] = key === 'First Aired' ? date(value) || value : value;
   });
