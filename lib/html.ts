@@ -79,7 +79,7 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
     try {
       const options: SourceRequestInit = {
         dispatcher: publicDispatcher,
-        headers: { Accept: feed?'application/rss+xml, application/xml, text/xml':'text/html', "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
+        headers: { Accept: feed?'application/rss+xml, application/xml, text/xml':'text/html', 'Accept-Language': 'en-US,en;q=0.9', "User-Agent": "HanStream/0.2.0 (public HTML catalog reader)" },
         cache: 'no-store', redirect: "manual", signal: AbortSignal.timeout(timeout),
       };
       response = await sourceFetch(url.href, options);

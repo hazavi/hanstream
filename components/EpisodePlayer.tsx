@@ -41,10 +41,6 @@ export function EpisodePlayer({
     return () => clearTimeout(timer);
   }, [selected, reload]);
   useEffect(() => {
-    if (selected && mode !== "pending")
-      toast("Popup and new-tab protection is on.", "player-protection", 4000);
-  }, [selected, mode]);
-  useEffect(() => {
     if (status === "slow" || status === "failed")
       toast(
         "The player is delayed or unavailable. Reload it or choose another listed server.",

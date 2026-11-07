@@ -1229,7 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "hanstream"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "rusqlite",
  "serde_json",

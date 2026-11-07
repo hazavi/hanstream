@@ -48,7 +48,7 @@ export async function durableReaderValue<T>(
         throw new PartialReaderValue(value);
       return { value, at: Date.now() };
     },
-    ["reader-public-v1", readerNamespace(), scope, id],
+    ["reader-public-v1", readerNamespace(), scope, id, job.kind === 'drama' ? 'english-v2' : 'base'],
     {
       revalidate: Math.max(1, Math.floor(readerTiming(job).fresh / 1000)),
       tags: ["reader-public-" + job.kind],

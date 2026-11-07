@@ -29,6 +29,7 @@ import {
   waitForActivePage,
 } from "@/lib/request-retry";
 import { toast } from "./ui/toast";
+import { englishText } from '@/lib/display-language';
 
 const emptyPlayback: EpisodeResult = {
   title: "Episode",
@@ -110,12 +111,12 @@ export function WatchPage({
           .filter((ep) => ep && typeof ep.episode_link === "string")
           .map((ep) => ({
             id: ep.episode_link.split("/").pop(),
-            title: ep.title,
+            title: englishText(ep.title),
             time: ep.release_date,
             season: ep.season,
             episode: ep.episode,
             image: ep.image,
-            description: ep.description,
+            description: englishText(ep.description),
             available: ep.available,
           }))
       : [];
@@ -126,7 +127,7 @@ export function WatchPage({
         : [];
     return items.filter((item): item is typeof item & { id: string } =>
       Boolean(item?.id),
-    );
+    ).map(item => ({...item, title: englishText(item.title), description: englishText(item.description)}));
   }, [drama?.episodes, playback.episodes]);
   const playable = episodes.filter(
     (item) =>
@@ -135,7 +136,7 @@ export function WatchPage({
   );
   const selectedEpisode = playback.current_episode || episode;
   const current = episodes.find((item) => item.id === selectedEpisode);
-  const title = drama?.title || result.category?.title || "Drama";
+  const title = englishText(drama?.title, result.category?.title) || "Drama";
   useEffect(() => {
     setRetrying(false);
     return () => retryController.current?.abort();
@@ -231,7 +232,7 @@ export function WatchPage({
             key={`${slug}/${episode}/${playback.video}`}
             video={playback.video}
             servers={playback.servers}
-            title={playback.title || formatEpisodeLabel(episode)}
+            title={englishText(playback.title) || formatEpisodeLabel(episode)}
             caption={
               <h1 className="watch-caption">
                 {formatEpisodeLabel(episode)}

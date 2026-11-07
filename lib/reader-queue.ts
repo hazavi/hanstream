@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { readerJobId } from './reader-job-id';
 import { cacheCommand } from "./persistent-cache";
 import { readerNamespace, webRuntime } from "./deployment";
 import {
@@ -14,7 +14,7 @@ export { ReaderPending, ReaderUnavailable } from "./reader-errors";
 
 export function readerKeys(job: ReaderJob) {
   const root = readerNamespace();
-  const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
+  const id = readerJobId(job);
   return {
     id,
     queue:

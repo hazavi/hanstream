@@ -18,6 +18,8 @@ The Windows player runs in a separate native WebView with no library access. Bui
 
 Download the installer from the latest GitHub release. It lets you choose an installation folder and an optional desktop shortcut, and includes an uninstaller. The portable executable needs an installed Microsoft Edge WebView2 runtime.
 
+Upgrades from older versions replace the app and its uninstaller in place, without running the previous uninstaller. The local library is preserved. After updating, use Windows Settings or `uninstall.exe` in the installation folder to remove the app.
+
 Current Windows releases are unsigned. SHA-256 checksums are provided with release assets. Signed automatic updates remain disabled until code-signing and updater credentials are configured; install a new release manually to update the bundled interface. Server metadata fixes apply without replacing the app.
 
 ## Development

@@ -67,12 +67,12 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
           if(!record || record.expires<=Date.now() || generation!==started || !validCatalogResponse(path,record.value))return;
           const current=responses.get(key);
           if(current && !(path==='/api/home'&&(current.value as HomeData)?.partial) && !(drama&&detailNeedsRefresh(current.value as DramaResponse)))return;
-          const value=current ? drama?mergeDramaResponse(record.value as DramaResponse,current.value as DramaResponse):path==='/api/home'?mergeHomeData(record.value as HomeData,current.value as HomeData):current.value : record.value;
+          const value=drama?mergeDramaResponse(record.value as DramaResponse,(current?.value || record.value) as DramaResponse):current ? path==='/api/home'?mergeHomeData(record.value as HomeData,current.value as HomeData):current.value : record.value;
           saved={value,expires:current?.expires || record.savedAt,staleUntil:record.expires};
           responses.set(key,saved);notify(key);
         }).catch(()=>{});
         if (local && local.expires > Date.now() && validCatalogResponse(path,local.value)) {
-          saved = {value:local.value,expires:Math.min(local.expires,local.savedAt+(drama ? 300_000 : 30_000)),staleUntil:local.expires};
+          saved = {value:drama ? mergeDramaResponse(undefined, local.value as DramaResponse) : local.value,expires:drama && detailNeedsRefresh(local.value as DramaResponse) ? Date.now() : Math.min(local.expires,local.savedAt+(drama ? 300_000 : 30_000)),staleUntil:local.expires};
           responses.set(key,saved);
           notify(key);
           if (saved.expires <= Date.now()) setTimeout(() => {

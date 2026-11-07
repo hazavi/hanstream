@@ -126,6 +126,7 @@ jobs:
           New-Item -ItemType Directory -Path src-tauri/target/release/licenses -Force | Out-Null
           Copy-Item resources/network-blocklist.NOTICE.md src-tauri/target/release/licenses/player-filter-NOTICE.md
           Copy-Item resources/network-blocklist.LICENSE.txt src-tauri/target/release/licenses/player-filter-LICENSE.txt
+          Copy-Item src-tauri/windows/LICENSE.template src-tauri/target/release/licenses/installer-template-LICENSE.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:

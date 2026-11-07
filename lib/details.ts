@@ -12,7 +12,7 @@ import { findReferenceDetail } from './reference-reader';
 
 const BASE = getSourceConfig().detailsOrigin;
 export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; aliases?: string[]; cast?: DramaCast[]; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer; refreshPending?: boolean };
-export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean; overview?: string; upcoming?: boolean };
+export type DetailEpisode = { title?: string; season: number; episode: number; date?: string; image?: string; finale?: boolean; overview?: string; upcoming?: boolean; detailUrl?: string };
 
 function imageUrl(value: string | undefined, base: string): string | undefined {
   const address = httpsUrl(value, base);

@@ -16,6 +16,26 @@ if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
 if (!(Test-Path -LiteralPath (Join-Path $installDirectory 'hanstream.exe'))) { throw 'App was not installed in the chosen folder.' }
 $uninstaller = Join-Path $installDirectory 'uninstall.exe'
 if (!(Test-Path -LiteralPath $uninstaller)) { throw 'Uninstaller was not placed in the installation folder.' }
+# Reproduce the failed upgrade: the registered legacy uninstaller always exits
+# with an error. Passive mode still executes the already-installed page callback.
+# Upgrade must skip that old command and replace the app/uninstaller in place.
+$registration = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HanStream'
+if (!(Test-Path -LiteralPath $registration)) { throw 'Installed app registration is missing.' }
+Set-ItemProperty -LiteralPath $registration -Name DisplayVersion -Value '0.1.0'
+Set-ItemProperty -LiteralPath $registration -Name UninstallString -Value ('"' + (Join-Path $env:WINDIR 'System32/cmd.exe') + '" /D /C exit 2')
+$sentinel = Join-Path $installDirectory 'preserve-on-upgrade.txt'
+[IO.File]::WriteAllText($sentinel, 'Preserve existing local files.')
+$upgrade = Start-Process -FilePath $installer.FullName -ArgumentList '/P','/NS',"/D=$installDirectory" -WindowStyle Hidden -PassThru
+try {
+  if (!$upgrade.WaitForExit(60000)) { throw 'Upgrade invoked the broken legacy uninstaller or became stuck.' }
+  if ($upgrade.ExitCode -ne 0) { throw "In-place upgrade failed: $($upgrade.ExitCode)" }
+  if ((Get-ItemProperty -LiteralPath $registration).UninstallString -notlike '*uninstall.exe*') { throw 'Upgrade did not replace the broken uninstall command.' }
+  if ([IO.File]::ReadAllText($sentinel) -ne 'Preserve existing local files.') { throw 'Upgrade removed existing local files.' }
+} finally {
+  $upgrade.Refresh()
+  if (!$upgrade.HasExited) { Stop-Process -Id $upgrade.Id -ErrorAction SilentlyContinue }
+  Remove-Item -LiteralPath $sentinel -Force
+}
 # Closing the real app must exit its process, even though playback has a child WebView.
 $appPath = Join-Path $installDirectory 'hanstream.exe'
 $app = Start-Process -FilePath $appPath -WindowStyle Hidden -PassThru

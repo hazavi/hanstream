@@ -19,7 +19,9 @@
   style.textContent = `
     .adsbygoogle,[data-ad-slot],[data-ad-client],.adsterra-ad,[id^="adsterra-"],
     .ad-overlay,.ads-overlay,.video-ad-overlay,.vjs-ad-container,
-    #ad-overlay,#ad-container,#ads-container,[data-ad-overlay],
+    .floating-ad,.sticky-ad,.player-ads,.video-ads,.ima-ad-container,
+    #ad-overlay,#overlay-ad,#overlayad,#ad-container,#ads-container,#player-ads,
+    [data-ad-overlay],[data-ad-format],
     iframe[title="Advertisement" i],iframe[title="Advertising" i]
     {display:none!important;pointer-events:none!important}
     div:empty[style*="z-index: 2147483646"],
@@ -35,7 +37,7 @@
   const observer = new MutationObserver(() => {
     if (style.isConnected || queued) return;
     queued = true;
-    queueMicrotask(() => { queued = false; addStyle(); });
+    requestAnimationFrame(() => { queued = false; addStyle(); });
   });
   observer.observe(document, {childList:true, subtree:true});
   addStyle();

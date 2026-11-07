@@ -7,6 +7,7 @@ import { createKeyedCache } from './runtime-cache';
 import type { DetailEpisode, DetailRecord } from './details';
 import type { DramaCast } from './api-types';
 import { observeReader } from './diagnostics';
+import { englishText } from './display-language';
 
 const text = (value: unknown) => typeof value === 'string' ? cleanText(load(`<span>${value}</span>`)('span').text()) : '';
 const slug = (value: string) => normalizeTitle(value).replaceAll(' ', '-');
@@ -94,7 +95,7 @@ export function parseGuideDetail(html: string, url: string, title: string, year?
   const english = $('#translations [data-language="eng"]').first().clone();
   english.find('h5,ul,hr').remove();
   const overview = cleanText(english.text()) || cleanText($('#translations .change_translation_text').first().find('p').text());
-  return { title, year: publishedYear, country, movie: false, url, aliases, meta, overview, cast, image: httpsUrl($('img[src*="/posters/"]').first().attr('src'), url) || '/file.svg', episodesUrl: `${url.replace(/\/$/, '')}/allseasons/official` };
+  return { title: englishText($('#translations [data-language="eng"][data-title]').first().attr('data-title'), matched, title) || title, year: publishedYear, country, movie: false, url, aliases, meta, overview: englishText(overview), cast, image: httpsUrl($('img[src*="/posters/"]').first().attr('src'), url) || '/file.svg', episodesUrl: `${url.replace(/\/$/, '')}/allseasons/official` };
 }
 
 export function parseGuideEpisodes(html: string, url: string): DetailEpisode[] {
@@ -103,9 +104,42 @@ export function parseGuideEpisodes(html: string, url: string): DetailEpisode[] {
     const row = $(node), match = /S(\d+)E(\d+)/i.exec(row.find('.episode-label').text());
     if (!match || Number(match[1]) < 1) return;
     const aired = date(cleanText(row.find('ul li').first().text()));
-    result.push({ season: Number(match[1]), episode: Number(match[2]), title: cleanText(row.find('h4 a').text()), date: aired, upcoming: Boolean(aired && aired > new Date().toISOString().slice(0, 10)), image: httpsUrl(row.find('img').attr('data-src') || row.find('img').attr('src'), url), overview: cleanText(row.find('.list-group-item-text p').text()) });
+    result.push({ season: Number(match[1]), episode: Number(match[2]), title: englishText(cleanText(row.find('h4 a').text())), date: aired, upcoming: Boolean(aired && aired > new Date().toISOString().slice(0, 10)), image: httpsUrl(row.find('img').attr('data-src') || row.find('img').attr('src'), url), overview: englishText(cleanText(row.find('.list-group-item-text p').text())), detailUrl: sourceUrl(row.find('h4 a').attr('href'), url) });
   });
   return result;
+}
+
+export function parseGuideEpisodeEnglish(html: string) {
+  const $ = load(html);
+  const translation = $('#translations [data-language="eng"][data-title]').first();
+  return {title: englishText(translation.attr('data-title')), overview: englishText(cleanText(translation.find('p').text()))};
+}
+
+const episodeEnglish = createKeyedCache(async url => {
+  const value = parseGuideEpisodeEnglish(await readHtml(url, 21600));
+  return value.title || value.overview ? value : null;
+}, 21_600_000, 500, 60_000);
+
+async function englishGuideEpisodes(episodes: DetailEpisode[], base: string) {
+  // Individual public pages publish translations that the season index omits.
+  // Bound fan-out and concurrency. Larger guides keep generic English labels
+  // when no published English translation has been loaded.
+  const targets = episodes.filter(ep => !ep.upcoming && (!ep.title || !ep.overview) && ep.detailUrl
+    && new URL(ep.detailUrl).origin === new URL(base).origin
+    && new URL(ep.detailUrl).pathname.startsWith(new URL(base).pathname.replace(/\/allseasons\/official\/?$/, '/episodes/'))).slice(0, 24);
+  let index = 0;
+  await Promise.all(Array.from({length: Math.min(4, targets.length)}, async () => {
+    for (;;) {
+      const ep = targets[index++];
+      if (!ep) break;
+      try {
+        const translated = await episodeEnglish(ep.detailUrl!);
+        ep.title = englishText(ep.title, translated?.title);
+        ep.overview = englishText(ep.overview, translated?.overview);
+      } catch { /* Keep dates and pictures if a translation page is unavailable. */ }
+    }
+  }));
+  return episodes;
 }
 
 const lookup = createKeyedCache<DetailRecord | null>(async key => {
@@ -136,7 +170,7 @@ const lookup = createKeyedCache<DetailRecord | null>(async key => {
       try {
         const record = parseGuideDetail(await readHtml(url, 21600), url, title, year);
         if (!record) continue;
-        record.episodes = await readHtml(record.episodesUrl!, 1800).then(html => parseGuideEpisodes(html, record.episodesUrl!)).catch(() => []);
+        record.episodes = await readHtml(record.episodesUrl!, 1800).then(html => englishGuideEpisodes(parseGuideEpisodes(html, record.episodesUrl!), record.episodesUrl!)).catch(() => []);
         if (record.episodes.length) metaEpisodes(record);
         else record.refreshPending = true;
         observeReader('guide-profile', record.episodes.length);

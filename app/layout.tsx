@@ -61,6 +61,9 @@ export default async function RootLayout({
                   <div className="max-w-7xl mx-auto px-6 text-center text-sm text-secondary">
                     &copy; {new Date().getFullYear()} HanStream • All rights
                     reserved.
+                    <p className="mx-auto mt-3 max-w-2xl text-xs leading-relaxed">
+                      The site and app do not host video files on their servers. All content is provided by non-affiliated third parties.
+                    </p>
                   </div>
                 </footer>
               </ProfileProvider>

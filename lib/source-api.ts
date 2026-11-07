@@ -13,6 +13,7 @@ import { validDramaSlug, validEpisodeId, validSearchQuery } from './request-vali
 import { createKeyedStaleCache } from './runtime-cache';
 import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
 import { persistentLoader } from './persistent-cache';
+import { englishText } from './display-language';
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -89,7 +90,10 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
     if (supplemental) {
       const known = primary as DetailRecord | null;
       const extra = supplemental as DetailRecord;
-      primary = known ? { ...extra, ...known, image: isPublishedImage(known.image) ? known.image : extra.image, overview: known.overview || extra.overview, cast: known.cast?.length ? known.cast : extra.cast, episodes: known.episodes?.length ? known.episodes : extra.episodes, meta: { ...extra.meta, ...known.meta } } : extra;
+      primary = known ? { ...extra, ...known, title: englishText(known.title, extra.title) || identity.title, image: isPublishedImage(known.image) ? known.image : extra.image, overview: englishText(known.overview, extra.overview), cast: known.cast?.length ? known.cast : extra.cast, episodes: known.episodes?.length ? known.episodes.map(ep => {
+        const translated = extra.episodes?.find(other => other.season === ep.season && other.episode === ep.episode);
+        return {...ep, title: englishText(ep.title, translated?.title), overview: englishText(ep.overview, translated?.overview)};
+      }) : extra.episodes, meta: { ...extra.meta, ...known.meta } } : extra;
     }
     item = primary ? { ...primary, meta: { ...alternative?.meta, ...primary.meta }, overview: primary.overview || alternative?.overview } : alternative ? { ...alternative, meta: alternative.meta || {} } : null;
     detailsUnavailable = !item?.overview;
@@ -112,12 +116,12 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
     catch { /* Existing details still render if another catalog is unavailable. */ }
     if(published) item = item ? {...item,meta:{...published.meta,...item.meta},overview:item.overview || published.overview} : published;
   }
-  let title = item?.title || identity!.title;
+  let title = englishText(item?.title, identity?.title) || 'Drama';
   let available: Awaited<ReturnType<typeof getPlaybackEpisodes>> = [];
   try {
     available = await getPlaybackEpisodes(title, year, movie);
     if (!available.length && identity && normalizeTitle(title) !== normalizeTitle(identity.title)) available = await getPlaybackEpisodes(identity.title, year, movie);
-    if (!item && available.length) title = available[0].title;
+    if (!item && available.length) title = englishText(available[0].title, title) || title;
   } catch { /* Details can still render if playback catalog is unavailable. */ }
   let episodes: NonNullable<NonNullable<DramaResponse["result"]>["episodes"]> = [];
   if (primary && !movie) {
@@ -160,12 +164,12 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
     const extra=castSources.flat().find(other=>normalizeTitle(other.name).replaceAll(' ','')===key && other.image);
     return {...person,image:person.image || extra?.image};
   });
-  return { result: { title, image: artwork.image, description: item?.overview, other_names: item?.otherNames,
+  return { result: { title, image: artwork.image, description: englishText(item?.overview, supplemental?.overview, alternative?.overview, published?.overview), other_names: item?.otherNames,
     meta: item?.meta || (year ? { Released: year } : {}), episodes,
     tags: primary?.tags?.length ? primary.tags : genres, genres, cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable, refreshPending:Boolean(primary?.refreshPending || castRefreshNeeded),
   } };
 }
-const loadPersistentDrama = persistentLoader('detail', async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => Boolean(value?.result?.title && !detailNeedsRefresh(value)));
+const loadPersistentDrama = persistentLoader('detail-en-v2', async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => Boolean(value?.result?.title && !detailNeedsRefresh(value)));
 const cachedDrama = createKeyedStaleCache(loadPersistentDrama, value => detailNeedsRefresh(value) ? 15_000 : 300_000, 100, value => !detailNeedsRefresh(value));
 export const peekDrama = (slug:string) => cachedDrama.peek(slug);
 export const fetchDrama = cache(async (slug: string) => {

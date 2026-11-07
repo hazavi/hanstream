@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { readerJobId } from './reader-job-id';
 import { after } from "next/server";
 import { readerNamespace } from "./deployment";
 import { readerTiming, type ReaderJob } from "./reader-protocol";
@@ -93,7 +93,7 @@ export async function bridgeHealth() {
   };
 }
 export async function readBridge<T>(job: ReaderJob): Promise<T> {
-  const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
+  const id = readerJobId(job);
   const key = readerNamespace() + ":" + id;
   const cache =
     job.kind === "artwork" || job.kind === "portrait"

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.2
+
+- Upgrades replace the app and uninstaller in place, avoiding the broken legacy “Uninstall before installing” path. Windows checks reproduce an older uninstall command that always fails, then verify upgrade and removal succeed.
+- Read published English episode translations from individual guide pages when the season index defaults to Korean. English fields survive metadata merges, and previously cached non-Latin display text is refreshed. Generic English episode labels remain when no translation is published.
+- Refreshed pinned advertising-host rules and expanded desktop advertising-overlay selectors. Stylesheet restoration now yields between frames if a player removes the protection style repeatedly.
+- Removed only the watch-page ad-protection toast. Other notifications remain available.
+- Added a footer notice explaining that the site and app do not host video files and that content comes from non-affiliated third parties.
+
+Website popup protection remains enabled. Browser security still prevents filtering every overlay inside a third-party iframe; advertisements merged into the actual video cannot be removed by these filters. Windows downloads remain unsigned.
+
 ## 1.1.1
 
 - Closing the desktop window explicitly closes the isolated player and exits the app.

@@ -4,7 +4,7 @@ import { Artwork } from "./Artwork";
 import { useEffect, useMemo, useState } from 'react';
 import Link from "next/link";
 import type { DramaDetail, DramaEpisode, DramaResponse } from "@/lib/api-types";
-import { detailNeedsRefresh, mergeDramaResponse } from '@/lib/detail-cache';
+import { detailNeedsRefresh, englishDramaResponse, mergeDramaResponse } from '@/lib/detail-cache';
 import { readBackend } from '@/lib/pages-client';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { DramaMedia } from './DramaMedia';
@@ -52,7 +52,8 @@ export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDet
   const [episodePage, setEpisodePage] = useState({ slug, index: 0 });
   const history = useEpisodeHistory(slug);
   const watched = useMemo(() => new Set(history.watched), [history.watched]);
-  const detail = recovered?.slug===slug && recovered.initial===initialDetail ? recovered.detail : initialDetail;
+  const currentDetail = recovered?.slug===slug && recovered.initial===initialDetail ? recovered.detail : initialDetail;
+  const detail = useMemo(() => englishDramaResponse({result: currentDetail}).result!, [currentDetail]);
   const episodes = detail.episodes || [];
   const pageCount = Math.max(1, Math.ceil(episodes.length / episodesPerPage));
   const page = Math.min(episodePage.slug === slug ? episodePage.index : 0, pageCount - 1);
