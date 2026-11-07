@@ -1,11 +1,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::webview::{NewWindowResponse, PermissionResponse};
 use tauri::Manager;
 mod export;
 mod media;
 mod privacy;
 mod storage;
+
+static ACTIVATE_WHEN_READY: AtomicBool = AtomicBool::new(false);
+
+fn activate_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        if ACTIVATE_WHEN_READY.swap(false, Ordering::AcqRel) {
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
+}
 
 fn main() {
     #[cfg(feature = "automation")]
@@ -30,11 +43,10 @@ fn main() {
     // Register first: repeated launches must exit before opening SQLite or WebViews.
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            // Windows can deliver activation while WebView2 is still creating
+            // the first window. Keep that request until it is registered.
+            ACTIVATE_WHEN_READY.store(true, Ordering::Release);
+            activate_main_window(app);
         }))
         .plugin(tauri_plugin_dialog::init());
     #[cfg(feature = "signed-updates")]
@@ -116,6 +128,7 @@ fn main() {
                 "--remote-debugging-port=9223 --remote-debugging-address=127.0.0.1 --disable-gpu",
             );
             window.build()?;
+            activate_main_window(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())
