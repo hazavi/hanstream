@@ -31,6 +31,14 @@ export async function checkNativeMedia(page,api) {
       try{await invoke('library_load');return 'granted';}catch{return 'denied';}
     });
     assert.notEqual(access,'granted','Remote media gained library access');
+    const exportAccess=await media.evaluate(async()=>{
+      const invoke=window.__TAURI_INTERNALS__?.invoke;if(!invoke)return 'no bridge';
+      return Promise.race([
+        invoke('library_export',{content:JSON.stringify({format:'hanstream-library',version:1,profile:{watchlist:[],continueWatching:[],topRankings:[]}}),filename:'hanstream-library-check.json'}).then(()=> 'granted',()=> 'denied'),
+        new Promise(resolve=>setTimeout(()=>resolve('pending'),1000)),
+      ]);
+    });
+    assert.ok(['no bridge','denied'].includes(exportAccess),'Remote media could open a native export dialog');
     assert.equal(await media.evaluate(()=>Boolean(window.open('https://example.com/'))),false,'Media popup was allowed');
     assert.equal(await media.evaluate(()=>Object.getOwnPropertyDescriptor(window,'open')?.writable),false,'Popup guard did not run before player scripts');
     const overlays = await media.evaluate(async () => {

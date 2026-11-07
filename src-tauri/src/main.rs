@@ -1,7 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::webview::{DownloadEvent, NewWindowResponse, PermissionResponse};
+use tauri::webview::{NewWindowResponse, PermissionResponse};
 use tauri::Manager;
+mod export;
 mod media;
 mod privacy;
 mod storage;
@@ -26,7 +27,16 @@ fn main() {
         ));
         assert!(privacy::blocked("https://203.0.113.1/check.js", &[]));
     }
-    let builder = tauri::Builder::default();
+    // Register first: repeated launches must exit before opening SQLite or WebViews.
+    let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_dialog::init());
     #[cfg(feature = "signed-updates")]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
@@ -45,6 +55,7 @@ fn main() {
             storage::library_load,
             storage::library_save,
             storage::library_clear,
+            export::library_export,
             storage::cache_load,
             storage::cache_save,
             media::media_open,
@@ -60,6 +71,7 @@ fn main() {
                     .expect("Automation requires an isolated data directory"),
             );
             app.manage(storage::Storage::open(&data_directory)?);
+            app.manage(export::ExportState::default());
             let origins = app
                 .config()
                 .plugins
@@ -90,13 +102,7 @@ fn main() {
                     })
                     .on_new_window(|_, _| NewWindowResponse::Deny)
                     .on_permission_request(|_, _| PermissionResponse::Deny)
-                    .on_download(|_, event| match event {
-                        DownloadEvent::Requested { url, .. } => {
-                            url.as_str().starts_with("blob:https://tauri.localhost/")
-                                || url.as_str().starts_with("blob:tauri://localhost/")
-                        }
-                        _ => true,
-                    })
+                    .on_download(|_, _| false)
                     .on_page_load(move |_, payload| {
                         if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
                             media::close_active(&navigation_app);

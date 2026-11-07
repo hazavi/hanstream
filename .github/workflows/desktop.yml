@@ -2,9 +2,9 @@ name: Windows desktop
 on:
   push:
     branches: [master, main]
-    paths: ['src-tauri/**', 'resources/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
+    paths: ['src-tauri/**', 'resources/**', 'public/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['src-tauri/**', 'resources/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
+    paths: ['src-tauri/**', 'resources/**', 'public/**', 'components/**', 'lib/**', 'app/**', 'scripts/**', 'package*.json', 'tests/**', '__tests__/**', 'vitest.config.ts', '.github/workflows/desktop.yml']
   workflow_dispatch:
     inputs:
       signed:
@@ -95,6 +95,7 @@ jobs:
         if: inputs.signed != true
         shell: pwsh
         run: |
+          . ./scripts/desktop-window-check.ps1
           Copy-Item -LiteralPath './src-tauri/target/release/hanstream.exe' -Destination (Join-Path $env:RUNNER_TEMP 'hanstream-production.exe')
           npm run desktop:build -- --features automation --no-bundle --locked
           if ($LASTEXITCODE -ne 0) { throw 'Automation harness build failed.' }
@@ -105,6 +106,7 @@ jobs:
           $log = Join-Path $env:RUNNER_TEMP 'hanstream-app.log'
           $errorLog = Join-Path $env:RUNNER_TEMP 'hanstream-app-error.log'
           $app = Start-Process -FilePath $testBinary -WindowStyle Hidden -PassThru -RedirectStandardOutput $log -RedirectStandardError $errorLog
+          $env:HANSTREAM_TEST_PROCESS_ID=$app.Id
           try {
             node scripts/check-desktop.mjs
             if ($LASTEXITCODE -ne 0) {
@@ -115,7 +117,7 @@ jobs:
               throw 'Desktop smoke test failed.'
             }
             $app.Refresh()
-            if ($app.HasExited -or !$app.CloseMainWindow()) { throw 'The native app did not expose a closable main window.' }
+            if ($app.HasExited -or !(Close-HanStreamWindow -AppProcessId $app.Id)) { throw 'The native app did not expose a closable main window.' }
             if (!$app.WaitForExit(15000)) { throw 'Closing the native window with active playback left a background process.' }
           }
           finally { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }

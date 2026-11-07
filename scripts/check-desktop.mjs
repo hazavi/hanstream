@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import {checkNativeMedia} from './check-native-media.mjs';
+import {spawn} from 'node:child_process';
+import path from 'node:path';
 if(!process.env.CI)throw new Error('Run desktop checks only in an isolated CI test environment.');
 
 const addresses = [...new Set([process.env.DESKTOP_DEBUG_URL || 'http://localhost:9223', 'http://127.0.0.1:9223', 'http://[::1]:9223'])];
@@ -40,6 +42,22 @@ try {
   await page.getByText('Storage check',{exact:true}).first().waitFor();
   assert.equal(await page.evaluate(() => localStorage.getItem('hanstream-local-profile')),null,'Desktop library must live in SQLite');
   assert.equal((await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('library_load'))).watchlist[0].title,'Storage check','Existing library must migrate into SQLite');
+  const nativeExport = async (name, cancel = false) => {
+    const args = ['-NoProfile', '-NonInteractive', '-File', 'scripts/check-native-export.ps1', '-AppProcessId', process.env.HANSTREAM_TEST_PROCESS_ID, '-SavePath', path.join(process.env.RUNNER_TEMP, name)];
+    if (cancel) args.push('-Cancel');
+    const helper = spawn('powershell.exe', args, {windowsHide:true, stdio:['ignore','pipe','pipe']});
+    let output = ''; helper.stdout.on('data', chunk => output += chunk); helper.stderr.on('data', chunk => output += chunk);
+    const complete = new Promise((resolve,reject) => {helper.on('error',reject);helper.on('exit',code=>code===0?resolve():reject(new Error(output || 'Native export check failed')));});
+    void complete.catch(()=>{});
+    await page.getByRole('button',{name:'Export library',exact:true}).click();
+    await complete;
+    await page.getByRole('button',{name:'Export library',exact:true}).waitFor();
+    assert.ok(await page.getByRole('button',{name:'Export library',exact:true}).isEnabled());
+  };
+  await nativeExport('hanstream-export-first.json');
+  await nativeExport('hanstream-export-cancelled.json', true);
+  await nativeExport('hanstream-export-second.json');
+  assert.equal((await page.evaluate(() => window.__TAURI_INTERNALS__.invoke('library_load'))).watchlist.length,1,'Export changed the saved library');
   await page.getByText('Storage check',{exact:true}).first().hover();
   await page.getByRole('button',{name:'Remove Storage check from watchlist',exact:true}).click();
   await page.getByRole('alertdialog',{name:'Remove from watchlist?'}).waitFor();

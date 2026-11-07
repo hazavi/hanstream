@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 if (!$env:CI -or !$env:RUNNER_TEMP) { throw 'This installer check runs only on an isolated CI runner.' }
+. "$PSScriptRoot/desktop-window-check.ps1"
 $template = Get-ChildItem -LiteralPath './src-tauri/target/release' -Filter 'installer.nsi' -Recurse | Select-Object -First 1
 if (!$template) { throw 'The generated NSIS installer script is missing.' }
 $text = Get-Content -LiteralPath $template.FullName -Raw
@@ -40,9 +41,18 @@ try {
 $appPath = Join-Path $installDirectory 'hanstream.exe'
 $app = Start-Process -FilePath $appPath -WindowStyle Hidden -PassThru
 try {
-  $deadline = [DateTime]::UtcNow.AddSeconds(30)
-  do { Start-Sleep -Milliseconds 250; $app.Refresh() } while (!$app.HasExited -and $app.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
-  if ($app.HasExited -or !$app.CloseMainWindow()) { throw 'The installed app did not create a closable window.' }
+  Wait-HanStreamWindow -AppProcessId $app.Id | Out-Null
+  [HanStreamCi.Window]::Minimize($app.Id)
+  $duplicate = Start-Process -FilePath $appPath -WindowStyle Hidden -PassThru
+  try {
+    if (!$duplicate.WaitForExit(15000)) { throw 'A second app instance stayed running.' }
+    $app.Refresh()
+    if ($app.HasExited) { throw 'Launching again closed the first instance.' }
+    $deadline = [DateTime]::UtcNow.AddSeconds(5)
+    while ([HanStreamCi.Window]::Minimized($app.Id) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    if ([HanStreamCi.Window]::Minimized($app.Id)) { throw 'Launching again did not restore the existing window.' }
+  } finally { $duplicate.Refresh(); if (!$duplicate.HasExited) { Stop-Process -Id $duplicate.Id -ErrorAction SilentlyContinue } }
+  if (!(Close-HanStreamWindow -AppProcessId $app.Id)) { throw 'The installed app did not create a closable window.' }
   if (!$app.WaitForExit(15000)) { throw 'Closing the app left its background process running.' }
 } finally { if (!$app.HasExited) { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue } }
 

@@ -49,7 +49,7 @@ impl Storage {
     }
 }
 
-fn valid_profile(value: &Value) -> bool {
+pub(crate) fn valid_profile(value: &Value) -> bool {
     value.is_object()
         && ["watchlist", "continueWatching", "topRankings"]
             .iter()

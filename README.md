@@ -12,6 +12,8 @@ Both clients share the interface and recovery logic. Complete metadata is cached
 
 Personal library data stays on the device. The website uses browser storage; Windows uses SQLite. Search queries and expiring playback responses are excluded from persistent content caches. Library export and import are available on the profile page.
 
+Windows exports always open a native Save As dialog. Browsers use a save-location picker when supported; otherwise their download settings control the location. Cancelled exports do not change the library. Launching the Windows app again restores and focuses its existing window instead of starting another instance. The Windows icon uses the same favicon as the website.
+
 The Windows player runs in a separate native WebView with no library access. Built-in filtering blocks known advertising hosts. Desktop and web players block popups, new tabs, downloads and top-level redirects. Independent players may still be unavailable or reject embedding.
 
 ## Windows installation
@@ -55,7 +57,7 @@ npm run build:desktop:web
 npm run desktop:build -- --locked
 ```
 
-A native build also requires Rust and the Windows C++ build tools. CI builds the installer, checks installation and uninstallation, and tests the packaged app in an isolated WebView2 environment. Release installers never include the automation harness.
+A native build also requires Rust 1.90 or newer and the Windows C++ build tools. CI builds the installer, checks installation and uninstallation, verifies single-instance launches and native Save As exports, and tests the packaged app in an isolated WebView2 environment. Release installers never include the automation harness.
 
 ## Security and release notes
 

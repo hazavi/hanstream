@@ -4,6 +4,7 @@ fn main() {
             "library_load",
             "library_save",
             "library_clear",
+            "library_export",
             "cache_load",
             "cache_save",
             "media_open",
