@@ -18,6 +18,19 @@ namespace HanStreamCi {
     [DllImport("user32.dll")] private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
     [DllImport("user32.dll")] private static extern int GetDlgCtrlID(IntPtr window);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern IntPtr SetFocus(IntPtr window);
+    [DllImport("user32.dll")] private static extern IntPtr GetFocus();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window,out uint process);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] private static extern bool AttachThreadInput(uint first,uint second,bool attach);
+    [StructLayout(LayoutKind.Explicit,Size=40)] private struct Input {
+      [FieldOffset(0)] public uint type;
+      [FieldOffset(8)] public ushort key;
+      [FieldOffset(10)] public ushort scan;
+      [FieldOffset(12)] public uint flags;
+    }
+    [DllImport("user32.dll")] private static extern uint SendInput(uint count,Input[] inputs,int size);
     [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr window, EnumProc callback, IntPtr parameter);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder text, int count);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wparam, string value);
@@ -41,7 +54,20 @@ namespace HanStreamCi {
       }
       return IntPtr.Zero;
     }
-    public static bool SetFileName(IntPtr dialog,string path){var edit=FileName(dialog);return edit!=IntPtr.Zero && SendMessage(edit,0x000C,IntPtr.Zero,path)!=IntPtr.Zero;}
+    public static bool SetFileName(IntPtr dialog,string path){
+      var edit=FileName(dialog);if(edit==IntPtr.Zero)return false;
+      uint process;var targetThread=GetWindowThreadProcessId(edit,out process);var currentThread=GetCurrentThreadId();
+      var attached=currentThread!=targetThread && AttachThreadInput(currentThread,targetThread,true);
+      try {
+        SetForegroundWindow(dialog);SetFocus(edit);
+        if(GetForegroundWindow()!=dialog || GetFocus()!=edit)return false;
+        var inputs=new List<Input>{new Input{type=1,key=0x11},new Input{type=1,key=0x41},new Input{type=1,key=0x41,flags=2},new Input{type=1,key=0x11,flags=2}};
+        foreach(var character in path){inputs.Add(new Input{type=1,scan=character,flags=4});inputs.Add(new Input{type=1,scan=character,flags=6});}
+        var sent=SendInput((uint)inputs.Count,inputs.ToArray(),40);
+        System.Threading.Thread.Sleep(150);
+        return sent==(uint)inputs.Count;
+      } finally {if(attached)AttachThreadInput(currentThread,targetThread,false);}
+    }
     public static bool Click(IntPtr dialog,int id){var button=Find(dialog,"Button",id);if(button==IntPtr.Zero)return false;SetForegroundWindow(dialog);SendMessageValue(dialog,0x0028,button,(IntPtr)1);return PostMessage(button,0x00F5,IntPtr.Zero,IntPtr.Zero);}
     public static string Describe(IntPtr dialog){var controls=new List<string>();EnumChildWindows(dialog,(window,parameter)=>{controls.Add(ClassName(window)+":"+GetDlgCtrlID(window));return true;},IntPtr.Zero);return string.Join(", ",controls);}
   }
