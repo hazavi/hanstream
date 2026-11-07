@@ -86,12 +86,12 @@ export function ContinueWatching() {
 
   return (
     <>
-      <section className="space-y-4">
+      <section className="w-full min-w-0 max-w-full space-y-4" aria-label="Continue Watching">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold heading">Continue Watching</h2>
         </div>
 
-        <div className="relative group/container">
+        <div className="relative w-full min-w-0 group/container">
           {/* Left Scroll Button */}
           {showLeftButton && (
             <button
@@ -142,7 +142,7 @@ export function ContinueWatching() {
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="flex gap-3 overflow-x-auto scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent hover:scrollbar-thumb-white/50 pb-2"
+            className="flex w-full min-w-0 max-w-full gap-3 overflow-x-auto overscroll-x-contain scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent hover:scrollbar-thumb-white/50 pb-2"
             style={{ scrollbarWidth: "thin" }}
           >
             {continueWatchingItems.map((item) => {

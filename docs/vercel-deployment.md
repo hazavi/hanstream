@@ -16,6 +16,10 @@ The machine endpoint accepts only authenticated, size-limited jobs from the fixe
 
 Artwork requests check the reader once instead of polling inside a function. Queued artwork returns a non-cacheable pending image; visible image components retry with bounded backoff. Off-screen images wait until they approach the viewport, and drama-card links do not prefetch reader work. These controls keep image traffic from multiplying metadata requests.
 
+The reader supports two optional independent public HTML catalogs through `GUIDE_SOURCE_URL` and `COLLECTION_SOURCE_URL`. They supply matching series profiles, cast photos and episode guides when the primary catalogs have no entry. Configure their exact image CDN origins in `IMAGE_ORIGINS`. Profiles must match the title and premiere year; a Japanese subtitle can use a shorter published alias only when the verified playback display title includes that subtitle and the year matches. Complete supplemental profiles can return before a slower catalog finishes. Positive lookups are cached for an hour; missing profiles retry after 15 seconds.
+
+`PLAYBACK_FALLBACK_URLS` optionally lists up to two independent public episode-catalog origins using standard episode pages. A fallback is tried only after the primary source has no usable stream. Its real page heading must confirm the title and episode, and published metadata must confirm the year. Only exact `PLAYER_ORIGINS` entries can become server buttons. Adding a catalog never automatically approves its players. Keep a new player disabled until playback has been tested with the existing popup-blocking sandbox. No challenges, login gates or player restrictions are bypassed.
+
 Vercel's [acceptable use policy](https://vercel.com/legal/acceptable-use-policy) prohibits scraping and proxy services. Keeping readers outside Vercel addresses that deployment boundary; it does not establish approval for the site's content. Source permissions and each host's policies still apply. The worker does not bypass challenges or playback restrictions.
 
 ## Optional direct shared cache

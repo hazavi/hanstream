@@ -9,6 +9,7 @@ import { lookupMetadata } from "./metadata-source.mjs";
 import { findAlbumPoster } from './album-reader';
 import { findPublishedCover } from './cover-reader';
 import { findReferenceDetail } from './reference-reader';
+import { findSupplementalDetails } from './supplemental-details';
 
 type SearchTitle = { title: string; url: string; year?: number; country?: string; image?: string; movie?: boolean };
 const asian = (country: string) => /korea|japan|china|taiwan|hong kong|thailand|philippines|singapore|malaysia|indonesia|vietnam|india|pakistan|nepal|sri lanka|cambodia|laos|myanmar|mongolia/i.test(country);
@@ -63,7 +64,7 @@ export const findCatalogArtwork = createKeyedCache<string | undefined>(async key
     return candidate && (!year || !candidate.year || candidate.year===year) && candidate.image!=='/file.svg' ? candidate.image : undefined;
   };
   try {
-    return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
+    return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year),findSupplementalDetails(title,year).then(record=>record?.image)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
   } catch { return undefined; }
 }, 900_000, 100, 5000);
 export async function searchAsianCatalog(query: string) {

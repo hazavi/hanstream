@@ -1,7 +1,7 @@
 "use client";
 
 import { Artwork } from "./Artwork";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from "next/link";
 import type { DramaDetail, DramaEpisode, DramaResponse } from "@/lib/api-types";
 import { detailNeedsRefresh, mergeDramaResponse } from '@/lib/detail-cache';
@@ -13,6 +13,8 @@ import { DescriptionSection } from "./DescriptionSection";
 import { WatchlistButton } from "./WatchlistButton";
 import { DramaRatingButton } from "./DramaRatingButton";
 import { canonicalEpisode, useEpisodeHistory } from '@/lib/profile';
+import { pauseRequest, waitForActivePage } from '@/lib/request-retry';
+import { NoticeToast } from './ui/toast';
 
 
 function airDate(value?: string) {
@@ -47,19 +49,24 @@ function EpisodeCard({ episode, posters,slug }: { episode: DramaEpisode; posters
 
 export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDetail; slug: string }) {
   const [recovered, setRecovered] = useState<{initial:DramaDetail;slug:string;detail:DramaDetail}>();
-  const attempted = useRef('');
   const detail = recovered?.slug===slug && recovered.initial===initialDetail ? recovered.detail : initialDetail;
   useEffect(() => {
-    if (!detailNeedsRefresh({result:initialDetail}) || attempted.current===slug) return;
+    if (!detailNeedsRefresh({result:initialDetail})) return;
     const controller = new AbortController();
-    const timer = setTimeout(() => {
-      attempted.current=slug;
-      readBackend<DramaResponse>(`/api/drama/${encodeURIComponent(slug)}`,controller.signal,{fresh:true,sameOrigin:true}).then(data=>{
-        const merged=mergeDramaResponse({result:initialDetail},data).result;
-        if(merged && !controller.signal.aborted)setRecovered({initial:initialDetail,slug,detail:merged});
-      }).catch(()=>{});
-    },16000);
-    return ()=>{controller.abort();clearTimeout(timer);};
+    void (async () => {
+      let current: DramaResponse = {result: initialDetail};
+      for (let attempt = 0; detailNeedsRefresh(current); attempt++) {
+        await pauseRequest(Math.min(60_000, 16_000 * 2 ** Math.min(attempt, 2)), controller.signal);
+        await waitForActivePage(controller.signal);
+        try {
+          const data = await readBackend<DramaResponse>(`/api/drama/${encodeURIComponent(slug)}`,controller.signal,{fresh:true,sameOrigin:true});
+          if (controller.signal.aborted) return;
+          current = mergeDramaResponse(current, data);
+          if(current.result) setRecovered({initial:initialDetail,slug,detail:current.result});
+        } catch { if (controller.signal.aborted) return; }
+      }
+    })().catch(()=>{});
+    return ()=>controller.abort();
   },[initialDetail,slug]);
   const title = detail.title || "Drama";
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
@@ -81,7 +88,7 @@ export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDet
           {tags.length > 0 && <ul className="flex flex-wrap gap-2" aria-label="Tags">{tags.map(tag => <li key={tag} className="surface rounded-full px-3 py-1 text-xs font-medium text-primary">{tag}</li>)}</ul>}
         </header>
         <section aria-labelledby="summary-heading" className="space-y-3"><h2 id="summary-heading" className="text-lg font-semibold heading">Summary</h2>{detail.description ? <DescriptionSection description={detail.description} /> : <p className="text-sm text-secondary">A summary is not available yet.</p>}</section>
-        {detail.detailsUnavailable && <p className="text-xs text-secondary">Some drama details are temporarily unavailable.</p>}
+        <NoticeToast enabled={Boolean(detail.detailsUnavailable)} id={`details-delayed-${slug}`} message="Some drama details are temporarily unavailable. We’ll keep checking for updates." />
       </div>
 
     </div>

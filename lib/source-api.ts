@@ -7,6 +7,8 @@ import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "./pl
 import { getSourceConfig } from "./server-config.mjs";
 import { searchAsianCatalog } from "./catalog-details";
 import { findPublishedDetail } from './cover-reader';
+import { findSupplementalDetails } from './supplemental-details';
+import { isPublishedImage } from './image-utils.mjs';
 import { validDramaSlug, validEpisodeId, validSearchQuery } from './request-validation';
 import { createKeyedStaleCache } from './runtime-cache';
 import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
@@ -65,20 +67,32 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
   let alternative: Awaited<ReturnType<typeof findMetadata>> = null;
   let detailsUnavailable = false;
   let primary: DetailRecord | null = null;
+  let supplemental: DetailRecord | null = null;
   const legacy = /^(movie-)?(\d+)$/.exec(slug);
   if (!identity && !legacy) throw new Error("Invalid drama identifier");
   if (legacy) {
     item = await getDramaDetails(`${getSourceConfig().detailsOrigin}/${legacy[1] ? "movies" : "tv"}/${legacy[2]}/`);
     primary = item;
   } else if (identity) {
-    const [details, fallback] = await Promise.allSettled([
-      findDramaDetails(identity.title, identity.year, identity.movie),
-      findMetadata(identity.title, identity.year, identity.movie),
-    ]);
-    primary = details.status === "fulfilled" ? details.value : null;
-    alternative = fallback.status === "fulfilled" ? fallback.value : null;
+    const resolved: { primary: DetailRecord | null; alternative: Awaited<ReturnType<typeof findMetadata>>; supplemental: DetailRecord | null } = { primary: null, alternative: null, supplemental: null };
+    const tasks = [
+      findDramaDetails(identity.title, identity.year, identity.movie).then(value => { resolved.primary = value; }).catch(() => {}),
+      findMetadata(identity.title, identity.year, identity.movie).then(value => { resolved.alternative = value; }).catch(() => {}),
+    ];
+    const extra = identity.movie ? Promise.resolve(null) : getPlaybackEpisodes(identity.title, identity.year).catch(() => []).then(entries => findSupplementalDetails(entries[0]?.title || identity.title, identity.year));
+    const enriched = extra.then(value => { resolved.supplemental = value; });
+    // A complete independent profile need not wait for an unreachable host.
+    await Promise.race([Promise.all([...tasks, enriched]), extra.then(async value => { if (!value?.overview || !isPublishedImage(value.image) || !value.episodes?.length) await Promise.all(tasks); })]);
+    primary = resolved.primary;
+    alternative = resolved.alternative;
+    supplemental = resolved.supplemental;
+    if (supplemental) {
+      const known = primary as DetailRecord | null;
+      const extra = supplemental as DetailRecord;
+      primary = known ? { ...extra, ...known, image: isPublishedImage(known.image) ? known.image : extra.image, overview: known.overview || extra.overview, cast: known.cast?.length ? known.cast : extra.cast, episodes: known.episodes?.length ? known.episodes : extra.episodes, meta: { ...extra.meta, ...known.meta } } : extra;
+    }
     item = primary ? { ...primary, meta: { ...alternative?.meta, ...primary.meta }, overview: primary.overview || alternative?.overview } : alternative ? { ...alternative, meta: alternative.meta || {} } : null;
-    detailsUnavailable = !primary;
+    detailsUnavailable = !item?.overview;
   }
   const movie = item?.movie ?? identity?.movie ?? false;
   const year = item?.year ?? identity?.year;
@@ -140,7 +154,7 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
   const [artwork] = await enrichArtwork([{ title, year, movie, url: item?.url || "", image: item?.image || "/file.svg" }]);
   const posters = [...new Set([alternative?.image].filter((image): image is string => Boolean(image && image !== "/file.svg" && image !== artwork.image)))];
   const genres = primary?.genres?.length ? primary.genres : String(item?.meta.Genre || '').split(/[,;]/).map(value => value.trim()).filter(Boolean);
-  const castSources=[primary?.cast || [],alternative?.cast || [],published?.cast || []].sort((a,b)=>b.length-a.length);
+  const castSources=[primary?.cast || [],alternative?.cast || [],supplemental?.cast || [],published?.cast || []].sort((a,b)=>b.length-a.length);
   const cast=castSources[0].map(person=>{
     const key=normalizeTitle(person.name).replaceAll(' ','');
     const extra=castSources.flat().find(other=>normalizeTitle(other.name).replaceAll(' ','')===key && other.image);

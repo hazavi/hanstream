@@ -27,7 +27,7 @@ export default async function Home() {
   const data = await getHomeData();
   return <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
     <RefreshListings enabled={data.partial} />
-    <div className="flex-1 animate-fade-in min-w-0 space-y-8 sm:space-y-12">
+    <div className="w-full max-w-full flex-1 animate-fade-in min-w-0 space-y-8 sm:space-y-12">
       <Suspense fallback={null}><ContinueWatching /></Suspense>
       <NoticeToast enabled={data.partial} id="home-partial" message="Some listings are temporarily unavailable. We’ll keep checking for updates."/>
       <section id="recent" className="space-y-4 sm:space-y-6 scroll-mt-24">

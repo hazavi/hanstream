@@ -97,6 +97,8 @@
 .site-shell .episode-panel, .site-shell .stream-server-controls { border-color: var(--border); }
 .site-shell .source-empty { border-style: dashed; }
 .site-shell .drama-type-badge { border: 1px solid #ffffff94; border-radius: 999px; background: #090909d9; color: #fff; }
+.site-main, .homepage-grid, .homepage-grid > *, .detail-layout, .detail-media-row { min-width: 0; max-width: 100%; }
+.detail-summary { overflow-wrap: anywhere; }
 
 @media (max-width: 639px) {
   .site-header { padding: 1rem .6rem 0; }
@@ -115,6 +117,12 @@
   .site-shell .card-hover:hover { transform: none; }
 }
 @media (max-width: 420px) {
+  .site-nav .slide-tab { padding-inline: 7px; font-size: .62rem; letter-spacing: .015em; }
+  .site-nav .outline-icon-button, .site-nav .glass-btn.library-link { width: 30px; }
   .drama-media .slide-tab { padding-inline: 11px; }
   .drama-media .slide-tab-label svg { display: none; }
+}
+@media (max-width: 359px) {
+  .site-nav .slide-tab { padding-inline: 4px; font-size: .6rem; letter-spacing: 0; }
+  .site-nav .outline-icon-button, .site-nav .glass-btn.library-link { width: 28px; }
 }

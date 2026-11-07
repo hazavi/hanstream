@@ -73,7 +73,7 @@ function Cards({ items }: { items: (RecentItem | PopularItem)[] }) {
 function Home({ data }: { data: HomeData }) {
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start">
-      <div className="flex-1 min-w-0 space-y-8 sm:space-y-12 animate-fade-in">
+      <div className="w-full flex-1 min-w-0 max-w-full space-y-8 sm:space-y-12 animate-fade-in">
         <ContinueWatching />
         <NoticeToast
           enabled={Boolean(data.partial)}

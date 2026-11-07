@@ -17,7 +17,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
     <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-secondary">
       {items.map((item, index) => (
-        <div key={index} className="flex items-center gap-2">
+        <div key={index} className="flex min-w-0 max-w-full items-center gap-2 [overflow-wrap:anywhere]">
           {item.href && !item.isActive ? (
             <Link
               href={item.href}

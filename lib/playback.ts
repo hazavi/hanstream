@@ -6,6 +6,7 @@ import { createRuntimeCache } from "./runtime-cache";
 import { normalizeTitle, type CatalogTitle } from "./catalog";
 import { getSourceConfig } from "./server-config.mjs";
 import { availablePlayerServers } from "./player-availability";
+import { findFallbackEpisode } from './playback-fallback';
 
 const BASE = getSourceConfig().streamOrigin;
 export type PlaybackTitle = CatalogTitle & { episode?: number };
@@ -272,7 +273,13 @@ export async function getPlaybackStream(
         (!year || item.year === year) &&
         (movie || item.episode === Number(episode)),
     );
-    if (found) return fromPage(await readHtml(found.url, 900), found.url);
+    if (found) {
+      try {
+        const stream = await fromPage(await readHtml(found.url, 900), found.url);
+        if (stream) return stream;
+      } catch { /* The independent public fallback can still supply this episode. */ }
+    }
   }
+  if (!movie && year) return (await findFallbackEpisode(title, year, episode, season))?.stream || null;
   return null;
 }

@@ -4,6 +4,7 @@ export type CatalogTitle = {
 };
 
 export function normalizeTitle(title: string): string {
+  title = title.replace(/[’‘ʼ]/g, "'");
   return title.normalize("NFKD").replace(/([A-Za-z])\p{M}+/gu, "$1").normalize("NFKC").toLowerCase().replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
