@@ -6,6 +6,7 @@ import { getSourceConfig } from './server-config.mjs';
 import { createKeyedCache } from './runtime-cache';
 import type { DetailEpisode, DetailRecord } from './details';
 import type { DramaCast } from './api-types';
+import { observeReader } from './diagnostics';
 
 const text = (value: unknown) => typeof value === 'string' ? cleanText(load(`<span>${value}</span>`)('span').text()) : '';
 const slug = (value: string) => normalizeTitle(value).replaceAll(' ', '-');
@@ -16,6 +17,13 @@ const date = (value: string) => {
   const time = Date.parse(`${value} UTC`);
   return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 10) : undefined;
 };
+function listedImage(element: ReturnType<ReturnType<typeof load>>, base: string) {
+  // Prefer the publisher's smaller rendition for 56px portraits and episode
+  // cards instead of downloading its full-size image for every list entry.
+  const candidates = (element.attr('srcset') || '').split(',').map(value => value.trim().split(/\s+/)).filter(([, width]) => /^\d+w$/.test(width || ''));
+  const selected = candidates.filter(([, width]) => Number(width.slice(0, -1)) >= 240).sort((a, b) => Number(a[1].slice(0, -1)) - Number(b[1].slice(0, -1)))[0]?.[0];
+  return httpsUrl(selected || element.attr('src'), base);
+}
 
 export function parseCollectionDetail(html: string, url: string, title: string, year?: number): DetailRecord | null {
   const $ = load(html);
@@ -28,7 +36,7 @@ export function parseCollectionDetail(html: string, url: string, title: string, 
     const person = $(element), name = cleanText(person.find('a[aria-label]').first().attr('aria-label') || '');
     if (!name || /\s[•·]\s*(?:director|producer|writer|creator)\b/i.test(name) || cast.some(item => item.name === name)) return;
     const lines = person.find('figcaption').children().map((_, node) => cleanText($(node).text())).get();
-    cast.push({ name, character: lines.find(line => line && line !== name), image: httpsUrl(person.find('img').attr('src'), url) });
+    cast.push({ name, character: lines.find(line => line && line !== name), image: listedImage(person.find('img').first(), url) });
   });
   const genres = Array.isArray(schema.genre) ? schema.genre.map(text).filter(Boolean) : [];
   const meta: DetailRecord['meta'] = { Released: publishedYear };
@@ -53,7 +61,7 @@ export function parseCollectionEpisodes(html: string, url: string): DetailEpisod
     const label = $(node).attr('aria-label') || '';
     const title = cleanText(label.replace(/^.*?Season \d+\s*[•·]\s*Episode \d+\s*-\s*/i, ''));
     const paragraphs = figure.find('p').map((_, el) => cleanText($(el).text())).get();
-    episodes.set(`${season}/${episode}`, { season, episode, title: title && title !== label ? title : undefined, image: httpsUrl(figure.find('img').attr('src'), url), overview: paragraphs.at(-1) });
+    episodes.set(`${season}/${episode}`, { season, episode, title: title && title !== label ? title : undefined, image: listedImage(figure.find('img').first(), url), overview: paragraphs.at(-1) });
   });
   return [...episodes.values()];
 }
@@ -111,9 +119,11 @@ const lookup = createKeyedCache<DetailRecord | null>(async key => {
         const seasonUrl = `${url}/season/1`;
         record.episodes = await readHtml(seasonUrl, 1800).then(html => parseCollectionEpisodes(html, seasonUrl)).catch(() => []);
         record.refreshPending = Boolean(Number(record.meta.Episodes) && !record.episodes.length);
+        observeReader('collection-profile', record.episodes.length);
         return record;
       } catch { /* Only verified matching public profiles are used. */ }
     }
+    observeReader('collection-profile', null);
     return null;
   };
   const guide = async () => {
@@ -127,9 +137,11 @@ const lookup = createKeyedCache<DetailRecord | null>(async key => {
         record.episodes = await readHtml(record.episodesUrl!, 1800).then(html => parseGuideEpisodes(html, record.episodesUrl!)).catch(() => []);
         if (record.episodes.length) metaEpisodes(record);
         else record.refreshPending = true;
+        observeReader('guide-profile', record.episodes.length);
         return record;
       } catch { /* A different catalog can still provide this series. */ }
     }
+    observeReader('guide-profile', null);
     return null;
   };
   return Promise.any([collection(), guide()].map(task => task.then(value => { if (value) return value; throw new Error('No matched profile'); }))).catch(() => null);

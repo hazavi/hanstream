@@ -110,7 +110,10 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
       url = new URL(location);
       continue;
     }
-    if ([403, 429].includes(response.status)) unavailableUntil.set(url.origin, Date.now() + 60_000);
+    // A forbidden candidate does not imply that another public profile is
+    // forbidden. Rate limits, however, apply to the whole configured host.
+    if (response.status === 403) unavailableUntil.set(url.href, Date.now() + 60_000);
+    if (response.status === 429) unavailableUntil.set(url.origin, Date.now() + 60_000);
     if (!response.ok || !((response.headers.get("content-type") || "").includes("text/html") || feed&&/^(?:application\/(?:rss\+xml|xml)|text\/xml)(?:;|$)/i.test(response.headers.get('content-type')||''))) {
       await response.body?.cancel();
       throw new SourceUnavailable(source);

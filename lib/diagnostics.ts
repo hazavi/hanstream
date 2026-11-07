@@ -4,7 +4,7 @@ type Metric = 'html.hit' | 'html.miss' | 'html.failure' | 'cache.hit' | 'cache.m
 const counters = new Map<Metric, number>();
 const readers = new Map<string, { outcome: 'ok' | 'unavailable'; records: number; at: string }>();
 /** Fixed reader roles only. Never store URLs, query text, headers, or response bodies. */
-export function observeReader(role: 'calendar-discovery' | 'calendar-index' | 'calendar-filter', records: number | null) {
+export function observeReader(role: 'calendar-discovery' | 'calendar-index' | 'calendar-filter' | 'collection-profile' | 'guide-profile', records: number | null) {
   readers.set(role, { outcome: records === null ? 'unavailable' : 'ok', records: records || 0, at: new Date().toISOString() });
 }
 export function count(metric: Metric) { counters.set(metric, (counters.get(metric) || 0) + 1); }
