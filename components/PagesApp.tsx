@@ -300,8 +300,6 @@ export default function PagesApp({
           {value:'new',label:'New & popular',href:'/popular?category=new'},
         ]}/></div>
       </>}
-      {view === 'ongoing' && <p className="text-secondary">Asian dramas with episodes airing this week, matching Airing Shows on the homepage.</p>}
-      {view === 'ongoing-kshows' && <p className="text-secondary">Ongoing Korean variety, reality, game and talk shows.</p>}
       <Cards items={items} catalog />
       <nav
         aria-label="Pagination"
