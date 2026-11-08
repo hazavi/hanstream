@@ -78,7 +78,8 @@ export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDet
   },[initialDetail,slug]);
   const title = detail.title || "Drama";
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
-  const recovery = `${base}/api/artwork?${new URLSearchParams({ title, ...(Number(detail.meta?.Released) ? { year: String(detail.meta?.Released) } : {}) })}`;
+  const movie=/^(?:film-|movie-)/.test(slug);
+  const recovery = `${base}/api/artwork?${new URLSearchParams({ title, ...(Number(detail.meta?.Released) ? { year: String(detail.meta?.Released) } : {}),...(movie?{movie:'1'}:{}),width:'640',revision:'5' })}`;
   const posters = [detail.image, ...(detail.poster_fallbacks || []), recovery];
   const genres = detail.genres?.length ? detail.genres : String(detail.meta?.Genre || "").split(/[,;]/).map(value => value.trim()).filter(Boolean);
   const tags = [...new Set([...genres, ...(detail.tags || [])])];
@@ -88,7 +89,7 @@ export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDet
     <Breadcrumb items={[{ label: "Home", href: "/" }, { label: title, isActive: true }]} />
     <div className="detail-layout">
       <div className="detail-poster relative aspect-[2/3] rounded-xl overflow-hidden glass-card">
-        <Artwork key={posters.join("|")} sources={posters} alt={title + " poster"} title={title} year={Number(detail.meta?.Released) || undefined} movie={slug.startsWith('movie-')} poster />
+        <Artwork key={posters.join("|")} sources={posters} alt={title + " poster"} title={title} year={Number(detail.meta?.Released) || undefined} movie={movie} poster />
         <WatchlistButton slug={slug} title={title} image={detail.image} /><DramaRatingButton slug={slug} title={title} image={detail.image} />
       </div>
       <div className="detail-summary min-w-0 space-y-5">
