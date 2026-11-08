@@ -40,21 +40,27 @@ async function download(value: string, width: number) {
   const signal = AbortSignal.timeout(4500);
   for (let hop = 0; hop < 4; hop++) {
     if (!permitted(url)) return undefined;
-    const response = await request(url, { dispatcher: publicDispatcher, signal, headersTimeout: 2500, bodyTimeout: 2500, headers: { accept: 'image/avif,image/webp,image/jpeg,image/png' } });
-    if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+    const response = await request(url, { dispatcher: publicDispatcher, signal, headersTimeout: 2500, bodyTimeout: 2500, headers: { accept: 'image/avif,image/webp,image/jpeg,image/png', 'user-agent':'HanStream/1.1 (public artwork cache)' } });
+    const cancel=()=>{
+      // Undici emits an AbortError when a rejected response body is destroyed.
+      // Handle that expected cancellation so a broken poster cannot stop the reader.
+      response.body.on?.('error',()=>{});
       response.body.destroy();
+    };
+    if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+      cancel();
       if (!response.headers.location) return undefined;
       url = new URL(String(response.headers.location), url).href;
       continue;
     }
     if (response.statusCode !== 200 || !/^image\/(?:jpeg|png|webp|avif)(?:;|$)/i.test(String(response.headers['content-type'])) || Number(response.headers['content-length']) > MAX_INPUT) {
-      response.body.destroy(); return undefined;
+      cancel(); return undefined;
     }
     const chunks: Buffer[] = [];
     let size = 0;
     for await (const chunk of response.body) {
       size += chunk.length;
-      if (size > MAX_INPUT) { response.body.destroy(); return undefined; }
+      if (size > MAX_INPUT) { cancel(); return undefined; }
       chunks.push(Buffer.from(chunk));
     }
     const body = await sharp(Buffer.concat(chunks), { limitInputPixels: 25_000_000, animated: false }).rotate().resize({ width, withoutEnlargement: true }).webp({ quality: width >= 320 ? 88 : 78 }).toBuffer();

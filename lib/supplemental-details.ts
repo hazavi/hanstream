@@ -128,6 +128,27 @@ export function parseGuideDetail(html: string, url: string, title: string, year?
   return { title: englishText($('#translations [data-language="eng"][data-title]').first().attr('data-title'), matched, title) || title, year: publishedYear, country, movie: false, url, aliases, meta, overview: englishText(overview), cast, image: httpsUrl($('img[src*="/posters/"]').first().attr('src'), url) || '/file.svg', episodesUrl: `${url.replace(/\/$/, '')}/allseasons/official` };
 }
 
+// Posters do not need a season guide, episode translations or playback lookup.
+const guidePosters=createKeyedCache<string|undefined>(async key=>{
+  const {title,year}=JSON.parse(key),origin=getSourceConfig().guideOrigin;
+  if(!origin)return;
+  const names=[...new Set([title,...(title.includes(':')?[title.split(':')[0]]:[])])];
+  for(const name of names){
+    const url=`${origin}/series/${slug(name)}`;
+    try{
+      const record=parseGuideDetail(await readHtml(url,21600),url,title,year);
+      if(record?.image&&record.image!=='/file.svg')return record.image;
+    }catch{/* Another independent poster catalog can still succeed. */}
+  }
+  // Public catalogs sometimes keep an older slug after an English title changes.
+  const identity=await resolveAsianIdentity(title,year).catch(()=>null);
+  for(const name of (identity?.aliases||[]).filter(name=>englishText(name)&&!names.some(old=>sameTitle(old,name))).slice(0,2)){
+    const url=`${origin}/series/${slug(name)}`;
+    try{const record=parseGuideDetail(await readHtml(url,21600),url,title,year);if(record?.image&&record.image!=='/file.svg')return record.image;}catch{/* Keep other poster readers available. */}
+  }
+},21600000,100,5000);
+export const findGuidePoster=(title:string,year?:number)=>guidePosters(JSON.stringify({title,year}));
+
 export function parseGuideEpisodes(html: string, url: string): DetailEpisode[] {
   const $ = load(html), result: DetailEpisode[] = [];
   $('.list-group-item').each((_, node) => {

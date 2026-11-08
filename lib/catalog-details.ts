@@ -9,7 +9,7 @@ import { lookupMetadata } from "./metadata-source.mjs";
 import { findAlbumPoster } from './album-reader';
 import { findPublishedCover } from './cover-reader';
 import { findReferenceDetail } from './reference-reader';
-import { findSupplementalDetails,findCollectionMoviePoster } from './supplemental-details';
+import { findGuidePoster,findCollectionMoviePoster } from './supplemental-details';
 import {getCatalogProfile as profiles, resolveAsianIdentity as resolveProfile, searchCatalogTitles, searchCatalogPage} from './catalog-search';
 import {hasAsianOrigin, isAsianCountry as asian} from './catalog-policy';
 export {searchCatalogTitles} from './catalog-search';
@@ -35,19 +35,26 @@ async function resolveArtwork(key:string):Promise<string|undefined> {
       } catch { /* A season can still use another published cover. */ }
     }
   }
-  const metadata = async () => {
-    const exact=await lookupMetadata(title,year,false,readHtml);
-    const candidate=exact || (year ? await lookupMetadata(title,undefined,false,readHtml) : null);
-    return candidate && (!year || !candidate.year || candidate.year===year) && candidate.image!=='/file.svg' ? candidate.image : undefined;
-  };
-  try {
-    return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year),findSupplementalDetails(title,year).then(record=>record?.image)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
-  } catch { return undefined; }
+  return undefined;
+}
+export function artworkLookups(key:string):Array<()=>Promise<string|undefined>> {
+  const {title,year,movie,secondary}=JSON.parse(key);
+  if(movie)return [()=>findCollectionMoviePoster(title,year),()=>findPublishedCover(title,year)];
+  return [
+    ...(!secondary?[()=>resolveArtwork(key)]:[]),
+    ()=>findGuidePoster(title,year),
+    ()=>findPublishedCover(title,year),
+    ()=>findAlbumPoster(title,year),
+    ()=>findReferenceDetail(title,year).then(record=>record?.image),
+    async()=>{
+      const exact=await lookupMetadata(title,year,false,readHtml);
+      const candidate=exact || (year ? await lookupMetadata(title,undefined,false,readHtml) : null);
+      return candidate && (!year || !candidate.year || candidate.year===year) && candidate.image!=='/file.svg' ? candidate.image : undefined;
+    },
+  ];
 }
 export const findCatalogArtwork=createKeyedCache<string|undefined>(async key=>{
-  const {title,year,movie}=JSON.parse(key);
-  if(movie)return findCollectionMoviePoster(title,year);
-  return Promise.any([resolveArtwork(key),findPublishedCover(title,year)].map(task=>task.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');}))).catch(()=>undefined);
+  return Promise.any(artworkLookups(key).map(load=>load().then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');}))).catch(()=>undefined);
 },900_000,100,5000);
 export async function searchAsianCatalogResults(query: string, page = 1, limit = 25) {
   const source = await searchCatalogPage(query, page), rows = source.items;

@@ -21,7 +21,9 @@ export function parsePublishedCover(html: string, title: string, year?: number) 
   const release = [...fields].filter(([key])=>/release|aired/.test(key)).map(([,value])=>value).join(' ');
   const years: string[] = release.match(/\b(?:19|20)\d{2}\b/g) || [];
   if (year && years.length && !years.includes(String(year))) return undefined;
-  const image = box.find('img').first().attr('src');
+  const picture=box.find('img').first();
+  const responsive=(picture.attr('srcset')||'').split(',').map(value=>value.trim().split(/\s+/)).filter(([url,density])=>url&&/^[\d.]+[xw]$/.test(density||'')).sort((a,b)=>parseFloat(b[1])-parseFloat(a[1]));
+  const image = responsive[0]?.[0] || picture.attr('src');
   return image ? httpsUrl(image, getSourceConfig().artworkOrigin || 'https://invalid.example') : undefined;
 }
 

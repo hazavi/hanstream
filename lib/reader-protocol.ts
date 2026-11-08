@@ -152,7 +152,7 @@ export function readerTiming(job: ReaderJob, value?: unknown) {
       (job.kind === "artwork" || job.kind === "portrait") &&
       data?.headers?.["x-artwork-available"] === "0"
     )
-      return { fresh: 30_000, retain: 60 };
+      return job.kind==='artwork'?{fresh:5000,retain:15}:{fresh:30_000,retain:60};
   }
   if (job.kind === "episode") return { fresh: 20_000, retain: 60 };
   if (job.kind === "search") return { fresh: 60_000, retain: 300 };

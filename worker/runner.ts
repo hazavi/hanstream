@@ -127,7 +127,7 @@ export async function startReaderWorker(options: WorkerOptions = {}) {
               "x-artwork-available"
             ] === "0"
           )
-            retain = 60;
+            retain = readerTiming(envelope.job,value).retain;
           record = JSON.stringify({
             version: 1,
             id: keys.id,

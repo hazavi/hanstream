@@ -68,7 +68,7 @@ export function Artwork({
   const recovery = useRef({ key: "", count: 0 });
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
   const fallback = title
-    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), ...(movie?{movie:'1'}:{}),width:'640',revision:'4' })}`
+    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), ...(movie?{movie:'1'}:{}),width:'640',revision:'5' })}`
     : undefined;
   const portrait = person
     ? `${base}/api/portrait?${new URLSearchParams({ name: person, ...(personKey ? { key: personKey } : {}) })}`
@@ -114,7 +114,7 @@ export function Artwork({
     const controller=new AbortController();
     void (async()=>{
       while(!controller.signal.aborted){
-        await pauseRequest([6000,65_000,120_000,300_000][Math.min(recovery.current.count,3)],controller.signal);
+        await pauseRequest([6000,15_000,30_000,60_000][Math.min(recovery.current.count,3)],controller.signal);
         await waitForActivePage(controller.signal);
         recovery.current.count++;
         if (claimArtworkRetry(key)) {
@@ -130,17 +130,17 @@ export function Artwork({
     if (
       !near ||
       !source ||
-      !/^https?:/.test(source) ||
-      source.startsWith(base + "/api/")
+      waitingForCurrent ||
+      !/^https?:/.test(source) && !source.startsWith(base + '/api/')
     )
       return;
     const timer = setTimeout(() => {
       if (loadedSource.current === source) return;
       failArtwork(key, source);
       setFailure({ key, attempt: attempt + 1 });
-    }, 3500);
+    }, source.startsWith(base + '/api/') ? 12000 : 3500);
     return () => clearTimeout(timer);
-  }, [source, key, attempt, base, near]);
+  }, [source, key, attempt, base, near, waitingForCurrent]);
   return (
     <span ref={container} className="absolute inset-0 block">
       {near && source && !waitingForCurrent ? (

@@ -28,6 +28,6 @@ export function subscribeArtwork(key: string, listener:()=>void) {
 }
 export function claimArtworkRetry(key: string) {
   if ((retries.get(key)||0)>Date.now()) return false;
-  retries.set(key,Date.now()+60_000); bound(retries); return true;
+  retries.set(key,Date.now()+15_000); bound(retries); return true;
 }
 export function clearArtworkCache() { winners.clear(); failures.clear(); retries.clear(); }
