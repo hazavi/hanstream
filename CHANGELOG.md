@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.3
+
+- Added all-time and recent popular categories, ongoing Asian dramas, and ongoing Korean variety shows, with navigation links and pagination.
+- Search now checks the full catalog. Asian-origin checks reject unrelated foreign titles, and metadata cache revisions prevent old matches from returning. Corrected the Korean drama Trigger.
+- Grouped the watchlist into status folders with 20 dramas per page. Hover trash controls require confirmation before removal, and destructive buttons use visible red styling.
+- Library exports open a native Save As dialog on Windows. Supported browsers use a save-location picker; other browsers follow their download settings.
+- Reopening the desktop app restores the existing window instead of creating another instance. Updated the desktop icon to use the current favicon.
+- Fixed theme-toggle contrast and mobile navigation wrapping. Successful catalog searches return without waiting for homepage fallback sources.
+- Windows installer tools now use bounded download retries, an alternate official asset endpoint, and pinned SHA-256 checks.
+
+Windows downloads remain unsigned. Saved library data is preserved during upgrades. Third-party player restrictions and the advertisement-filter limitations described below still apply.
+
 ## 1.1.2
 
 - Upgrades replace the app and uninstaller in place, avoiding the broken legacy “Uninstall before installing” path. Windows checks reproduce an older uninstall command that always fails, then verify upgrade and removal succeed.
