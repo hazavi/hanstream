@@ -10,6 +10,7 @@ import {
 import { detailNeedsRefresh } from "./detail-cache";
 import { hasHomeContent, type HomeData } from "./home-data";
 import type { DramaResponse } from "./api-types";
+import {readerJobId} from './reader-job-id';
 
 // Do not cache transport errors, missing images, or expiring playback URLs.
 class PartialReaderValue extends Error {
@@ -30,7 +31,7 @@ export async function durableReaderValue<T>(
   const scope = createHash("sha256")
     .update(process.env.READER_GATEWAY_ORIGIN || "")
     .digest("hex");
-  const id = createHash("sha256").update(JSON.stringify(job)).digest("hex");
+  const id = readerJobId(job);
   const read = unstable_cache(
     async () => {
       const value = await load();
@@ -48,7 +49,7 @@ export async function durableReaderValue<T>(
         throw new PartialReaderValue(value);
       return { value, at: Date.now() };
     },
-    ["reader-public-v1", readerNamespace(), scope, id, job.kind === 'drama' ? 'english-v2' : 'base'],
+    ["reader-public-v2", readerNamespace(), scope, id],
     {
       revalidate: Math.max(1, Math.floor(readerTiming(job).fresh / 1000)),
       tags: ["reader-public-" + job.kind],
