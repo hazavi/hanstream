@@ -67,10 +67,13 @@ jobs:
       - name: Build unsigned installer
         if: inputs.signed != true
         run: npm run desktop:build -- --locked
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Build signed installer and updates
         if: inputs.signed == true
         run: npm run desktop:build -- --locked
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           DESKTOP_SIGNED_UPDATES: '1'
           DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.DESKTOP_UPDATER_PUBLIC_KEY }}
           DESKTOP_UPDATER_ENDPOINT: ${{ vars.DESKTOP_UPDATER_ENDPOINT }}

@@ -61,6 +61,8 @@ npm run desktop:build -- --locked
 
 A native build also requires Rust 1.90 or newer and the Windows C++ build tools. CI builds the installer, checks installation and uninstallation, verifies single-instance launches and native Save As exports, and tests the packaged app in an isolated WebView2 environment. Release installers never include the automation harness.
 
+Windows installer tools are downloaded with bounded retries, checked against pinned SHA-256 hashes, and cached inside the ignored build directory. CI can use GitHub's authenticated asset download endpoint when the public release download fails.
+
 ## Security and release notes
 
 Catalog responses are size-limited before JSON parsing and validated before use or caching. API requests omit cookies and reject redirects. Source readers use fixed HTTPS origins, DNS checks, response limits and bounded queues. A rejected source page gets its own cooldown; rate limits apply across its host.
