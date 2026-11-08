@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { UserRound } from "lucide-react";
 import { pauseRequest, waitForActivePage } from '@/lib/request-retry';
-import { isPublishedImage } from "@/lib/image-utils.mjs";
+import { isPublishedImage, posterImageSources } from "@/lib/image-utils.mjs";
 import {
   artworkFailedRecently,
   artworkWinner,
@@ -68,14 +68,14 @@ export function Artwork({
   const recovery = useRef({ key: "", count: 0 });
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
   const fallback = title
-    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), ...(movie?{movie:'1'}:{}),revision:'4' })}`
+    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), ...(movie?{movie:'1'}:{}),width:'640',revision:'4' })}`
     : undefined;
   const portrait = person
     ? `${base}/api/portrait?${new URLSearchParams({ name: person, ...(personKey ? { key: personKey } : {}) })}`
     : undefined;
   const candidates = [
     ...new Set(
-      [...sources, portrait, fallback].filter((src): src is string =>
+      [...(person ? sources : sources.flatMap(posterImageSources)), portrait, fallback].filter((src): src is string =>
         isPublishedImage(src),
       ),
     ),

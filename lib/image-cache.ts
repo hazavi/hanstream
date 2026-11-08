@@ -7,6 +7,7 @@ import { request } from 'undici';
 import sharp from 'sharp';
 import { count } from './diagnostics';
 import { publicDispatcher } from './outbound';
+import {posterImageSources} from './image-utils.mjs';
 export { isPublicAddress } from './outbound';
 
 const MAX_INPUT = 5_000_000;
@@ -56,7 +57,7 @@ async function download(value: string, width: number) {
       if (size > MAX_INPUT) { response.body.destroy(); return undefined; }
       chunks.push(Buffer.from(chunk));
     }
-    const body = await sharp(Buffer.concat(chunks), { limitInputPixels: 25_000_000, animated: false }).rotate().resize({ width, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer();
+    const body = await sharp(Buffer.concat(chunks), { limitInputPixels: 25_000_000, animated: false }).rotate().resize({ width, withoutEnlargement: true }).webp({ quality: width >= 320 ? 88 : 78 }).toBuffer();
     if (body.length > MAX_INPUT) return undefined;
     return { body, etag: `"${createHash('sha256').update(body).digest('base64url')}"` };
   }
@@ -73,7 +74,13 @@ export async function cachedImage(url: string, width = 320) {
   if (pending.has(key)) return pending.get(key);
   if (pending.size >= 32) throw new ImageBusy();
   count('image.miss');
-  const task = (async()=>{await acquire();try{return await download(url,width);}finally{release();}})().then(image => {
+  const task = (async()=>{await acquire();try{
+    for(const candidate of width >= 320 ? posterImageSources(url) : [url]) {
+      try {const image=await download(candidate,width);if(image)return image;}
+      catch { /* A missing or slow original can still use its published thumbnail. */ }
+    }
+    return undefined;
+  }finally{release();}})().then(image => {
     if (!image) return undefined;
     const old = images.get(key);
     if (old) { bytes -= old.body.length; images.delete(key); }

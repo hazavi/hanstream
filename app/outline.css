@@ -110,7 +110,8 @@
 .site-shell .episode-panel, .site-shell .stream-server-controls { border-color: var(--border); }
 .site-shell .source-empty { border-style: dashed; }
 .site-shell .drama-type-badge { border: 1px solid #ffffff94; border-radius: 999px; background: #090909d9; color: #fff; }
-.site-main, .homepage-grid, .homepage-grid > *, .detail-layout, .detail-media-row { min-width: 0; max-width: 100%; }
+.homepage-grid, .homepage-grid > *, .detail-layout, .detail-media-row { min-width: 0; max-width: 100%; }
+.site-main { width: 100%; min-width: 0; max-width: 100rem; margin-inline: auto; padding-inline: clamp(1.25rem, 4vw, 4rem); }
 .popular-category-tabs { padding-bottom: 1rem; }
 .watch-caption-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; }
 .watch-caption-row .watch-caption { margin: 0; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
