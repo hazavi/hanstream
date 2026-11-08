@@ -111,7 +111,7 @@
 .site-shell .source-empty { border-style: dashed; }
 .site-shell .drama-type-badge { border: 1px solid #ffffff94; border-radius: 999px; background: #090909d9; color: #fff; }
 .homepage-grid, .homepage-grid > *, .detail-layout, .detail-media-row { min-width: 0; max-width: 100%; }
-.site-main { width: 100%; min-width: 0; max-width: 100rem; margin-inline: auto; padding-inline: clamp(1.25rem, 4vw, 4rem); }
+.site-main { width: 100%; min-width: 0; max-width: 100rem; margin-inline: auto; padding-inline: clamp(1.5rem, 7vw, 7rem); }
 .popular-category-tabs { padding-bottom: 1rem; }
 .watch-caption-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; }
 .watch-caption-row .watch-caption { margin: 0; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
