@@ -58,9 +58,9 @@ type View =
   | "drama"
   | "watch";
 
-function Cards({ items }: { items: (RecentItem | PopularItem)[] }) {
+function Cards({ items, catalog = false }: { items: (RecentItem | PopularItem)[]; catalog?: boolean }) {
   return items.length ? (
-    <div className="homepage-grid">
+    <div className={catalog ? 'homepage-grid catalog-grid' : 'homepage-grid'}>
       {items.map((item) =>
         "episode-link" in item ? (
           <DramaCard key={item["episode-link"]} item={item} variant="recent" />
@@ -89,7 +89,7 @@ function Home({ data }: { data: HomeData }) {
             href: "/recently-added",
             items: data.recent,
           },
-          { title: "Popular Dramas", href: "/popular", items: data.popular },
+          { title: "New & Popular Dramas", href: "/popular?category=new", items: data.popular },
         ].map((section) => (
           <section key={section.href} className="space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
@@ -193,7 +193,7 @@ export default function PagesApp({
       controller.signal,
       () =>
         toast(
-          "The connection is delayed. We’re still trying.",
+          navigator.onLine===false ? "You’re offline. Reconnect to continue; your saved library stays available." : view==='watch' ? "The video host is responding slowly. We’re checking the stream automatically." : "The catalog is responding slowly. We’re retrying in the background; you can keep browsing saved items.",
           "catalog-delay",
         ),
     )
@@ -295,14 +295,14 @@ export default function PagesApp({
       </h1>
       {view === 'popular' && <>
         <p className="text-secondary">Explore established favorites and recent popular Korean, Japanese, Chinese and Thai dramas.</p>
-        <SlideTabs mode="navigation" value={popularCategory} label="Popular drama categories" items={[
+        <div className="popular-category-tabs"><SlideTabs mode="navigation" value={popularCategory} label="Popular drama categories" items={[
           {value:'all',label:'All-time popular',href:'/popular?category=all'},
           {value:'new',label:'New & popular',href:'/popular?category=new'},
-        ]}/>
+        ]}/></div>
       </>}
-      {view === 'ongoing' && <p className="text-secondary">Browse Asian drama series currently listed as running.</p>}
+      {view === 'ongoing' && <p className="text-secondary">Asian dramas with episodes airing this week, matching Airing Shows on the homepage.</p>}
       {view === 'ongoing-kshows' && <p className="text-secondary">Ongoing Korean variety, reality, game and talk shows.</p>}
-      <Cards items={items} />
+      <Cards items={items} catalog />
       <nav
         aria-label="Pagination"
         className="flex justify-center items-center gap-4"

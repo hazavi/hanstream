@@ -18,7 +18,7 @@ export async function readCatalogHtml(url: string) {
 const searches = createKeyedCache<{items: SearchTitle[]; hasNext: boolean}>(async key => {
   const {query, page} = JSON.parse(key), {catalogOrigin} = getSourceConfig();
   if (!catalogOrigin) return {items: [], hasNext: false};
-  const html = await readCatalogHtml(`${catalogOrigin}/search?${new URLSearchParams({q: query, ...(page > 1 ? {page: String(page - 1)} : {})})}`);
+  const html = await readCatalogHtml(`${catalogOrigin}/search?${new URLSearchParams({q: query, ...(page > 1 ? {page: String(page)} : {})})}`);
   return {items: parseCatalogSearch(html, catalogOrigin), hasNext: parseCatalogPageHasNext(html,catalogOrigin)};
 }, 300_000);
 export const getCatalogProfile = createKeyedCache<DetailRecord>(async url => parseCatalogDetails(await readCatalogHtml(url), url) as DetailRecord);

@@ -111,6 +111,13 @@
 .site-shell .source-empty { border-style: dashed; }
 .site-shell .drama-type-badge { border: 1px solid #ffffff94; border-radius: 999px; background: #090909d9; color: #fff; }
 .site-main, .homepage-grid, .homepage-grid > *, .detail-layout, .detail-media-row { min-width: 0; max-width: 100%; }
+.popular-category-tabs { padding-bottom: 1rem; }
+.watch-caption-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; }
+.watch-caption-row .watch-caption { margin: 0; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-caption-row .episode-navigation { flex-shrink: 0; }
+@media (min-width: 768px) { .homepage-grid.catalog-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .homepage-grid.catalog-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem; } }
+@media (max-width: 479px) { .watch-caption-row { align-items: flex-start; gap: .5rem; } .watch-caption-row .watch-caption { font-size: .75rem; } }
 .detail-summary { overflow-wrap: anywhere; }
 
 @media (max-width: 639px) {

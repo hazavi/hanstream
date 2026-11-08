@@ -10,7 +10,7 @@ type HomeData = { home: Awaited<ReturnType<typeof getHomepage>>; recent: RecentI
 type Slot<T> = { result?: PromiseSettledResult<T> };
 
 /** Share one successful homepage refresh across simultaneous browser requests. */
-const loadHome = persistentLoader<HomeData>('home', async (_key, previous) => {
+const loadHome = persistentLoader<HomeData>('home-catalog-v4', async (_key, previous) => {
   const home:Slot<Awaited<ReturnType<typeof getHomepage>>>={};
   const recent:Slot<Awaited<ReturnType<typeof fetchRecent>>>={};
   const popular:Slot<Awaited<ReturnType<typeof fetchPopular>>>={};

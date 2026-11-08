@@ -7,6 +7,9 @@ import { collectMetadata, homepageSections, lookupMetadata, matchMetadata, ranki
 import { findCatalogArtwork } from "./catalog-details";
 import type { DramaCast } from './api-types';
 import { getCalendarTitles, type CalendarTitle } from './calendar-reader';
+import {browseAsianDramas} from './discovery-reader';
+import {getCatalogWeek} from './airing-reader';
+import {findCollectionMoviePoster} from './supplemental-details';
 
 export { HOME_LABELS } from "./metadata-source.mjs";
 export type HomeSection = "reviews" | "trending" | "starting" | "ending";
@@ -24,11 +27,10 @@ function mergeCalendar(snapshot:MetadataSnapshot,items:CalendarTitle[]):Metadata
 }
 const liveMetadata = createRuntimeCache<MetadataSnapshot>(async previous => {
   // Homepage lists need published indexes, not dozens of optional detail reads.
-  const [main,calendar]=await Promise.allSettled([collectMetadata(readHtml,{previous,limit:0,feedRead:readFeed}),getCalendarTitles()]);
-  if(main.status==='rejected'&&calendar.status==='rejected')throw main.reason;
+  const [main]=await Promise.allSettled([collectMetadata(readHtml,{previous,limit:0,feedRead:readFeed})]);
+  if(main.status==='rejected'&&!previous)throw main.reason;
   const base=main.status==='fulfilled' && main.value.titles?.length ? main.value as MetadataSnapshot:previous||{version:2 as const,fetchedAt:new Date().toISOString(),titles:[],airingUrls:[],editorial:{titles:[],trending:[],popular:[],reviews:[]},sources:[]};
-  const items=calendar.status==='fulfilled'?calendar.value:[];
-  const first=mergeCalendar(base,items);
+  const first=base;
   if(!first.titles.length)throw new Error('Drama metadata is temporarily unavailable.');
   return first;
 }, value => value.titles.length && value.editorial.reviews.length && value.scheduleAvailable ? 900_000 : 15_000);
@@ -39,7 +41,11 @@ async function datedMetadata() {
   return mergeCalendar(snapshot,calendar);
 }
 export const getHomepage = cache(async (): Promise<Record<HomeSection, CatalogTitle[]>> => {
-  const sections = homepageSections(await datedMetadata()) as Record<HomeSection, MetadataTitle[]>;
+  const [snapshot,recent,week]=await Promise.all([getMetadata(),browseAsianDramas('popular-new'),getCatalogWeek()]);
+  const sections = homepageSections(snapshot) as Record<HomeSection, MetadataTitle[]>;
+  sections.trending=recent.items.slice(0,6).map(item=>({...item,sourceName:'Catalog'}));
+  sections.starting=week.starting.map(item=>({...item,sourceName:'Catalog'}));
+  sections.ending=week.ending.map(item=>({...item,sourceName:'Catalog'}));
   // One worker pool for all sections, including titles appearing in several grids.
   const keys = Object.keys(sections) as HomeSection[];
   const enriched = await enrichArtwork(keys.flatMap(section => sections[section]));
@@ -91,8 +97,8 @@ export async function enrichArtwork<T extends CatalogTitle>(items: T[]): Promise
       if (item.image && item.image !== '/file.svg') continue;
       const detail = matchMetadata(catalog, item.title, item.year, Boolean(item.movie)) as MetadataTitle | undefined;
       let image = detail?.image !== '/file.svg' ? detail?.image : undefined;
-      if (!image && !item.movie) {
-        try { image = await findCatalogArtwork(JSON.stringify({ title: item.title, year: item.year })); } catch { /* Preserve existing live artwork when a lookup fails. */ }
+      if (!image) {
+        try { image = item.movie ? await findCollectionMoviePoster(item.title,item.year) : await findCatalogArtwork(JSON.stringify({ title: item.title, year: item.year })); } catch { /* Preserve existing live artwork when a lookup fails. */ }
       }
       if (image && image !== '/file.svg') result[index] = { ...item, image };
     }

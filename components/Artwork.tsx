@@ -18,6 +18,7 @@ export function Artwork({
   sources,
   alt,
   poster = false,
+  movie = false,
   placeholder = "Artwork unavailable",
   title,
   year,
@@ -28,6 +29,7 @@ export function Artwork({
   sources: (string | undefined)[];
   alt: string;
   poster?: boolean;
+  movie?: boolean;
   placeholder?: string;
   title?: string;
   year?: number;
@@ -66,7 +68,7 @@ export function Artwork({
   const recovery = useRef({ key: "", count: 0 });
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
   const fallback = title
-    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), revision:'3' })}`
+    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), ...(movie?{movie:'1'}:{}),revision:'4' })}`
     : undefined;
   const portrait = person
     ? `${base}/api/portrait?${new URLSearchParams({ name: person, ...(personKey ? { key: personKey } : {}) })}`

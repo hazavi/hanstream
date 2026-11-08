@@ -22,7 +22,9 @@ export async function middleware(request: NextRequest) {
     return response;
   }
   const origin = request.headers.get("origin");
-  const allowed = !origin || origin === request.nextUrl.origin || allowedFrontend(origin);
+  // Desktop posters are normal cross-origin images and carry no Origin header.
+  const publicImage=['/api/artwork','/api/portrait'].includes(request.nextUrl.pathname)&&request.headers.get('sec-fetch-dest')==='image';
+  const allowed = origin ? origin === request.nextUrl.origin || allowedFrontend(origin) : request.headers.get('sec-fetch-site')!=='cross-site'||publicImage;
   const invalid = validateApiRequest(request.nextUrl);
   let response = !allowed
     ? NextResponse.json({ error: "Origin not allowed" }, { status: 403 })

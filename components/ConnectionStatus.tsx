@@ -8,7 +8,7 @@ export function ConnectionStatus() {
     const timer = setTimeout(
       () =>
         toast(
-          "The catalog is taking longer to respond. We’re still trying; your saved library remains available.",
+          "The catalog is responding slowly. We’re reconnecting automatically; your saved library is still available.",
           "catalog-delay",
         ),
       8000,

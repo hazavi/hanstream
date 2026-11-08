@@ -53,11 +53,11 @@ const lookup = createKeyedCache(async key => {
   if (season !== 1 || !year || !/^\d+(?:\.\d+)?$/.test(episode)) return null;
   const name = normalizeTitle(title).replaceAll(' ', '-');
   let metadata: ReturnType<typeof parseFallbackEpisode> = null;
-  for (const origin of origins) for (const path of [`${name}-episode-${episode}`, `${name}-${year}-episode-${episode}`]) {
+  const attempts = origins.flatMap(origin=>[`${name}-episode-${episode}`, `${name}-${year}-episode-${episode}`].map(async path=>{
     const url = `${origin}/${path}/`;
     try {
       const result = parseFallbackEpisode(await readHtml(url, 300), url, title, year, episode);
-      if (!result) continue;
+      if (!result) throw new Error('No matching episode');
       if (result.stream) {
         const servers = await availablePlayerServers(result.stream.servers);
         result.stream = servers.length ? {...result.stream, url: servers[0].url, servers} : null;
@@ -65,8 +65,9 @@ const lookup = createKeyedCache(async key => {
       if (result.stream) return result;
       metadata ||= result;
     } catch { /* Try the next exact public episode page, never an archive crawl. */ }
-  }
-  return metadata;
+    throw new Error('No verified stream');
+  }));
+  return await Promise.any(attempts).catch(()=>metadata);
 }, 60_000, 100, 15_000);
 
 export const findFallbackEpisode = (title: string, year: number, episode: string, season = 1) => lookup(JSON.stringify({title, year, episode, season}));

@@ -88,7 +88,7 @@ export function DramaDetails({ detail: initialDetail, slug }: { detail: DramaDet
     <Breadcrumb items={[{ label: "Home", href: "/" }, { label: title, isActive: true }]} />
     <div className="detail-layout">
       <div className="detail-poster relative aspect-[2/3] rounded-xl overflow-hidden glass-card">
-        <Artwork key={posters.join("|")} sources={posters} alt={title + " poster"} title={title} year={Number(detail.meta?.Released) || undefined} poster />
+        <Artwork key={posters.join("|")} sources={posters} alt={title + " poster"} title={title} year={Number(detail.meta?.Released) || undefined} movie={slug.startsWith('movie-')} poster />
         <WatchlistButton slug={slug} title={title} image={detail.image} /><DramaRatingButton slug={slug} title={title} image={detail.image} />
       </div>
       <div className="detail-summary min-w-0 space-y-5">

@@ -5,8 +5,9 @@ import {createKeyedCache} from './runtime-cache';
 import {readCatalogHtml} from './catalog-search';
 import {parseCatalogBrowse} from './catalog-reader.mjs';
 import {catalogRoute, type CatalogTitle} from './catalog';
+import {getAiringDramas} from './airing-reader';
 
-export type BrowseCategory = 'popular' | 'popular-new' | 'ongoing' | 'ongoing-kshows';
+export type BrowseCategory = 'popular' | 'popular-new' | 'ongoing' | 'ongoing-kshows' | 'upcoming';
 type Scope = {language: string; type: string};
 type Filters = {languages: Record<string,string>; types: Record<string,string>; states: Record<string,string>; sorts: Record<string,string>};
 const settings = createKeyedCache<Filters>(async () => {
@@ -27,12 +28,13 @@ const batches = createKeyedCache<{items: CatalogTitle[]; hasNext: boolean}>(asyn
   const results = await Promise.allSettled(scopes.map(async scope => {
     const filters: Record<string,string> = {'Show[language_enum]': config.languages[scope.language], 'Show[showType_enum]': config.types[scope.type], 'Show[sort]': config.sorts[category === 'popular' ? 'Most followed' : 'Most popular']};
     if (category.startsWith('ongoing')) filters['Show[showStatus_enum]'] = config.states.Running;
+    if (category==='upcoming') filters['Show[showStatus_enum]'] = config.states['In Development'];
     if (category === 'popular-new') filters['Show[premiereFrom]'] = String(year - 1);
     if (Object.values(filters).some(value => !value)) throw new Error('Published drama filters are unavailable.');
-    const query = new URLSearchParams({...filters, ...(page > 1 ? {page: String(page - 1)} : {})});
+    const query = new URLSearchParams({...filters, ...(page > 1 ? {page: String(page)} : {})});
     return parseCatalogBrowse(await readCatalogHtml(`${catalogOrigin}/shows?${query}`), catalogOrigin, filters) as {items: CatalogTitle[]; hasNext: boolean};
   }));
-  if (results.every(result => result.status === 'rejected')) throw new AggregateError(results.map(result => result.reason), 'Drama listings are temporarily unavailable.');
+  if (results.some(result => result.status === 'rejected')) throw new AggregateError(results.flatMap(result => result.status==='rejected'?[result.reason]:[]), 'Drama listings are temporarily unavailable.');
   const lists = results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
   // Interleave each published ranking, keeping its order stable across pages.
   const items: CatalogTitle[] = [];
@@ -41,6 +43,7 @@ const batches = createKeyedCache<{items: CatalogTitle[]; hasNext: boolean}>(asyn
 }, 900_000);
 
 export async function browseAsianDramas(category: BrowseCategory, page = 1) {
+  if(category==='ongoing'){const items=await getAiringDramas();return {items:items.slice((page-1)*24,page*24),hasNext:items.length>page*24};}
   const year = Number(new Intl.DateTimeFormat('en',{timeZone:'Europe/Copenhagen',year:'numeric'}).format(new Date()));
   const records = new Map<string,CatalogTitle>();
   const end = page * 20;

@@ -1,7 +1,7 @@
 import { isDesktop, nativeInvoke } from './native';
 
 export type CacheRecord = { key: string; value: unknown; expires: number; savedAt: number; revision?: number };
-const revision = 3;
+const revision = 4;
 function transient(key: string) {
   try { return /^\/api\/(?:episode(?:\/|$)|search(?:\/|$))/.test(new URL(key, 'https://cache.invalid').pathname); }
   catch { return true; }

@@ -5,7 +5,7 @@ function Block({ className = '' }: { className?: string }) {
 }
 
 export function PageSkeleton({ view = 'home' }: { view?: PageView }) {
-  const cards = <div className="homepage-grid">{Array.from({ length: 8 }, (_, index) => <div key={index} className="glass-card overflow-hidden rounded-2xl"><Block className="aspect-[4/5]" /><div className="p-4 space-y-3"><Block className="h-4 w-4/5" /><Block className="h-3 w-1/2" /></div></div>)}</div>;
+  const cards = <div className={view==='home'||view==='profile'?'homepage-grid':'homepage-grid catalog-grid'}>{Array.from({ length: 12 }, (_, index) => <div key={index} className="glass-card overflow-hidden rounded-2xl"><Block className="aspect-[4/5]" /><div className="p-4 space-y-3"><Block className="h-4 w-4/5" /><Block className="h-3 w-1/2" /></div></div>)}</div>;
   return <div role="status" aria-live="polite" className="space-y-6"><span className="sr-only">Loading {view === 'watch' ? 'episode' : view === 'profile' ? 'library' : 'dramas'}...</span><div aria-hidden="true" className="space-y-6">
     {(view === 'drama' || view === 'watch') && <Block className="h-4 w-52" />}
     {view === 'drama' ? <><div className="grid gap-8 sm:grid-cols-[minmax(180px,280px)_1fr]"><Block className="aspect-[2/3] rounded-2xl" /><div className="space-y-5"><Block className="h-10 w-4/5" /><Block className="h-5 w-1/2" /><Block className="h-40 rounded-2xl" /></div></div><Block className="h-12 w-72 rounded-full" /><Block className="h-40 rounded-2xl" /></>

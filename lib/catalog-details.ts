@@ -9,13 +9,13 @@ import { lookupMetadata } from "./metadata-source.mjs";
 import { findAlbumPoster } from './album-reader';
 import { findPublishedCover } from './cover-reader';
 import { findReferenceDetail } from './reference-reader';
-import { findSupplementalDetails } from './supplemental-details';
+import { findSupplementalDetails,findCollectionMoviePoster } from './supplemental-details';
 import {getCatalogProfile as profiles, resolveAsianIdentity as resolveProfile, searchCatalogTitles, searchCatalogPage} from './catalog-search';
 import {hasAsianOrigin, isAsianCountry as asian} from './catalog-policy';
 export {searchCatalogTitles} from './catalog-search';
 
 const eligible = (record: DetailRecord) => hasAsianOrigin(record.country, record.meta.Language);
-export const findCatalogArtwork = createKeyedCache<string | undefined>(async key => {
+async function resolveArtwork(key:string):Promise<string|undefined> {
   const { title, year, secondary } = JSON.parse(key);
   if (!secondary) {
     try {
@@ -43,7 +43,12 @@ export const findCatalogArtwork = createKeyedCache<string | undefined>(async key
   try {
     return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year),findSupplementalDetails(title,year).then(record=>record?.image)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
   } catch { return undefined; }
-}, 900_000, 100, 5000);
+}
+export const findCatalogArtwork=createKeyedCache<string|undefined>(async key=>{
+  const {title,year,movie}=JSON.parse(key);
+  if(movie)return findCollectionMoviePoster(title,year);
+  return Promise.any([resolveArtwork(key),findPublishedCover(title,year)].map(task=>task.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');}))).catch(()=>undefined);
+},900_000,100,5000);
 export async function searchAsianCatalogResults(query: string, page = 1, limit = 25) {
   const source = await searchCatalogPage(query, page), rows = source.items;
   const candidates = rows.filter(item => !item.country || asian(item.country)).slice(0,limit);

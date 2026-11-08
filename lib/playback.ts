@@ -7,6 +7,8 @@ import { normalizeTitle, type CatalogTitle } from "./catalog";
 import { getSourceConfig } from "./server-config.mjs";
 import { availablePlayerServers } from "./player-availability";
 import { findFallbackEpisode } from './playback-fallback';
+import {resolveAsianIdentity} from './catalog-search';
+import {englishText} from './display-language';
 
 const BASE = getSourceConfig().streamOrigin;
 export type PlaybackTitle = CatalogTitle & { episode?: number };
@@ -176,7 +178,7 @@ export async function getPlaybackEpisodes(
     .sort((a, b) => (a.episode || 1) - (b.episode || 1));
 }
 
-export async function getPlaybackStream(
+async function findPlaybackStream(
   title: string,
   episode: string,
   movie = false,
@@ -282,4 +284,20 @@ export async function getPlaybackStream(
   }
   if (!movie && year) return (await findFallbackEpisode(title, year, episode, season))?.stream || null;
   return null;
+}
+
+export async function getPlaybackStream(title: string, episode: string, movie = false, year?: number, season = 1): Promise<PlaybackStream | null> {
+  if(!/^\d+(?:\.\d+)?$/.test(episode)||!Number.isInteger(season)||season<1)return null;
+  let finished = false;
+  const primary = findPlaybackStream(title,episode,movie,year,season).then(value=>{if(value)finished=true;return value;});
+  if(movie||!year)return primary;
+  const aliases = (async()=>{
+    await new Promise(resolve=>setTimeout(resolve,500));
+    if(finished)return null;
+    const identity=await resolveAsianIdentity(title,year).catch(()=>null);
+    if(!identity)return null;
+    const names=[...new Set((identity.aliases||[]).map(name=>englishText(name)).filter((name):name is string=>Boolean(name)&&normalizeTitle(name!)!==normalizeTitle(title)))].slice(0,2);
+    return Promise.any(names.map(name=>findPlaybackStream(name,episode,false,year,season).then(value=>{if(value)return value;throw new Error('No verified alias stream');}))).catch(()=>null);
+  })();
+  return Promise.any([primary,aliases].map(task=>task.then(value=>{if(value)return value;throw new Error('No verified stream');}))).catch(()=>null);
 }

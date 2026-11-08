@@ -20,7 +20,7 @@ export function DramaCard({ item, variant }: DramaCardProps) {
       <Link prefetch={false} href={href} className="group block animate-slide-up">
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl glass-card card-hover">
           <div className="relative aspect-[4/5] overflow-hidden">
-            <Artwork sources={[d.image, ...(d.poster_fallbacks || [])]} alt={d.title} title={d.title} year={Number(d["episode-link"].match(/--(\d{4})/)?.[1]) || undefined} />
+            <Artwork sources={[d.image, ...(d.poster_fallbacks || [])]} alt={d.title} title={d.title} movie={d.type==='Movie'} year={Number(d["episode-link"].match(/--(\d{4})/)?.[1]) || undefined} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
             <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1 sm:gap-2">

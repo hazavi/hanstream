@@ -62,6 +62,7 @@ export async function executeReaderJob(input: ReaderJob): Promise<unknown> {
               new URLSearchParams({
                 title: job.title,
                 ...(job.year ? { year: String(job.year) } : {}),
+                ...(job.movie ? {movie:'1'} : {}),
                 secondary: job.secondary ? "1" : "0",
                 width: String(job.width),
               }),

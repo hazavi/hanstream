@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { catalogRoute, normalizeTitle, parseCatalogRoute, type CatalogTitle } from "./catalog";
-import { enrichArtwork, findMetadata, getMetadataList, searchMetadata } from "./metadata";
+import { enrichArtwork, findMetadata, searchMetadata } from "./metadata";
 import { findDramaDetails, getDramaDetails, getDetailEpisodes, type DetailRecord } from "./details";
 import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "./playback";
 import { getSourceConfig } from "./server-config.mjs";
@@ -15,6 +15,7 @@ import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
 import { persistentLoader } from './persistent-cache';
 import { englishText } from './display-language';
 import {browseAsianDramas, type BrowseCategory} from './discovery-reader';
+import {getAiringDramas} from './airing-reader';
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -36,8 +37,7 @@ export async function fetchRecent(page = 1): Promise<RecentResponse> {
 }
 
 export async function fetchPopular(page = 1): Promise<PopularResponse> {
-  try { return await fetchCategory('popular', page); }
-  catch { return { results: (await getMetadataList("popular", page)).map(popularRow) }; }
+  return fetchCategory('popular-new', page);
 }
 
 export async function fetchCategory(category: BrowseCategory, page = 1): Promise<PopularResponse> {
@@ -221,7 +221,7 @@ export async function fetchHotSeries(): Promise<HotSeriesResponse> {
 
 export async function fetchPopularSeries(): Promise<TopDramasResponse> {
   const kinds = ["airing", "upcoming", "popular"] as const;
-  const results = await Promise.allSettled(kinds.map(kind => getMetadataList(kind)));
+  const results = await Promise.allSettled(kinds.map(kind => kind==='airing'?getAiringDramas():browseAsianDramas(kind==='upcoming'?'upcoming':'popular-new').then(value=>value.items)));
   const lists: TopDramasResponse["result"]["lists"] = { airing: [], upcoming: [], popular: [] };
   const errors: TopDramasResponse["result"]["errors"] = {};
   results.forEach((result, index) => {

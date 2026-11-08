@@ -10,9 +10,12 @@ export const validSearchQuery = (value: string) => value.trim().length > 0 && va
 export function validateApiRequest(url: URL): string | undefined {
   if (url.pathname.length > 512 || url.search.length > 2048) return 'Request is too long';
   const query = url.searchParams;
+  const route=url.pathname;
+  const allowed=route==='/api/search'?['q','page','preview']:route==='/api/catalog'?['kind','page']:route==='/api/artwork'?['title','year','secondary','width','revision','movie']:route==='/api/portrait'?['name','key','width']:['/api/home','/api/health','/api/popular-series','/api/diagnostics'].includes(route)||/^\/api\/(?:drama|episode)\//.test(route)?[]:undefined;
   const seen = new Set<string>();
   for (const [key, value] of query) {
     if (seen.has(key) || controlCharacters.test(key + value)) return 'Invalid query parameters';
+    if(allowed&&!allowed.includes(key))return 'Unsupported query parameter';
     seen.add(key);
   }
   if (query.has('page') && (!/^[1-9]\d{0,3}$/.test(query.get('page')!) || Number(query.get('page')) > 2000)) return 'Invalid page';
@@ -24,7 +27,9 @@ export function validateApiRequest(url: URL): string | undefined {
   }
   if (query.has('key') && query.get('key')!.length > 200) return 'Invalid portrait key';
   if (query.has('secondary') && !['0', '1'].includes(query.get('secondary')!)) return 'Invalid artwork request';
+  if(query.has('movie')&&!['0','1'].includes(query.get('movie')!))return 'Invalid artwork type';
   if (query.has('preview') && !['0', '1'].includes(query.get('preview')!)) return 'Invalid search mode';
+  if(query.has('revision')&&!/^[1-9]\d?$/.test(query.get('revision')!))return 'Invalid image revision';
   if (query.has('width') && !['80', '160', '320', '640'].includes(query.get('width')!)) return 'Invalid image size';
   if (/^\/api\/(?:drama|episode)\//.test(url.pathname)) {
     let segments: string[];

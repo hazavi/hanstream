@@ -8,8 +8,8 @@ import { AuthStatus } from "./AuthStatus";
 
 const navigation: readonly SlideTabItem[] = [
   { value: "/", label: "Home", href: "/" },
-  { value: "/popular", label: "Popular", href: "/popular" },
   { value: "/recently-added", label: "Latest", href: "/recently-added" },
+  { value: "/popular", label: "Popular", href: "/popular" },
   { value: "/recent-movies", label: "Movies", href: "/recent-movies" },
   { value: "/ongoing", label: "Ongoing", href: "/ongoing" },
   { value: "/ongoing-kshows", label: "K-shows", href: "/ongoing-kshows" },

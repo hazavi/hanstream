@@ -9,7 +9,6 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { RotateCcw } from "lucide-react";
 import { readBackend, peekBackend, subscribeBackend } from "@/lib/pages-client";
 import type {
   DramaDetail,
@@ -101,7 +100,6 @@ export function WatchPage({
     key: string;
     result: EpisodeResult;
   }>();
-  const [retrying, setRetrying] = useState(false);
   const retryController = useRef<AbortController | undefined>(undefined);
   const playbackKey = slug + "/" + episode;
   const playback = override?.key === playbackKey ? override.result : result;
@@ -138,7 +136,6 @@ export function WatchPage({
   const current = episodes.find((item) => item.id === selectedEpisode);
   const title = englishText(drama?.title, result.category?.title) || "Drama";
   useEffect(() => {
-    setRetrying(false);
     return () => retryController.current?.abort();
   }, [playbackKey]);
   useEffect(() => {
@@ -164,7 +161,6 @@ export function WatchPage({
     retryController.current?.abort();
     const controller = new AbortController();
     retryController.current = controller;
-    setRetrying(true);
     try {
       const data = await retryWhileActive(
         async () => {
@@ -180,7 +176,7 @@ export function WatchPage({
         controller.signal,
         () =>
           toast(
-            "Still checking the episode. We’ll keep trying.",
+            "The video host has not returned a stream yet. We’re checking again automatically.",
             "episode-retry",
           ),
       );
@@ -194,8 +190,6 @@ export function WatchPage({
     } catch {
       if (!controller.signal.aborted)
         toast("Unable to reload this episode.", "episode-retry-failed");
-    } finally {
-      if (!controller.signal.aborted) setRetrying(false);
     }
   }, [slug, episode, playbackKey]);
   useEffect(() => {
@@ -251,23 +245,6 @@ export function WatchPage({
               />
             }
           />
-          {!playback.video && (
-            <div className="flex items-center gap-3 py-3">
-              <button
-                type="button"
-                className="glass-btn text-sm inline-flex items-center gap-2"
-                onClick={retryEpisode}
-                disabled={retrying}
-              >
-                <RotateCcw
-                  size={14}
-                  aria-hidden="true"
-                  className={retrying ? "animate-spin" : ""}
-                />
-                {retrying ? "Reloading…" : "Retry episode"}
-              </button>
-            </div>
-          )}
           {current?.description && (
             <section className="watch-summary">
               <h2 className="heading text-sm font-semibold mb-2">

@@ -14,6 +14,8 @@ Personal library data stays on the device. The website uses browser storage; Win
 
 Popular has all-time and recent rankings. Ongoing dramas and Korean variety shows have separate paginated pages. Browse filters are read from the public catalog, and search checks the full catalog rather than only the homepage. Shared-title metadata requires Asian country or language evidence. Watchlist folders show 20 dramas per page.
 
+The homepage's popular section uses the recent popular category. Its airing sidebar and ongoing page share one cached catalog list, checked against published previous and next episode dates. A renewed series waiting for a later season is excluded. Ranking refreshes keep a complete snapshot when an upstream market fails, instead of switching to another provider. Catalog pages use six columns on wide screens.
+
 Windows exports always open a native Save As dialog. Browsers use a save-location picker when supported; otherwise their download settings control the location. Cancelled exports do not change the library. Launching the Windows app again restores and focuses its existing window instead of starting another instance. The Windows icon uses the same favicon as the website.
 
 The Windows player runs in a separate native WebView with no library access. Built-in filtering blocks known advertising hosts. Desktop and web players block popups, new tabs, downloads and top-level redirects. Independent players may still be unavailable or reject embedding.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Server, Check, RotateCcw, LoaderCircle } from "lucide-react";
+import { Server, Check, LoaderCircle } from "lucide-react";
 import { MEDIA_SANDBOX, MEDIA_PERMISSIONS, safeEmbedUrl } from "@/lib/embed";
 import { isDesktop } from "@/lib/native";
 import { NativePlayer } from "./NativePlayer";
@@ -43,7 +43,7 @@ export function EpisodePlayer({
   useEffect(() => {
     if (status === "slow" || status === "failed")
       toast(
-        "The player is delayed or unavailable. Reload it or choose another listed server.",
+        "This video host is taking longer to respond. Try another listed server; your episode stays selected.",
         "player-delay",
       );
   }, [status]);
@@ -115,8 +115,8 @@ export function EpisodePlayer({
           </div>
         )}
       </div>
-      {caption}
-      {(availableServers.length > 0 || navigation) && (
+      {(caption || navigation) && <div className="watch-caption-row">{caption}{navigation}</div>}
+      {availableServers.length > 0 && (
         <div className="watch-toolbar">
           {availableServers.length > 0 && (
             <div
@@ -143,20 +143,6 @@ export function EpisodePlayer({
               ))}
             </div>
           )}
-          {selected && (
-            <button
-              type="button"
-              className="stream-server-button"
-              aria-label="Reload player"
-              onClick={() => {
-                setStatus("loading");
-                setReload((value) => value + 1);
-              }}
-            >
-              <RotateCcw size={14} aria-hidden="true" />
-            </button>
-          )}
-          {navigation}
         </div>
       )}
     </div>

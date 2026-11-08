@@ -20,6 +20,23 @@ const date = (value: string) => {
   const time = Date.parse(`${value} UTC`);
   return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 10) : undefined;
 };
+export function parseCollectionMoviePoster(html:string,url:string,title:string,year:number):string|undefined {
+  const schema=structuredItems(html).find(item=>item['@type']==='Movie');
+  if(!schema||!sameTitle(text(schema.name),title)||Number(String(schema.datePublished||'').slice(0,4))!==year)return;
+  const country=originText(schema.countryOfOrigin),language=originText(schema.inLanguage);
+  if((country||language)&&!hasAsianOrigin(country,language))return;
+  return httpsUrl(text(schema.image),url);
+}
+const moviePosters=createKeyedCache<string|undefined>(async key=>{
+  const {title,year}=JSON.parse(key),origin=getSourceConfig().collectionOrigin;
+  if(!origin||!year)return;
+  const name=slug(title);
+  return Promise.any([name,`${name}-${year}`].map(async name=>{
+    const url=`${origin}/movie/${name}`,image=parseCollectionMoviePoster(await readHtml(url,21600),url,title,year);
+    if(image)return image;throw new Error('No matching movie poster');
+  })).catch(()=>undefined);
+},21600000);
+export const findCollectionMoviePoster=(title:string,year?:number)=>moviePosters(JSON.stringify({title,year}));
 function listedImage(element: ReturnType<ReturnType<typeof load>>, base: string) {
   // Prefer the publisher's smaller rendition for 56px portraits and episode
   // cards instead of downloading its full-size image for every list entry.

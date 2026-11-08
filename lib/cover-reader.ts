@@ -9,14 +9,14 @@ import {hasAsianOrigin} from './catalog-policy';
 
 export function parsePublishedCover(html: string, title: string, year?: number) {
   const $ = load(html);
-  const heading = $('#firstHeading,h1').first().text().replace(/\s*\((?:\d{4}\s+)?(?:TV|television) series\)$/i, '').trim();
+  const heading = $('#firstHeading,h1').first().text().replace(/\s*\((?:\d{4}\s+)?(?:(?:TV|television) series|film)\)$/i, '').trim();
   if (normalizeTitle(heading) !== normalizeTitle(title)) return undefined;
   const box = $('.infobox').first().clone(); box.find('style,script,sup').remove();
   const fields = new Map<string,string>();
   box.find('tr').each((_, element) => { const row = $(element); const label = row.children('th').text().replace(/\s+/g,' ').trim(); if (label && row.children('td').length) fields.set(label.toLowerCase(),row.children('td').text().replace(/\s+/g,' ').trim()); });
   if (![...fields.keys()].some(label => /(?:no\.|number).*episodes|original\s*release|release date/.test(label))) return undefined;
-  const country = [...fields].find(([key])=>/^country/.test(key))?.[1] || '';
-  const language = [...fields].find(([key])=>/^original languages?/.test(key))?.[1] || '';
+  const country = [...fields].find(([key])=>/^countr(?:y|ies)/.test(key))?.[1] || '';
+  const language = [...fields].find(([key])=>/^(?:original )?languages?/.test(key))?.[1] || '';
   if (!hasAsianOrigin(country, language)) return undefined;
   const release = [...fields].filter(([key])=>/release|aired/.test(key)).map(([,value])=>value).join(' ');
   const years: string[] = release.match(/\b(?:19|20)\d{2}\b/g) || [];
@@ -60,7 +60,7 @@ export const findPublishedDetail = createKeyedCache<DetailRecord | null>(async k
   if (!base) return null;
   const capitalized = String(title).split(' ').map(word => word ? word[0].toUpperCase() + word.slice(1) : word).join(' ');
   const natural = capitalized.replace(/\b(?:A|An|The|And|Or|Of|To|In|On|For|With|At|By)\b/g,(word,index)=>index ? word.toLowerCase() : word);
-  const variants = [...new Set([title, natural, capitalized, ...(year ? [`${natural} (${year} TV series)`] : []), `${natural} (TV series)`])];
+  const variants = [...new Set([title, natural, capitalized, ...(year ? [`${natural} (${year} TV series)`,`${natural} (${year} film)`] : []), `${natural} (TV series)`,`${natural} (film)`])];
   for (const variant of variants) {
     try {
       const url=`${base}/wiki/${encodeURIComponent(String(variant).replace(/ /g,'_'))}`;

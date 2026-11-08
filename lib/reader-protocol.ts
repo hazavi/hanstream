@@ -16,6 +16,7 @@ export type ReaderJob =
       kind: "artwork";
       title: string;
       year?: number;
+      movie?: boolean;
       secondary: boolean;
       width: number;
     }
@@ -81,6 +82,7 @@ export function parseReaderJob(input: unknown): ReaderJob {
         throw new Error("Invalid episode.");
       return { kind, slug: slug(), episode: value.episode };
     case "artwork": {
+      if(value.movie!==undefined&&typeof value.movie!=='boolean')throw new Error('Invalid artwork type.');
       if (
         typeof value.title !== "string" ||
         !value.title.trim() ||
@@ -100,6 +102,7 @@ export function parseReaderJob(input: unknown): ReaderJob {
         kind,
         title: value.title.trim(),
         ...(value.year ? { year: value.year as number } : {}),
+        ...(value.movie?{movie:true}:{}),
         secondary: value.secondary,
         width: width(),
       };

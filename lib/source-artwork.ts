@@ -10,7 +10,7 @@ export async function readSourceArtwork(request: Request) {
   const resolve = async () => {
     for (const secondary of query.get('secondary') === '1' ? [true] : [false,true]) {
       try {
-        const image = await findCatalogArtwork(JSON.stringify({title,year,secondary}));
+        const image = await findCatalogArtwork(JSON.stringify({title,year,secondary,...(query.get('movie')==='1'?{movie:true}:{})}));
         if (!image?.startsWith('https://')) continue;
         const response = await imageResponse(image,request,60);
         if (response.headers.get('X-Artwork-Available') !== '0') return response;
