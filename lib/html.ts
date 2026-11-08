@@ -97,6 +97,7 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
     } catch (error) {
       const code = (error as { cause?: {code?:string} })?.cause?.code;
       if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) || code === 'UND_ERR_CONNECT_TIMEOUT') {
+        count('html.timeout');
         pausePage(url.href);
         throw new SourceUnavailable(source);
       }
@@ -106,6 +107,7 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
         continue;
       }
       pausePage(url.href);
+      count('html.network');
       throw new SourceUnavailable(source);
     }
     if ([500, 502, 503, 504].includes(response.status) && !retried) {
@@ -123,8 +125,9 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
     }
     // A forbidden candidate does not imply that another public profile is
     // forbidden. Rate limits, however, apply to the whole configured host.
-    if (response.status === 403) unavailableUntil.set(url.href, Date.now() + 60_000);
-    if (response.status === 429) unavailableUntil.set(url.origin, Date.now() + 60_000);
+    if (response.status === 403) { count('html.forbidden'); unavailableUntil.set(url.href, Date.now() + 60_000); }
+    if (response.status === 429) { count('html.rateLimited'); unavailableUntil.set(url.origin, Date.now() + 60_000); }
+    if (response.status >= 500) count('html.upstream');
     if (!response.ok || !((response.headers.get("content-type") || "").includes("text/html") || feed&&/^(?:application\/(?:rss\+xml|xml)|text\/xml)(?:;|$)/i.test(response.headers.get('content-type')||''))) {
       await response.body?.cancel();
       throw new SourceUnavailable(source);
@@ -132,7 +135,7 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
     const html = await limitedHtml(response);
     // Content pages may include a challenge script alongside their published HTML.
     // Reject actual interstitial pages, without rejecting that accessible content.
-    if (/<title>\s*(?:Just a moment|One moment,?\s*please|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) throw new SourceUnavailable(source);
+    if (/<title>\s*(?:Just a moment|One moment,?\s*please|Access denied|Attention Required)/i.test(html) || /\bid=["'](?:challenge-form|cf-challenge-running|challenge-running)["']/i.test(html)) { count('html.interstitial'); throw new SourceUnavailable(source); }
     return html;
   }
   throw new SourceUnavailable(source);

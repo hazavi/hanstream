@@ -1,6 +1,6 @@
 import 'server-only';
 
-type Metric = 'html.hit' | 'html.miss' | 'html.failure' | 'cache.hit' | 'cache.miss' | 'cache.failure' | 'image.hit' | 'image.miss' | 'image.failure';
+type Metric = 'html.hit' | 'html.miss' | 'html.failure' | 'html.timeout' | 'html.network' | 'html.forbidden' | 'html.rateLimited' | 'html.upstream' | 'html.interstitial' | 'cache.hit' | 'cache.miss' | 'cache.failure' | 'image.hit' | 'image.miss' | 'image.failure';
 const counters = new Map<Metric, number>();
 const readers = new Map<string, { outcome: 'ok' | 'unavailable'; records: number; at: string }>();
 /** Fixed reader roles only. Never store URLs, query text, headers, or response bodies. */
