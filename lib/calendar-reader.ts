@@ -40,10 +40,10 @@ export function parseCalendarTitles(html:string,base:string,year:number):Calenda
 }
 export function parseFilteredShows(html:string,base:string,kind:'airing'|'upcoming'):CalendarTitle[] {
   const $=load(html);
-  return $('article h2 a[href^="/shows/"]').map((_,element)=>{
+  return $('.card h2 a[href^="/shows/"], article h2 a[href^="/shows/"]').map((_,element)=>{
     const a=$(element),url=httpsUrl(a.attr('href'),base),title=text(a.text());
     if(!url||new URL(url).origin!==new URL(base).origin||!/^\/shows\/\d+\/[^/]+$/.test(new URL(url).pathname))return null;
-    return {title,url,image:httpsUrl(a.closest('article').find('figure img').attr('src'),base)||'/file.svg',movie:false,indexOnly:true as const,sourceName:'Calendar',meta:{Status:kind==='airing'?'Running':'In Development'},[kind]:true};
+    return {title,url,image:httpsUrl(a.closest('.card, article').find('figure img').attr('src'),base)||'/file.svg',movie:false,indexOnly:true as const,sourceName:'Calendar',meta:{Status:kind==='airing'?'Running':'In Development'},[kind]:true};
   }).get();
 }
 const lookup=createKeyedCache<CalendarTitle[]>(async yearKey=>{

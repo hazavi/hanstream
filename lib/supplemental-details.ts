@@ -8,6 +8,8 @@ import type { DetailEpisode, DetailRecord } from './details';
 import type { DramaCast } from './api-types';
 import { observeReader } from './diagnostics';
 import { englishText } from './display-language';
+import {hasAsianOrigin, originText} from './catalog-policy';
+import {resolveAsianIdentity} from './catalog-search';
 
 const text = (value: unknown) => typeof value === 'string' ? cleanText(load(`<span>${value}</span>`)('span').text()) : '';
 const slug = (value: string) => normalizeTitle(value).replaceAll(' ', '-');
@@ -26,12 +28,21 @@ function listedImage(element: ReturnType<ReturnType<typeof load>>, base: string)
   return httpsUrl(selected || element.attr('src'), base);
 }
 
-export function parseCollectionDetail(html: string, url: string, title: string, year?: number): DetailRecord | null {
+export function parseCollectionDetail(html: string, url: string, title: string, year?: number, identity?: Pick<DetailRecord, 'year' | 'country' | 'meta' | 'cast'>): DetailRecord | null {
   const $ = load(html);
   const schema = structuredItems(html).find(item => item['@type'] === 'TVSeries');
   if (!schema || !sameTitle(text(schema.name), title)) return null;
   const publishedYear = Number($('[data-testid="metadata-line1"]').text().match(/\b(19\d{2}|20\d{2})\b/)?.[1]);
   if (!publishedYear || year && publishedYear !== year) return null;
+  const ownCountry = originText(schema.countryOfOrigin), ownLanguage = originText(schema.inLanguage);
+  const corroborated = identity?.year === publishedYear ? identity : undefined;
+  const actors = Array.isArray(schema.actor) ? schema.actor.map(actor => originText(actor)) : [];
+  const actorKey = (name: string) => normalizeTitle(name).replaceAll(' ', '');
+  const sharedCast = corroborated?.cast?.some(person => actors.some(actor => actorKey(actor) === actorKey(person.name)));
+  if (!ownCountry && !ownLanguage && !sharedCast) return null;
+  const country = ownCountry || corroborated?.country || String(corroborated?.meta.Country || '');
+  const language = ownLanguage || String(corroborated?.meta.Language || '');
+  if (!hasAsianOrigin(country, language)) return null;
   const cast: DramaCast[] = [];
   $('[data-testid="cast"] figure').each((_, element) => {
     const person = $(element), name = cleanText(person.find('a[aria-label]').first().attr('aria-label') || '');
@@ -41,6 +52,8 @@ export function parseCollectionDetail(html: string, url: string, title: string, 
   });
   const genres = Array.isArray(schema.genre) ? schema.genre.map(text).filter(Boolean) : [];
   const meta: DetailRecord['meta'] = { Released: publishedYear };
+  if (country) meta.Country = country;
+  if (language) meta.Language = language;
   if (Number(schema.numberOfEpisodes)) meta.Episodes = Number(schema.numberOfEpisodes);
   if (Number(schema.numberOfSeasons)) meta.Seasons = Number(schema.numberOfSeasons);
   if (genres.length) meta.Genre = genres.join(', ');
@@ -48,7 +61,7 @@ export function parseCollectionDetail(html: string, url: string, title: string, 
   if (text(schema.productionCompany)) meta.Network = text(schema.productionCompany);
   const duration = $('[data-testid="duration"]').text();
   if (duration) meta.Duration = cleanText(duration);
-  return { title: text(schema.name), year: publishedYear, movie: false, url, image: httpsUrl(text(schema.image), url) || '/file.svg', overview: text(schema.description), genres, cast, meta };
+  return { title: text(schema.name), year: publishedYear, country, movie: false, url, image: httpsUrl(text(schema.image), url) || '/file.svg', overview: text(schema.description), genres, cast, meta };
 }
 
 export function parseCollectionEpisodes(html: string, url: string): DetailEpisode[] {
@@ -147,10 +160,11 @@ const lookup = createKeyedCache<DetailRecord | null>(async key => {
   const { collectionOrigin, guideOrigin } = getSourceConfig();
   const collection = async () => {
     if (!collectionOrigin) return null;
+    const identity = await resolveAsianIdentity(title, year).catch(() => null);
     for (const suffix of ['', '-1']) {
       const url = `${collectionOrigin}/show/${slug(title)}${suffix}`;
       try {
-        const record = parseCollectionDetail(await readHtml(url, 21600), url, title, year);
+        const record = parseCollectionDetail(await readHtml(url, 21600), url, title, year, identity || undefined);
         if (!record) continue;
         const seasonUrl = `${url}/season/1`;
         record.episodes = await readHtml(seasonUrl, 1800).then(html => parseCollectionEpisodes(html, seasonUrl)).catch(() => []);

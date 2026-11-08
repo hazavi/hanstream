@@ -8,7 +8,8 @@ import type { DramaResponse } from "./api-types";
 export type ReaderJob =
   | { kind: "home" | "rankings" | "hot" }
   | { kind: "recent" | "popular" | "movies"; page: number }
-  | { kind: "search"; query: string; page: number }
+  | { kind: 'browse'; category: 'popular' | 'popular-new' | 'ongoing' | 'ongoing-kshows'; page: number }
+  | { kind: "search"; query: string; page: number; preview?: boolean }
   | { kind: "drama"; slug: string }
   | { kind: "episode"; slug: string; episode: string }
   | {
@@ -68,7 +69,11 @@ export function parseReaderJob(input: unknown): ReaderJob {
         !validSearchQuery(value.query)
       )
         throw new Error("Search must contain 1 to 160 characters.");
-      return { kind, query: value.query.trim(), page: page() };
+      if (value.preview !== undefined && typeof value.preview !== 'boolean') throw new Error('Invalid search mode.');
+      return { kind, query: value.query.trim(), page: page(), ...(value.preview ? {preview:true} : {}) };
+    case 'browse':
+      if (typeof value.category !== 'string' || !['popular','popular-new','ongoing','ongoing-kshows'].includes(value.category)) throw new Error('Invalid drama category.');
+      return {kind, category: value.category as 'popular' | 'popular-new' | 'ongoing' | 'ongoing-kshows', page: page()};
     case "drama":
       return { kind, slug: slug() };
     case "episode":

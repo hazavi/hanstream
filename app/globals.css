@@ -2752,17 +2752,7 @@ body {
 
 /* Theme toggle specific styling */
 .theme-toggle-btn {
-  color: #282828 !important; /* Always dark gray in light mode */
-  transition: all 0.3s ease;
-}
-.theme-toggle-btn:hover {
-  color: #000000 !important; /* Black on hover in light mode */
-}
-.dark .theme-toggle-btn {
-  color: #d5d5d5 !important; /* Light gray in dark mode */
-}
-.dark .theme-toggle-btn:hover {
-  color: #ffffff !important; /* White on hover in dark mode */
+  transition: background-color .15s, color .15s;
 }
 .dark .text-secondary {
   color: var(--muted-foreground) !important; /* Better contrast in dark mode */

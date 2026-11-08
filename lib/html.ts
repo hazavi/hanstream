@@ -34,6 +34,13 @@ const pending = new Map<string, Promise<string>>();
 const MAX_HTML_BYTES = 5_000_000;
 const MAX_PENDING_READS = 24;
 const PLAYBACK_RESERVE = 4;
+let nextCatalogRead = 0;
+async function paceCatalog(url: URL) {
+  if (url.origin !== getSourceConfig().catalogOrigin) return;
+  const start = Math.max(Date.now(), nextCatalogRead);
+  nextCatalogRead = start + 550;
+  if (start > Date.now()) await new Promise(resolve => setTimeout(resolve,start - Date.now()));
+}
 export function clearHtmlCache() { pages.clear(); pending.clear(); unavailableUntil.clear(); }
 
 // Only public HTML pages from the configured sources may be requested.
@@ -75,6 +82,10 @@ async function readFreshHtml(value: string, timeout: number, feed=false): Promis
   for (let attempt = 0; attempt < 4; attempt++) {
     if (url.protocol !== "https:" || !allowedOrigins.has(url.origin) || url.username || url.password || url.port) throw new Error("Invalid source URL");
     if ((unavailableUntil.get(url.origin) || 0) > Date.now() || (unavailableUntil.get(url.href)||0)>Date.now()) throw new SourceUnavailable(source);
+    // Share one request budget across search, schedules, profiles and browsing.
+    // Cached HTML bypasses this queue; playback uses its own independent host.
+    await paceCatalog(url);
+    if ((unavailableUntil.get(url.origin) || 0) > Date.now()) throw new SourceUnavailable(source);
     let response: SourceResponse;
     try {
       const options: SourceRequestInit = {

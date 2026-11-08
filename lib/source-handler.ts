@@ -37,6 +37,8 @@ export async function executeReaderJob(input: ReaderJob): Promise<unknown> {
       return api.fetchRecent(job.page);
     case "popular":
       return api.fetchPopular(job.page);
+    case 'browse':
+      return api.fetchCategory(job.category, job.page);
     case "movies":
       return api.fetchRecentMovies(job.page);
     case "rankings":
@@ -44,7 +46,7 @@ export async function executeReaderJob(input: ReaderJob): Promise<unknown> {
     case "hot":
       return api.fetchHotSeries();
     case "search":
-      return api.fetchSearch(job.query, job.page);
+      return api.fetchSearch(job.query, job.page, job.preview);
     case "drama":
       return api.fetchDrama(job.slug);
     case "episode":

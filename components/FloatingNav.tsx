@@ -11,11 +11,13 @@ const navigation: readonly SlideTabItem[] = [
   { value: "/popular", label: "Popular", href: "/popular" },
   { value: "/recently-added", label: "Latest", href: "/recently-added" },
   { value: "/recent-movies", label: "Movies", href: "/recent-movies" },
+  { value: "/ongoing", label: "Ongoing", href: "/ongoing" },
+  { value: "/ongoing-kshows", label: "K-shows", href: "/ongoing-kshows" },
 ];
 
 export function FloatingNav() {
   const pathname = usePathname();
-  const selected = navigation.find(item => item.value === "/" ? pathname === "/" : pathname.startsWith(item.value))?.value ?? "";
+  const selected = navigation.find(item => item.value === "/" ? pathname === "/" : pathname === item.value || pathname.startsWith(item.value + '/'))?.value ?? "";
   return <header className="site-header">
     <nav className="site-nav" aria-label="Main navigation">
       <SlideTabs items={navigation} value={selected} mode="navigation" label="Browse dramas" trailing={<><SearchBar compact/><AuthStatus/><ThemeToggle/></>}/>

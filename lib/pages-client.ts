@@ -143,6 +143,6 @@ export async function readBackend<T>(path: string, signal?: AbortSignal, options
   return forConsumer(load() as Promise<T>, signal);
 }
 export async function fetchSearchClient(query: string, page = 1, signal?: AbortSignal): Promise<SearchResponse> {
-  const data = await readBackend<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}&page=${page}`, signal);
-  return { results: data.results.map(item => ({ ...item, "detail-link": pagesRoute(item["detail-link"]) })) };
+  const data = await readBackend<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}&page=${page}&preview=1`, signal);
+  return { ...data, results: data.results.map(item => ({ ...item, "detail-link": pagesRoute(item["detail-link"]) })) };
 }

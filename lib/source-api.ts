@@ -5,7 +5,7 @@ import { enrichArtwork, findMetadata, getMetadataList, searchMetadata } from "./
 import { findDramaDetails, getDramaDetails, getDetailEpisodes, type DetailRecord } from "./details";
 import { getPlaybackCatalog, getPlaybackEpisodes, getPlaybackStream } from "./playback";
 import { getSourceConfig } from "./server-config.mjs";
-import { searchAsianCatalog } from "./catalog-details";
+import { searchAsianCatalogResults } from "./catalog-details";
 import { findPublishedDetail } from './cover-reader';
 import { findSupplementalDetails } from './supplemental-details';
 import { isPublishedImage } from './image-utils.mjs';
@@ -14,6 +14,7 @@ import { createKeyedStaleCache } from './runtime-cache';
 import { detailNeedsRefresh, mergeDramaResponse } from './detail-cache';
 import { persistentLoader } from './persistent-cache';
 import { englishText } from './display-language';
+import {browseAsianDramas, type BrowseCategory} from './discovery-reader';
 import type { DramaResponse, EpisodeResponse, HotSeriesResponse, PopularResponse, RecentMoviesResponse, RecentResponse, SearchResponse, TopDramasResponse } from "./api-types";
 
 export type * from "./api-types";
@@ -35,7 +36,13 @@ export async function fetchRecent(page = 1): Promise<RecentResponse> {
 }
 
 export async function fetchPopular(page = 1): Promise<PopularResponse> {
-  return { results: (await getMetadataList("popular", page)).map(popularRow) };
+  try { return await fetchCategory('popular', page); }
+  catch { return { results: (await getMetadataList("popular", page)).map(popularRow) }; }
+}
+
+export async function fetchCategory(category: BrowseCategory, page = 1): Promise<PopularResponse> {
+  const listing = await browseAsianDramas(category, page);
+  return {results: listing.items.map(popularRow), hasNext: listing.hasNext};
 }
 
 export async function fetchRecentMovies(page = 1): Promise<RecentMoviesResponse> {
@@ -44,21 +51,25 @@ export async function fetchRecentMovies(page = 1): Promise<RecentMoviesResponse>
   return { result: { movies, page, pagination: { current: page, last: Math.ceil(items.length / 20), pages: [] } } };
 }
 
-export async function fetchSearch(query: string, page = 1): Promise<SearchResponse> {
+export async function fetchSearch(query: string, page = 1, preview = false): Promise<SearchResponse> {
   if (!validSearchQuery(query) || !Number.isInteger(page) || page < 1 || page > 2000) throw new Error('Enter a title up to 160 characters and a valid page number.');
   const text = query.trim().replace(/-/g, " ");
   if (!text) return { results: [] };
-  const [catalog, metadata, playback] = await Promise.allSettled([searchAsianCatalog(text), Promise.race([searchMetadata(text, page), new Promise<[]>(resolve => setTimeout(() => resolve([]), 1200))]), getPlaybackCatalog(true)]);
+  let catalogFailed = false;
+  try {
+    const catalog = await searchAsianCatalogResults(text, page, preview ? 8 : 25);
+    if (catalog.items.length || catalog.hasNext) return {results: catalog.items.map(popularRow), hasNext: catalog.hasNext};
+  } catch { catalogFailed = true; }
+  const [metadata, playback] = await Promise.allSettled([Promise.race([searchMetadata(text, page), new Promise<[]>(resolve => setTimeout(() => resolve([]), 1200))]), getPlaybackCatalog(true)]);
   const rows = new Map<string, ReturnType<typeof popularRow>>();
-  if (catalog.status === 'fulfilled') pageSlice(catalog.value, page).forEach(item => rows.set(catalogRoute(item), popularRow(item)));
   if (metadata.status === "fulfilled") metadata.value.forEach(item => rows.set(catalogRoute(item), popularRow(item)));
   if (playback.status === "fulfilled") {
     const normalized = normalizeTitle(text);
     const unique = new Map(playback.value.filter(item => normalizeTitle(item.title).includes(normalized)).map(item => [catalogRoute(item), item]));
     pageSlice([...unique.values()], page).forEach(item => { if (!rows.has(catalogRoute(item))) rows.set(catalogRoute(item), popularRow(item)); });
   }
-  if (!rows.size && metadata.status === "rejected" && catalog.status === 'rejected' && playback.status === 'rejected') throw metadata.reason;
-  return { results: [...rows.values()] };
+  if (!rows.size && metadata.status === "rejected" && catalogFailed && playback.status === 'rejected') throw metadata.reason;
+  return { results: [...rows.values()], hasNext: false };
 }
 
 async function loadDrama(slug: string): Promise<DramaResponse> {
@@ -169,7 +180,7 @@ async function loadDrama(slug: string): Promise<DramaResponse> {
     tags: primary?.tags?.length ? primary.tags : genres, genres, cast, trailer: primary?.trailer, poster_fallbacks: posters, detailsUnavailable, refreshPending:Boolean(primary?.refreshPending || castRefreshNeeded),
   } };
 }
-const loadPersistentDrama = persistentLoader('detail-en-v2', async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => Boolean(value?.result?.title && !detailNeedsRefresh(value)));
+const loadPersistentDrama = persistentLoader('detail-asian-v3', async (slug, previous?: DramaResponse) => mergeDramaResponse(previous, await loadDrama(slug)), value => Boolean(value?.result?.title && !detailNeedsRefresh(value)));
 const cachedDrama = createKeyedStaleCache(loadPersistentDrama, value => detailNeedsRefresh(value) ? 15_000 : 300_000, 100, value => !detailNeedsRefresh(value));
 export const peekDrama = (slug:string) => cachedDrama.peek(slug);
 export const fetchDrama = cache(async (slug: string) => {

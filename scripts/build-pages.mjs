@@ -28,7 +28,7 @@ await cp(path.join(root,"components/ui"),path.join(stage,"components/ui"),{recur
 for (const name of await readdir(path.join(stage, 'components/ui'))) {
   if (name.endsWith('.tsx')) await writeFile(path.join(stage,'components/ui',name),adapt(await readFile(path.join(stage,'components/ui',name),'utf8')));
 }
-for (const name of ["library-export.ts", "display-language.ts", "catalog-response.ts", "home-data.ts", "native.ts", "client-cache.ts", "profile-storage.ts", "detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "profile-transfer.ts", "request-validation.ts", "request-retry.ts", "playback-response.ts", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
+for (const name of ["catalog-policy.ts", "library-export.ts", "display-language.ts", "catalog-response.ts", "home-data.ts", "native.ts", "client-cache.ts", "profile-storage.ts", "detail-cache.ts", "artwork-cache.ts", "embed.ts", "utils.ts", "image-utils.mjs", "api-types.ts", "catalog.ts", "format.ts", "profile.tsx", "profile-transfer.ts", "request-validation.ts", "request-retry.ts", "playback-response.ts", "types.ts", "pages-client.ts", "pages-routes.ts"]) await cp(path.join(root, "lib", name), path.join(stage, "lib", name));
 await writeFile(path.join(stage, "lib/api-client.ts"), 'export { fetchSearchClient } from "./pages-client";\n');
 await writeFile(path.join(stage, "lib/site-link.tsx"), `"use client";
 import Link from "next/link";
@@ -63,7 +63,7 @@ const layout = adapt(await readFile(path.join(root, "app/layout.tsx"), "utf8"))
   .replace('icon: "/favicon.ico"', `icon: ${JSON.stringify(`${basePath}/favicon.ico`)}`)
   .replace('metadataBase: new URL("https://hanstream.site"),', "");
 await writeFile(path.join(stage, "app/layout.tsx"), layout);
-for (const route of ["home", "popular", "recently-added", "recent-movies", "search", "drama", "watch", "profile"]) {
+for (const route of ["home", "popular", "recently-added", "recent-movies", "ongoing", "ongoing-kshows", "search", "drama", "watch", "profile"]) {
   const directory = route === "home" ? path.join(stage, "app") : path.join(stage, "app", route);
   await mkdir(directory, { recursive: true });
   const content = route === "profile" ? adapt(await readFile(path.join(root, "app/profile/page.tsx"), "utf8")) : `import { Suspense } from "react";

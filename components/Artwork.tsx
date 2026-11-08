@@ -66,7 +66,7 @@ export function Artwork({
   const recovery = useRef({ key: "", count: 0 });
   const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
   const fallback = title
-    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}) })}`
+    ? `${base}/api/artwork?${new URLSearchParams({ title, ...(year ? { year: String(year) } : {}), revision:'3' })}`
     : undefined;
   const portrait = person
     ? `${base}/api/portrait?${new URLSearchParams({ name: person, ...(personKey ? { key: personKey } : {}) })}`

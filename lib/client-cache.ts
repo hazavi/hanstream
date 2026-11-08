@@ -1,6 +1,7 @@
 import { isDesktop, nativeInvoke } from './native';
 
-export type CacheRecord = { key: string; value: unknown; expires: number; savedAt: number };
+export type CacheRecord = { key: string; value: unknown; expires: number; savedAt: number; revision?: number };
+const revision = 3;
 function transient(key: string) {
   try { return /^\/api\/(?:episode(?:\/|$)|search(?:\/|$))/.test(new URL(key, 'https://cache.invalid').pathname); }
   catch { return true; }
@@ -20,18 +21,19 @@ function open() {
 export async function readLocalResponse(key: string): Promise<CacheRecord | undefined> {
   if (transient(key)) return undefined;
   try {
-    if (isDesktop()) return (await nativeInvoke<CacheRecord | null>('cache_load', {key})) || undefined;
+    if (isDesktop()) { const record = await nativeInvoke<CacheRecord | null>('cache_load', {key}); return record?.revision === revision ? record : undefined; }
     const db = await open();
     if (!db) return undefined;
     return await new Promise(resolve => {
       const request = db.transaction('responses').objectStore('responses').get(key);
-      request.onsuccess = () => resolve(request.result?.expires > Date.now() ? request.result : undefined);
+      request.onsuccess = () => resolve(request.result?.revision === revision && request.result?.expires > Date.now() ? request.result : undefined);
       request.onerror = () => resolve(undefined);
     });
   } catch { return undefined; }
 }
 
 export async function storeLocalResponse(record: CacheRecord) {
+  record = {...record, revision};
   try {
     if (transient(record.key) || record.key.length > 4096 || !Number.isFinite(record.expires) || record.expires <= Date.now() || record.expires > Date.now() + 86_400_000 || new TextEncoder().encode(JSON.stringify(record)).byteLength > 2_000_000) return;
     if (isDesktop()) { await nativeInvoke('cache_save', {key:record.key,value:record,expiresAt:record.expires}); return; }

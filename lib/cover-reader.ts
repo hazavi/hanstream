@@ -5,6 +5,7 @@ import { readHtml, httpsUrl } from './html';
 import { getSourceConfig } from './server-config.mjs';
 import { createKeyedCache } from './runtime-cache';
 import type { DetailRecord } from './details';
+import {hasAsianOrigin} from './catalog-policy';
 
 export function parsePublishedCover(html: string, title: string, year?: number) {
   const $ = load(html);
@@ -15,7 +16,8 @@ export function parsePublishedCover(html: string, title: string, year?: number) 
   box.find('tr').each((_, element) => { const row = $(element); const label = row.children('th').text().replace(/\s+/g,' ').trim(); if (label && row.children('td').length) fields.set(label.toLowerCase(),row.children('td').text().replace(/\s+/g,' ').trim()); });
   if (![...fields.keys()].some(label => /(?:no\.|number).*episodes|original\s*release|release date/.test(label))) return undefined;
   const country = [...fields].find(([key])=>/^country/.test(key))?.[1] || '';
-  if (country && !/korea|japan|china|taiwan|hong kong|thailand|philippines|singapore|malaysia|indonesia|vietnam|india/i.test(country)) return undefined;
+  const language = [...fields].find(([key])=>/^original languages?/.test(key))?.[1] || '';
+  if (!hasAsianOrigin(country, language)) return undefined;
   const release = [...fields].filter(([key])=>/release|aired/.test(key)).map(([,value])=>value).join(' ');
   const years: string[] = release.match(/\b(?:19|20)\d{2}\b/g) || [];
   if (year && years.length && !years.includes(String(year))) return undefined;

@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const query = url.searchParams.get("q")?.trim();
   if (!query) return NextResponse.json({ error: "Query is required" }, { status: 400 });
   try {
-    return NextResponse.json(await fetchSearch(query, Number(url.searchParams.get("page")) || 1));
+    return NextResponse.json(await fetchSearch(query, Number(url.searchParams.get("page")) || 1, url.searchParams.get('preview') === '1'));
   } catch (error) {
     return readerErrorResponse(error,"Search is temporarily unavailable");
   }

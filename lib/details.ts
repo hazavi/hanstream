@@ -9,6 +9,8 @@ import { getSourceConfig } from "./server-config.mjs";
 import type { DramaTrailer, DramaCast } from "./api-types";
 import { findCatalogDetails } from "./catalog-details";
 import { findReferenceDetail } from './reference-reader';
+import {hasAsianOrigin, isAsianCountry} from './catalog-policy';
+export {isAsianCountry} from './catalog-policy';
 
 const BASE = getSourceConfig().detailsOrigin;
 export type DetailRecord = CatalogTitle & { overview?: string; otherNames?: string; aliases?: string[]; cast?: DramaCast[]; meta: Record<string, string | number>; episodesUrl?: string; episodes?: DetailEpisode[]; country?: string; tags?: string[]; genres?: string[]; trailer?: DramaTrailer; refreshPending?: boolean };
@@ -37,10 +39,6 @@ function names(value: unknown): string[] {
   return [];
 }
 
-export function isAsianCountry(country: string): boolean {
-  return /(?:\b(?:KR|KP|CN|TW|HK|JP|TH|PH|SG|MY|ID|VN|IN|PK|BD|NP|LK|KH|LA|MM|MN|BT)\b|korea|china|chinese|taiwan|hong kong|japan|thailand|philippines|singapore|malaysia|indonesia|vietnam|india|pakistan|bangladesh|nepal|sri lanka|cambodia|laos|myanmar|mongolia|bhutan)/i.test(country);
-}
-
 export function parseDetailPage(html: string, pageUrl: string): DetailRecord {
   const $ = load(html);
   const schema = structuredItems(html).find(item => ["TVSeries", "Movie"].includes(String(item["@type"]))) || {};
@@ -54,7 +52,7 @@ export function parseDetailPage(html: string, pageUrl: string): DetailRecord {
     if (["Country", "Language", "Air Date", "Original Title", "Age Rating", "Network", "Status", "Runtime", "Duration"].includes(key)) meta[key] = cleanText(cells.eq(1).text());
   });
   const country = String(meta.Country || names(schema.countryOfOrigin).join(", "));
-  if (country && !isAsianCountry(country)) throw new Error("This title is outside the Asian drama catalog.");
+  if (!hasAsianOrigin(country, meta.Language || names(schema.inLanguage))) throw new Error("This title is outside the Asian drama catalog.");
   const released = $("meta[property='og:release_date']").attr("content") || $("[itemprop='startDate']").first().text() || String(schema.datePublished || "");
   const year = Number(released.slice(0, 4)) || undefined;
   const genres = [...new Set([...$("[itemprop='genre']").map((_, el) => cleanText($(el).text())).get(), ...names(schema.genre)].filter(Boolean))];

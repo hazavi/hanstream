@@ -1,4 +1,4 @@
-type PageView = 'home' | 'popular' | 'recently-added' | 'recent-movies' | 'search' | 'drama' | 'watch' | 'profile';
+type PageView = 'home' | 'popular' | 'recently-added' | 'recent-movies' | 'ongoing' | 'ongoing-kshows' | 'search' | 'drama' | 'watch' | 'profile';
 
 function Block({ className = '' }: { className?: string }) {
   return <div className={`loading-placeholder ${className}`} />;

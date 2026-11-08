@@ -1,6 +1,7 @@
 import type { DramaResponse } from './api-types';
 import { isPublishedImage } from './image-utils.mjs';
 import { englishText } from './display-language';
+import {hasAsianOrigin} from './catalog-policy';
 
 export function englishDramaResponse(response: DramaResponse): DramaResponse {
   const detail = response.result;
@@ -27,6 +28,8 @@ export function mergeDramaResponse(previous: DramaResponse | undefined, current:
   const next = current.result;
   if (!old) return englishDramaResponse(current);
   if (!next) return englishDramaResponse(previous!);
+  const oldYear = Number(old.meta?.Released), newYear = Number(next.meta?.Released);
+  if (oldYear && newYear && oldYear !== newYear || old.meta?.Country && !hasAsianOrigin(old.meta.Country,old.meta.Language) && hasAsianOrigin(next.meta?.Country,next.meta?.Language)) return englishDramaResponse(current);
   const publishedMeta = Object.fromEntries(Object.entries(next.meta || {}).filter(([, value]) => value != null && value !== ''));
   const knownEpisodes = new Map(old.episodes?.map(episode=>[`${episode.season||1}/${episode.episode}`,episode]));
   const episodes = next.episodes?.length ? next.episodes.map(episode=>{

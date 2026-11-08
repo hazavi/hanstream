@@ -24,6 +24,7 @@ export function validateApiRequest(url: URL): string | undefined {
   }
   if (query.has('key') && query.get('key')!.length > 200) return 'Invalid portrait key';
   if (query.has('secondary') && !['0', '1'].includes(query.get('secondary')!)) return 'Invalid artwork request';
+  if (query.has('preview') && !['0', '1'].includes(query.get('preview')!)) return 'Invalid search mode';
   if (query.has('width') && !['80', '160', '320', '640'].includes(query.get('width')!)) return 'Invalid image size';
   if (/^\/api\/(?:drama|episode)\//.test(url.pathname)) {
     let segments: string[];

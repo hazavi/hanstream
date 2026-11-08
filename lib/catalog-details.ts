@@ -3,48 +3,25 @@ import { readHtml } from "./html";
 import { getSourceConfig } from "./server-config.mjs";
 import { normalizeTitle } from "./catalog";
 import { createKeyedCache } from "./runtime-cache";
-import { parseCatalogSearch, parseCatalogDetails, parseCatalogEpisodes, parseMediaSearch } from "./catalog-reader.mjs";
+import { parseCatalogEpisodes, parseMediaSearch } from "./catalog-reader.mjs";
 import type { DetailRecord } from "./details";
 import { lookupMetadata } from "./metadata-source.mjs";
 import { findAlbumPoster } from './album-reader';
 import { findPublishedCover } from './cover-reader';
 import { findReferenceDetail } from './reference-reader';
 import { findSupplementalDetails } from './supplemental-details';
+import {getCatalogProfile as profiles, resolveAsianIdentity as resolveProfile, searchCatalogTitles, searchCatalogPage} from './catalog-search';
+import {hasAsianOrigin, isAsianCountry as asian} from './catalog-policy';
+export {searchCatalogTitles} from './catalog-search';
 
-type SearchTitle = { title: string; url: string; year?: number; country?: string; image?: string; movie?: boolean };
-const asian = (country: string) => /korea|japan|china|taiwan|hong kong|thailand|philippines|singapore|malaysia|indonesia|vietnam|india|pakistan|nepal|sri lanka|cambodia|laos|myanmar|mongolia/i.test(country);
-const asianLanguage = (value: unknown) => /Korean|Japanese|Chinese|Mandarin|Cantonese|Thai|Vietnamese|Tagalog|Filipino|Malay|Indonesian|Hindi|Tamil|Telugu/i.test(String(value || ''));
-let activeReads = 0;
-const waiting: (() => void)[] = [];
-async function catalogRead(url: string) {
-  if (activeReads >= 4) await new Promise<void>(resolve => waiting.push(resolve)); else activeReads++;
-  try { return await readHtml(url, 3600, 4500); }
-  finally { const next = waiting.shift(); if (next) next(); else activeReads--; }
-}
-const searches = createKeyedCache<SearchTitle[]>(async title => {
-  const { catalogOrigin } = getSourceConfig();
-  return catalogOrigin ? parseCatalogSearch(await catalogRead(`${catalogOrigin}/search?q=${encodeURIComponent(title)}`), catalogOrigin) : [];
-});
-const profiles = createKeyedCache<DetailRecord>(async url => parseCatalogDetails(await catalogRead(url), url) as DetailRecord);
-export function searchCatalogTitles(query: string) { return searches(normalizeTitle(query)); }
-const eligible = (record: DetailRecord) => record.country ? asian(record.country) : asianLanguage(record.meta.Language);
-async function resolveProfile(title: string, year?: number, season?: number): Promise<DetailRecord | null> {
-  const candidates = (await searchCatalogTitles(title)).filter(item => !year || item.year === year || season && item.year && item.year < year);
-  const exact = candidates.filter(item => normalizeTitle(item.title) === normalizeTitle(title));
-  for (const candidate of (exact.length ? exact : candidates).slice(0, 3)) {
-    if (candidate.country && !asian(candidate.country)) continue;
-    const record = await profiles(candidate.url);
-    if ([record.title, ...(record.aliases || [])].some(alias => normalizeTitle(alias) === normalizeTitle(title)) && eligible(record)) return { ...record, meta: { ...record.meta } };
-  }
-  return null;
-}
+const eligible = (record: DetailRecord) => hasAsianOrigin(record.country, record.meta.Language);
 export const findCatalogArtwork = createKeyedCache<string | undefined>(async key => {
   const { title, year, secondary } = JSON.parse(key);
   if (!secondary) {
     try {
       const items = await searchCatalogTitles(title);
       const exact = items.filter(item => normalizeTitle(item.title) === normalizeTitle(title) && (!year || item.year === year) && (!item.country || asian(item.country)));
-      if (exact.length === 1 && exact[0].image) return exact[0].image;
+      if (exact.length === 1 && exact[0].country && exact[0].image) return exact[0].image;
       const image = (await resolveProfile(title, year))?.image;
       if (image && image !== '/file.svg') return image;
     } catch { /* The independent artwork reader remains available. */ }
@@ -67,16 +44,16 @@ export const findCatalogArtwork = createKeyedCache<string | undefined>(async key
     return await Promise.any([findAlbumPoster(title,year),metadata(),findReferenceDetail(title,year).then(record=>record?.image),findPublishedCover(title,year),findSupplementalDetails(title,year).then(record=>record?.image)].map(promise=>promise.then(image=>{if(image&&image!=='/file.svg')return image;throw new Error('No published poster');})));
   } catch { return undefined; }
 }, 900_000, 100, 5000);
-export async function searchAsianCatalog(query: string) {
-  const rows = await searchCatalogTitles(query);
-  const known = rows.filter(item => item.country && asian(item.country));
-  const unknown = rows.filter(item => !item.country).slice(0, 3);
-  const extra = await Promise.allSettled(unknown.map(async item => {
+export async function searchAsianCatalogResults(query: string, page = 1, limit = 25) {
+  const source = await searchCatalogPage(query, page), rows = source.items;
+  const candidates = rows.filter(item => !item.country || asian(item.country)).slice(0,limit);
+  const verified = await Promise.allSettled(candidates.map(async item => {
     const record = await profiles(item.url);
-    return eligible(record) ? { ...item, image: record.image, country: record.country } : null;
+    return eligible({...record,country:record.country || item.country}) && record.meta['Show Type'] !== 'Animation' ? { ...item, year: record.year, image: record.image, country: record.country || item.country } : null;
   }));
-  return [...known, ...extra.flatMap(result => result.status === 'fulfilled' && result.value ? [result.value] : [])].map(item => ({ ...item, image: item.image || '/file.svg' }));
+  return {items: verified.flatMap(result => result.status === 'fulfilled' && result.value ? [{...result.value,image:result.value.image || '/file.svg'}] : []), hasNext: source.hasNext};
 }
+export async function searchAsianCatalog(query: string, page = 1) { return (await searchAsianCatalogResults(query,page)).items; }
 
 const lookup = createKeyedCache<DetailRecord | null>(async key => {
   const { title, year } = JSON.parse(key) as { title: string; year?: number };

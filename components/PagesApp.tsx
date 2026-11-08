@@ -24,6 +24,7 @@ import { PageSkeleton } from "./PageSkeleton";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { NoticeToast, toast } from "./ui/toast";
 import { retryWhileActive, waitForActivePage } from "@/lib/request-retry";
+import {SlideTabs} from './ui/slide-tabs';
 const DramaDetails = dynamic(
   () => import("./DramaDetails").then((module) => module.DramaDetails),
   { loading: () => <PageSkeleton view="drama" /> },
@@ -51,6 +52,8 @@ type View =
   | "popular"
   | "recently-added"
   | "recent-movies"
+  | "ongoing"
+  | "ongoing-kshows"
   | "search"
   | "drama"
   | "watch";
@@ -122,9 +125,11 @@ export default function PagesApp({
   const episode = routeEpisode || query.get("episode") || "";
   const search = query.get("q") || "";
   const page = Math.max(1, Math.floor(Number(query.get("page")) || 1));
+  const popularCategory = query.get('category') === 'new' ? 'new' : 'all';
   const kind =
     view === "popular"
-      ? "popular"
+      ? popularCategory === 'new' ? 'popular-new' : 'popular'
+      : view === 'ongoing' || view === 'ongoing-kshows' ? view
       : view === "recent-movies"
         ? "movies"
         : "recent";
@@ -271,21 +276,32 @@ export default function PagesApp({
       : (state.data as CatalogData).items;
   const hasNext =
     view === "search"
-      ? items.length >= 20
+      ? (state.data as SearchResponse).hasNext ?? items.length >= 20
       : (state.data as CatalogData).hasNext;
   const pageLink = (target: number) =>
-    `/${view}/?${new URLSearchParams({ ...(view === "search" ? { q: search } : {}), page: String(target) })}`;
+    `/${view}/?${new URLSearchParams({ ...(view === "search" ? { q: search } : {}), ...(view === 'popular' ? {category:popularCategory} : {}), page: String(target) })}`;
   return (
     <div className="space-y-6">
       <h1 className="heading text-3xl">
         {view === "search"
           ? `Search: ${search}`
           : view === "popular"
-            ? "Popular Dramas"
+            ? "Popular Asian Dramas"
+            : view === 'ongoing' ? 'Ongoing Asian Dramas'
+            : view === 'ongoing-kshows' ? 'Ongoing K-shows'
             : view === "recent-movies"
               ? "Recent Movies"
               : "Latest Episodes"}
       </h1>
+      {view === 'popular' && <>
+        <p className="text-secondary">Explore established favorites and recent popular Korean, Japanese, Chinese and Thai dramas.</p>
+        <SlideTabs mode="navigation" value={popularCategory} label="Popular drama categories" items={[
+          {value:'all',label:'All-time popular',href:'/popular?category=all'},
+          {value:'new',label:'New & popular',href:'/popular?category=new'},
+        ]}/>
+      </>}
+      {view === 'ongoing' && <p className="text-secondary">Browse Asian drama series currently listed as running.</p>}
+      {view === 'ongoing-kshows' && <p className="text-secondary">Ongoing Korean variety, reality, game and talk shows.</p>}
       <Cards items={items} />
       <nav
         aria-label="Pagination"

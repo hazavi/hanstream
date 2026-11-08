@@ -35,5 +35,5 @@ async function walk(directory) {
   }
 }
 await walk(root);
-for (const route of ["", "popular/", "recently-added/", "recent-movies/", "search/", "profile/", "drama/", "watch/"]) await stat(path.join(root, route, "index.html"));
+for (const route of ["", "popular/", "recently-added/", "recent-movies/", "ongoing/", "ongoing-kshows/", "search/", "profile/", "drama/", "watch/"]) await stat(path.join(root, route, "index.html"));
 console.log(`Verified ${count} public files and all Pages routes.`);
